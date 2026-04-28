@@ -41,6 +41,7 @@ public partial class MainWindow : Window
 
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
+        SourceInitialized += (_, _) => WindowChrome.ApplyCurrentTheme(this);
     }
 
     // ----------------- LIFECYCLE -----------------

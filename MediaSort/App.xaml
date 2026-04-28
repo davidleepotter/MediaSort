@@ -31,6 +31,16 @@
                 <Setter Property="MinWidth" Value="80"/>
             </Style>
 
+            <!-- GridView column header style (themed) -->
+            <Style TargetType="GridViewColumnHeader">
+                <Setter Property="Background" Value="{DynamicResource PanelHeader}"/>
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushColor}"/>
+                <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                <Setter Property="Padding" Value="6,4"/>
+                <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            </Style>
+
             <Style TargetType="Button" x:Key="DestButton">
                 <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                 <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>

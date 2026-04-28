@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using MediaSort.Models;
+using MediaSort.Services;
 
 namespace MediaSort.Views;
 
@@ -11,6 +12,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow(AppSettings settings, ObservableCollection<DestinationButton> destinations)
     {
         InitializeComponent();
+        SourceInitialized += (_, _) => WindowChrome.ApplyCurrentTheme(this);
         _settings = settings;
 
         SourceFolderBox.Text = settings.SourceFolder;

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 using MediaSort.Models;
+using MediaSort.Services;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 
 namespace MediaSort.Views;
@@ -12,6 +13,7 @@ public partial class DestinationEditor : Window
     public DestinationEditor(DestinationButton dest)
     {
         InitializeComponent();
+        SourceInitialized += (_, _) => WindowChrome.ApplyCurrentTheme(this);
         _dest = dest;
 
         NameBox.Text = dest.Name;

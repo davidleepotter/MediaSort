@@ -60,6 +60,9 @@ public static class ThemeManager
                 System.Windows.Application.Current?.Dispatcher.Invoke(() =>
                 {
                     ApplyTheme(Current);
+                    // Re-apply dark titlebar to all open windows
+                    foreach (Window w in System.Windows.Application.Current.Windows)
+                        WindowChrome.ApplyCurrentTheme(w);
                     ThemeChanged?.Invoke(null, EventArgs.Empty);
                 });
             }

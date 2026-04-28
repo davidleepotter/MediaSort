@@ -8,6 +8,7 @@ public partial class AboutWindow : Window
     public AboutWindow()
     {
         InitializeComponent();
+        SourceInitialized += (_, _) => WindowChrome.ApplyCurrentTheme(this);
         VersionText.Text = $"Version {VersionInfo.GetVersion()}";
     }
 
