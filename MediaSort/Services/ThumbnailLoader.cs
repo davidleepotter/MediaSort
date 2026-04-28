@@ -49,18 +49,59 @@ public static class ThumbnailLoader
 
     private static BitmapImage? TryLoadBitmap(string path, int decodePixelWidth)
     {
+        // Read the file into memory first. Using a MemoryStream avoids a known WPF
+        // quirk where StreamSource + DecodePixelWidth can silently produce a black
+        // bitmap on some JPGs, and removes any chance of the file handle closing
+        // before the decoder finishes.
         try
         {
+            byte[] bytes = File.ReadAllBytes(path);
+            using var ms = new MemoryStream(bytes);
+
             var bmp = new BitmapImage();
             bmp.BeginInit();
             bmp.CacheOption = BitmapCacheOption.OnLoad;
             bmp.CreateOptions = BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.IgnoreColorProfile;
             if (decodePixelWidth > 0) bmp.DecodePixelWidth = decodePixelWidth;
-            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                bmp.StreamSource = fs;
-                bmp.EndInit();
-            }
+            bmp.StreamSource = ms;
+            bmp.EndInit();
+            bmp.Freeze();
+            return bmp;
+        }
+        catch
+        {
+            // Fall back to BitmapDecoder for files BitmapImage rejects.
+            return TryLoadViaDecoder(path, decodePixelWidth);
+        }
+    }
+
+    private static BitmapImage? TryLoadViaDecoder(string path, int decodePixelWidth)
+    {
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var decoder = BitmapDecoder.Create(
+                fs,
+                BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.PreservePixelFormat,
+                BitmapCacheOption.OnLoad);
+            if (decoder.Frames.Count == 0) return null;
+            var frame = decoder.Frames[0];
+
+            // Re-encode as PNG into memory, then load that as a BitmapImage so the
+            // caller still gets the BitmapImage type they expect.
+            using var outMs = new MemoryStream();
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(frame));
+            encoder.Save(outMs);
+            outMs.Position = 0;
+
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.CreateOptions = BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.IgnoreColorProfile;
+            if (decodePixelWidth > 0) bmp.DecodePixelWidth = decodePixelWidth;
+            bmp.StreamSource = outMs;
+            bmp.EndInit();
             bmp.Freeze();
             return bmp;
         }

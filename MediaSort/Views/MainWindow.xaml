@@ -5,6 +5,7 @@
         xmlns:models="clr-namespace:MediaSort.Models"
         xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
         Title="MediaSort"
+        Icon="pack://application:,,,/Assets/AppIcon.ico"
         Height="800" Width="1400"
         Background="{DynamicResource WindowBackground}"
         Foreground="{DynamicResource PanelForeground}"
