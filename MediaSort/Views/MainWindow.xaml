@@ -329,6 +329,8 @@
                     <Grid x:Name="PreviewArea" ClipToBounds="True">
                         <ScrollViewer x:Name="PreviewScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                             <Image x:Name="PreviewImage" Stretch="Uniform" Margin="10" Visibility="Collapsed"
+                                   MaxWidth="{Binding ViewportWidth, ElementName=PreviewScroll}"
+                                   MaxHeight="{Binding ViewportHeight, ElementName=PreviewScroll}"
                                    MouseWheel="PreviewImage_MouseWheel"
                                    MouseLeftButtonDown="PreviewImage_MouseDown"
                                    MouseLeftButtonUp="PreviewImage_MouseUp"

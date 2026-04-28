@@ -811,6 +811,8 @@ public partial class MainWindow : Window
                 PreviewImage.Visibility = Visibility.Visible;
                 PreviewImageScale.ScaleX = 1.0;
                 PreviewImageScale.ScaleY = 1.0;
+                PreviewScroll.ScrollToHorizontalOffset(0);
+                PreviewScroll.ScrollToVerticalOffset(0);
                 PreviewEmpty.Visibility = Visibility.Collapsed;
 
                 PopulateExif(item);
@@ -1016,6 +1018,8 @@ public partial class MainWindow : Window
     {
         PreviewImageScale.ScaleX = 1.0;
         PreviewImageScale.ScaleY = 1.0;
+        PreviewScroll.ScrollToHorizontalOffset(0);
+        PreviewScroll.ScrollToVerticalOffset(0);
     }
 
     // ----------------- DESTINATIONS -----------------
