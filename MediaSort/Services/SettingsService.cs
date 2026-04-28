@@ -12,16 +12,25 @@ public static class SettingsService
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MediaSort");
     private static readonly string SettingsPath = Path.Combine(SettingsDir, "settings.json");
 
+    public static string SettingsFilePath => SettingsPath;
+
     public static AppSettings Load()
     {
         try
         {
-            if (!File.Exists(SettingsPath)) return new AppSettings();
+            if (!File.Exists(SettingsPath))
+            {
+                CrashLogger.Info($"settings:load no-file path={SettingsPath}");
+                return new AppSettings();
+            }
             var json = File.ReadAllText(SettingsPath);
-            return JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            var s = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            CrashLogger.Info($"settings:load ok dests={s.Destinations.Count} path={SettingsPath}");
+            return s;
         }
-        catch
+        catch (Exception ex)
         {
+            CrashLogger.Info($"settings:load FAIL {ex.GetType().Name}: {ex.Message}");
             return new AppSettings();
         }
     }
@@ -33,10 +42,11 @@ public static class SettingsService
             Directory.CreateDirectory(SettingsDir);
             var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(SettingsPath, json);
+            CrashLogger.Info($"settings:save ok dests={settings.Destinations.Count} bytes={json.Length}");
         }
-        catch
+        catch (Exception ex)
         {
-            // best-effort
+            CrashLogger.Info($"settings:save FAIL {ex.GetType().Name}: {ex.Message}");
         }
     }
 

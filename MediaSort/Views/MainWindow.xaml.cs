@@ -1682,6 +1682,34 @@ public partial class MainWindow : Window
             sw.WriteLine($"All items:       {_allItems.Count}");
             sw.WriteLine($"Visible items:   {MediaItems.Count}");
             sw.WriteLine($"Destinations:    {Destinations.Count}");
+            foreach (var d in Destinations)
+            {
+                sw.WriteLine($"  - {d.Name} -> {d.FolderPath}  hotkey={d.HotKeyDisplay}  kind={d.KindFilter}");
+            }
+            sw.WriteLine();
+
+            sw.WriteLine("=== Settings file ===");
+            sw.WriteLine($"Path: {SettingsService.SettingsFilePath}");
+            try
+            {
+                if (File.Exists(SettingsService.SettingsFilePath))
+                {
+                    var fi = new FileInfo(SettingsService.SettingsFilePath);
+                    sw.WriteLine($"Exists: yes  size={fi.Length} bytes  modified={fi.LastWriteTime:yyyy-MM-dd HH:mm:ss}");
+                    sw.WriteLine("--- contents ---");
+                    sw.Write(File.ReadAllText(SettingsService.SettingsFilePath));
+                    sw.WriteLine();
+                    sw.WriteLine("--- end contents ---");
+                }
+                else
+                {
+                    sw.WriteLine("Exists: no");
+                }
+            }
+            catch (Exception ex)
+            {
+                sw.WriteLine($"(could not read settings.json: {ex.Message})");
+            }
             sw.WriteLine();
 
             sw.WriteLine("=== Items (first 50) ===");
