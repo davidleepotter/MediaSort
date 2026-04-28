@@ -71,6 +71,9 @@
                               Checked="Recursive_Changed" Unchecked="Recursive_Changed"/>
 
                     <Button Content="Refresh" Style="{StaticResource ToolButton}" Margin="12,0,0,0" Click="Refresh_Click"/>
+                    <Button Content="Regen Thumbnails" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            Click="RegenThumbnails_Click"
+                            ToolTip="Force-regenerate thumbnails for all items in the source list"/>
                     <Button x:Name="UndoButton" Content="↶ Undo" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="Undo_Click" ToolTip="Undo last move (Ctrl+Z)" IsEnabled="False"/>
 

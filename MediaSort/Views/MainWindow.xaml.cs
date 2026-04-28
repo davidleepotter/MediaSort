@@ -356,6 +356,26 @@ public partial class MainWindow : Window
             SetSourceFolder(_settings.SourceFolder);
     }
 
+    private void RegenThumbnails_Click(object sender, RoutedEventArgs e)
+    {
+        if (_allItems.Count == 0)
+        {
+            StatusText.Text = "No items in source list to regenerate.";
+            return;
+        }
+
+        // Cancel any in-flight probe and start a fresh one.
+        try { _probeCts?.Cancel(); } catch { }
+        _probeCts = new CancellationTokenSource();
+
+        // Wipe existing thumbnails so the placeholder shows during regen.
+        foreach (var item in _allItems) item.Thumbnail = null;
+
+        StatusText.Text = $"Regenerating thumbnails for {_allItems.Count} item(s)...";
+        CrashLogger.Info($"regen-thumbs requested count={_allItems.Count}");
+        StartBackgroundProbe(_allItems.ToList(), _probeCts.Token);
+    }
+
     private void Recursive_Changed(object sender, RoutedEventArgs e)
     {
         if (!IsLoaded) return;

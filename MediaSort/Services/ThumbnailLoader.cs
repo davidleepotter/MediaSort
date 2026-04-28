@@ -25,12 +25,12 @@ public static class ThumbnailLoader
     }
 
     /// <summary>
-    /// Build a BitmapImage from in-memory bytes. Must be called on the UI thread
-    /// for the resulting BitmapImage to bind cleanly into Image.Source.
+    /// Build a BitmapImage from in-memory bytes. Safe to call from a background
+    /// thread (we Freeze the result before returning).
     /// </summary>
     public static BitmapImage? BitmapFromBytes(byte[] bytes, int decodePixelWidth)
     {
-        // First try the simple BitmapImage path
+        // Strategy 1: BitmapImage with DecodePixelWidth (cheapest, but rejects some PNGs).
         try
         {
             using var ms = new MemoryStream(bytes);
@@ -42,14 +42,26 @@ public static class ThumbnailLoader
             bmp.StreamSource = ms;
             bmp.EndInit();
             bmp.Freeze();
-            return bmp;
+            if (bmp.PixelWidth > 0) return bmp;
         }
-        catch
-        {
-            // Fall through to decoder path for files BitmapImage rejects
-        }
+        catch (Exception ex) { CrashLogger.Info($"thumb-strategy1-fail {ex.GetType().Name}: {ex.Message}"); }
 
-        // Fallback: decode then re-encode as PNG so we always end up with a BitmapImage
+        // Strategy 2: BitmapImage WITHOUT DecodePixelWidth (some PNGs go black if we set it).
+        try
+        {
+            using var ms = new MemoryStream(bytes);
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.CreateOptions = BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.IgnoreColorProfile;
+            bmp.StreamSource = ms;
+            bmp.EndInit();
+            bmp.Freeze();
+            if (bmp.PixelWidth > 0) return bmp;
+        }
+        catch (Exception ex) { CrashLogger.Info($"thumb-strategy2-fail {ex.GetType().Name}: {ex.Message}"); }
+
+        // Strategy 3: BitmapDecoder → re-encode as PNG → BitmapImage.
         try
         {
             using var inMs = new MemoryStream(bytes);
@@ -70,16 +82,14 @@ public static class ThumbnailLoader
             bmp.BeginInit();
             bmp.CacheOption = BitmapCacheOption.OnLoad;
             bmp.CreateOptions = BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.IgnoreColorProfile;
-            if (decodePixelWidth > 0) bmp.DecodePixelWidth = decodePixelWidth;
             bmp.StreamSource = outMs;
             bmp.EndInit();
             bmp.Freeze();
-            return bmp;
+            if (bmp.PixelWidth > 0) return bmp;
         }
-        catch
-        {
-            return null;
-        }
+        catch (Exception ex) { CrashLogger.Info($"thumb-strategy3-fail {ex.GetType().Name}: {ex.Message}"); }
+
+        return null;
     }
 
     /// <summary>
