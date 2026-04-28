@@ -153,15 +153,39 @@ public partial class MainWindow : Window
             ClearPreview();
         }
 
-        // background-load thumbnails for image items
+        // Background pass: thumbnails + dimensions.
+        // Images: read pixel size cheaply, then full thumbnail.
+        // Videos: probe via libVLC for width/height.
         _ = Task.Run(() =>
         {
             foreach (var item in items)
             {
                 if (item.Kind == MediaKind.Image)
                 {
+                    var (w, h) = ThumbnailLoader.TryReadImageDimensions(item.FullPath);
+                    if (w > 0 && h > 0)
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            item.PixelWidth = w;
+                            item.PixelHeight = h;
+                        });
+                    }
+
                     var thumb = ThumbnailLoader.LoadThumbnail(item, 128);
                     Dispatcher.Invoke(() => item.Thumbnail = thumb);
+                }
+                else if (item.Kind == MediaKind.Video)
+                {
+                    var (w, h) = VideoProbe.TryReadVideoDimensions(item.FullPath);
+                    if (w > 0 && h > 0)
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            item.PixelWidth = w;
+                            item.PixelHeight = h;
+                        });
+                    }
                 }
             }
         });

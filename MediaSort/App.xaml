@@ -22,16 +22,101 @@
             <SolidColorBrush x:Key="SplitterBrush"      Color="#0A0A0A"/>
             <SolidColorBrush x:Key="EmptyForeground"    Color="#666666"/>
 
-            <Style TargetType="Button" x:Key="ToolButton">
+            <!-- ============================================================
+                 Implicit (un-keyed) styles must be declared BEFORE keyed
+                 styles that reference them via BasedOn={StaticResource ...}.
+                 ============================================================ -->
+
+            <!-- Default Button: full template override so Aero doesn't bleed white -->
+            <Style TargetType="Button">
                 <Setter Property="Background" Value="{DynamicResource ButtonBackground}"/>
                 <Setter Property="Foreground" Value="{DynamicResource ButtonForeground}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorder}"/>
-                <Setter Property="Padding" Value="10,5"/>
-                <Setter Property="Margin" Value="2"/>
-                <Setter Property="MinWidth" Value="80"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="8,4"/>
+                <Setter Property="MinHeight" Value="24"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  RecognizesAccessKey="True"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ItemBackground}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
-            <!-- GridView column header (full template override so it actually themes) -->
+            <!-- TextBox -->
+            <Style TargetType="TextBox">
+                <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorder}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="4,2"/>
+                <Setter Property="CaretBrush" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
+            </Style>
+
+            <!-- CheckBox -->
+            <Style TargetType="CheckBox">
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+            </Style>
+
+            <!-- ListBoxItem: container transparent so DataTemplate background shows -->
+            <Style TargetType="ListBoxItem">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="Padding" Value="2"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="Transparent" BorderThickness="1"
+                                    Padding="{TemplateBinding Padding}"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ItemBackground}"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ListViewItem inherits from ListBoxItem -->
+            <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"/>
+
+            <!-- GridView column header -->
             <Style TargetType="GridViewColumnHeader">
                 <Setter Property="Background" Value="{DynamicResource PanelHeader}"/>
                 <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
@@ -63,7 +148,7 @@
                 </Setter>
             </Style>
 
-            <!-- The little gripper between header columns also needs themeing -->
+            <!-- Column-resize gripper between headers -->
             <Style TargetType="Thumb" x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type GridViewColumnHeader}, ResourceId=GridViewColumnHeaderGripper}">
                 <Setter Property="Width" Value="8"/>
                 <Setter Property="Background" Value="{DynamicResource BorderBrushColor}"/>
@@ -78,7 +163,113 @@
                 </Setter>
             </Style>
 
-            <Style TargetType="Button" x:Key="DestButton">
+            <!-- Toggle button used inside the ComboBox template -->
+            <ControlTemplate x:Key="ComboBoxToggleButtonTemplate" TargetType="ToggleButton">
+                <Border x:Name="Bd"
+                        Background="{DynamicResource ButtonBackground}"
+                        BorderBrush="{DynamicResource ButtonBorder}"
+                        BorderThickness="1"
+                        SnapsToDevicePixels="True">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="20"/>
+                        </Grid.ColumnDefinitions>
+                        <Path x:Name="Arrow" Grid.Column="1"
+                              Data="M 0 0 L 4 4 L 8 0 Z"
+                              Fill="{DynamicResource PanelForeground}"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ItemBackground}"/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+
+            <!-- ComboBox -->
+            <Style TargetType="ComboBox">
+                <Setter Property="Background" Value="{DynamicResource ButtonBackground}"/>
+                <Setter Property="Foreground" Value="{DynamicResource ButtonForeground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorder}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="6,3"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="MinHeight" Value="24"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBox">
+                            <Grid>
+                                <ToggleButton x:Name="PART_DropDownToggle"
+                                              Template="{StaticResource ComboBoxToggleButtonTemplate}"
+                                              Focusable="False"
+                                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                              ClickMode="Press"/>
+                                <ContentPresenter x:Name="ContentSite"
+                                                  IsHitTestVisible="False"
+                                                  Content="{TemplateBinding SelectionBoxItem}"
+                                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                  ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                  TextElement.Foreground="{DynamicResource PanelForeground}"/>
+                                <Popup x:Name="PART_Popup"
+                                       AllowsTransparency="True"
+                                       Placement="Bottom"
+                                       IsOpen="{TemplateBinding IsDropDownOpen}"
+                                       PopupAnimation="Slide">
+                                    <Border Background="{DynamicResource PanelBackground}"
+                                            BorderBrush="{DynamicResource BorderBrushColor}"
+                                            BorderThickness="1"
+                                            MinWidth="{TemplateBinding ActualWidth}"
+                                            MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                        <ScrollViewer SnapsToDevicePixels="True">
+                                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ComboBoxItem -->
+            <Style TargetType="ComboBoxItem">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="Padding" Value="6,3"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBoxItem">
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsHighlighted" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ============================================================
+                 Keyed styles (referenced by Style="{StaticResource ...}")
+                 ============================================================ -->
+
+            <Style TargetType="Button" x:Key="ToolButton" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="Padding" Value="10,5"/>
+                <Setter Property="Margin" Value="2"/>
+                <Setter Property="MinWidth" Value="80"/>
+            </Style>
+
+            <Style TargetType="Button" x:Key="DestButton" BasedOn="{StaticResource {x:Type Button}}">
                 <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                 <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>

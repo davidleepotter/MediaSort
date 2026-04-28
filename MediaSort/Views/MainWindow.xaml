@@ -125,6 +125,7 @@
                                 <GridView>
                                     <GridViewColumn Header="Name" Width="180" DisplayMemberBinding="{Binding FileName}"/>
                                     <GridViewColumn Header="Size" Width="80" DisplayMemberBinding="{Binding SizeDisplay}"/>
+                                    <GridViewColumn Header="Aspect" Width="120" DisplayMemberBinding="{Binding AspectDisplay}"/>
                                     <GridViewColumn Header="Modified" Width="120" DisplayMemberBinding="{Binding ModifiedDate, StringFormat=yyyy-MM-dd HH:mm}"/>
                                 </GridView>
                             </ListView.View>
@@ -151,11 +152,15 @@
                                             <TextBlock DockPanel.Dock="Bottom" Text="{Binding FileName}"
                                                        TextTrimming="CharacterEllipsis" TextAlignment="Center"
                                                        Foreground="{DynamicResource PanelForeground}" Margin="2"/>
-                                            <Grid>
-                                                <Image Source="{Binding Thumbnail}" Stretch="Uniform" Margin="2"/>
+                                            <Grid Background="{DynamicResource PreviewBackground}" Margin="2">
+                                                <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
                                                 <TextBlock Text="🎬" FontSize="32"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Visibility="{Binding Kind, Converter={StaticResource KindVis}, ConverterParameter=Video}"/>
+                                                <TextBlock Text="🖼" FontSize="32" Opacity="0.35"
+                                                           Foreground="{DynamicResource MutedForeground}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           Visibility="{Binding Thumbnail, Converter={StaticResource NullVis}, ConverterParameter=Invert}"/>
                                             </Grid>
                                         </DockPanel>
                                     </Border>

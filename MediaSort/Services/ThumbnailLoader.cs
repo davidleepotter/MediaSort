@@ -13,6 +13,29 @@ public static class ThumbnailLoader
         return TryLoadBitmap(item.FullPath, decodePixelWidth);
     }
 
+    /// <summary>
+    /// Cheap metadata-only read of an image's pixel dimensions.
+    /// Returns (0,0) on failure.
+    /// </summary>
+    public static (int width, int height) TryReadImageDimensions(string path)
+    {
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var decoder = BitmapDecoder.Create(
+                fs,
+                BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.PreservePixelFormat,
+                BitmapCacheOption.None);
+            if (decoder.Frames.Count == 0) return (0, 0);
+            var frame = decoder.Frames[0];
+            return (frame.PixelWidth, frame.PixelHeight);
+        }
+        catch
+        {
+            return (0, 0);
+        }
+    }
+
     public static BitmapSource? LoadFull(string path)
     {
         // Try the simple path first

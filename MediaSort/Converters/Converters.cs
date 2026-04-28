@@ -49,7 +49,13 @@ public class ViewModeToVisibilityConverter : IValueConverter
 public class NullToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        => value == null ? Visibility.Collapsed : Visibility.Visible;
+    {
+        var invert = parameter is string s &&
+                     s.Equals("Invert", StringComparison.OrdinalIgnoreCase);
+        var isNull = value == null;
+        if (invert) isNull = !isNull;
+        return isNull ? Visibility.Collapsed : Visibility.Visible;
+    }
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => Binding.DoNothing;
 }
