@@ -112,8 +112,14 @@ public partial class MainWindow : Window
 
         ThemeManager.ApplyOverride(_settings.ThemeOverride, _settings.AccentColor);
 
+        CrashLogger.Info($"startup: loading {_settings.Destinations.Count} destinations from settings");
         foreach (var d in _settings.Destinations)
-            Destinations.Add(SettingsService.FromSerializable(d));
+        {
+            var btn = SettingsService.FromSerializable(d);
+            Destinations.Add(btn);
+            CrashLogger.Info($"startup: + dest '{btn.Name}' -> {btn.FolderPath}");
+        }
+        CrashLogger.Info($"startup: Destinations.Count after load = {Destinations.Count}");
         RefreshDestinationCounts();
 
         if (!string.IsNullOrWhiteSpace(_settings.SourceFolder) && Directory.Exists(_settings.SourceFolder))
@@ -135,8 +141,9 @@ public partial class MainWindow : Window
         SaveSettings();
     }
 
-    private void SaveSettings()
+    private void SaveSettings([System.Runtime.CompilerServices.CallerMemberName] string caller = "")
     {
+        CrashLogger.Info($"SaveSettings called from {caller} (Destinations.Count={Destinations.Count}, IsLoaded={IsLoaded})");
         _settings.RecursiveScan = RecursiveCheck.IsChecked == true;
         if (ViewModeCombo.SelectedIndex >= 0)
             _settings.ViewMode = (ViewMode)ViewModeCombo.SelectedIndex;
