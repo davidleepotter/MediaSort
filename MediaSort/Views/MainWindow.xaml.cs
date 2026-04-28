@@ -54,6 +54,7 @@ public partial class MainWindow : Window
     private DispatcherTimer? _videoTimer;
     private FolderWatcher? _watcher;
     private readonly MoveHistoryService _history = new();
+    private CancellationTokenSource? _probeCts;
 
     // Drag-and-drop state
     private System.Windows.Point? _dragStart;
@@ -366,6 +367,15 @@ public partial class MainWindow : Window
 
     private void SetSourceFolder(string folder)
     {
+        // Cancel any in-flight probe from the previous folder so we don't pile up
+        // dispatcher work (especially LibVLC video probes) onto the UI thread.
+        try { _probeCts?.Cancel(); } catch { }
+        _probeCts = new CancellationTokenSource();
+
+        // Stop any video that is still playing from the previous selection so
+        // LibVLC isn't holding a file handle while we switch folders.
+        StopVideo();
+
         SourcePathText.Text = folder;
         _allItems.Clear();
         MediaItems.Clear();
@@ -379,7 +389,7 @@ public partial class MainWindow : Window
         if (MediaItems.Count > 0) SelectIndex(0); else ClearPreview();
 
         // Background pass for thumbnails + dimensions
-        StartBackgroundProbe(items);
+        StartBackgroundProbe(items, _probeCts.Token);
 
         // Watch the folder for changes (debounced refresh)
         if (_settings.WatchSourceFolder)
@@ -412,94 +422,130 @@ public partial class MainWindow : Window
         _allItems.AddRange(added);
         ApplyFilter();
 
-        if (added.Count > 0) StartBackgroundProbe(added);
+        if (added.Count > 0) StartBackgroundProbe(added, _probeCts?.Token ?? CancellationToken.None);
     }
 
-    private void StartBackgroundProbe(List<MediaItem> items)
+    private void StartBackgroundProbe(List<MediaItem> items, CancellationToken ct)
     {
-        // Capture once; settings may change during the run.
+        var imageCount = items.Count(i => i.Kind == MediaKind.Image);
+        var videoCount = items.Count(i => i.Kind == MediaKind.Video);
+        CrashLogger.Info($"probe:start total={items.Count} images={imageCount} videos={videoCount}");
+
         _ = Task.Run(() =>
         {
+            int thumbsAssigned = 0;
+            int dimsAssigned = 0;
+            int failures = 0;
             foreach (var item in items)
             {
+                if (ct.IsCancellationRequested) { CrashLogger.Info("probe:cancelled"); return; }
                 try
                 {
                     if (item.Kind == MediaKind.Image)
                     {
-                        ProbeImage(item);
+                        if (ProbeImage(item, ct)) thumbsAssigned++;
+                        if (item.PixelWidth > 0) dimsAssigned++;
                     }
                     else if (item.Kind == MediaKind.Video)
                     {
-                        ProbeVideo(item);
+                        ProbeVideo(item, ct);
                     }
                 }
                 catch (Exception ex)
                 {
+                    failures++;
                     CrashLogger.Log(ex, $"probe:{item.FullPath}");
                 }
             }
 
+            CrashLogger.Info($"probe:done thumbs={thumbsAssigned} dims={dimsAssigned} failures={failures}");
+
+            if (ct.IsCancellationRequested) return;
             try
             {
-                Dispatcher.Invoke(() =>
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
                     if (_settings.SortKey == SortKey.Aspect || _settings.SortKey == SortKey.Duration)
                         ApplySort();
-                });
+                }));
             }
             catch (Exception ex) { CrashLogger.Log(ex, "probe:final-sort"); }
-        });
+        }, ct);
     }
 
-    private void ProbeImage(MediaItem item)
+    /// <summary>Returns true if a thumbnail was successfully decoded and assigned.</summary>
+    private bool ProbeImage(MediaItem item, CancellationToken ct)
     {
         // Dimensions (cheap, metadata-only)
         try
         {
             var (w, h) = ThumbnailLoader.TryReadImageDimensions(item.FullPath);
-            if (w > 0 && h > 0)
+            if (w > 0 && h > 0 && !ct.IsCancellationRequested)
             {
-                Dispatcher.Invoke(() =>
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
                     item.PixelWidth = w;
                     item.PixelHeight = h;
-                });
+                }));
             }
         }
         catch (Exception ex) { CrashLogger.Log(ex, $"dims:{item.FullPath}"); }
 
-        // Thumbnail: read bytes on bg, decode + assign on UI
-        byte[]? bytes = null;
-        try { bytes = ThumbnailLoader.TryReadAllBytes(item.FullPath); }
-        catch (Exception ex) { CrashLogger.Log(ex, $"read:{item.FullPath}"); }
+        if (ct.IsCancellationRequested) return false;
 
-        if (bytes == null) return;
+        // Thumbnail: read bytes + decode on the background thread (BitmapImage.Freeze
+        // makes the result safe to hand to the UI thread). Assign on UI thread only.
+        BitmapImage? thumb = null;
+        try
+        {
+            var bytes = ThumbnailLoader.TryReadAllBytes(item.FullPath);
+            if (bytes == null)
+            {
+                CrashLogger.Info($"probe:read-null {item.FileName}");
+                return false;
+            }
+            thumb = ThumbnailLoader.BitmapFromBytes(bytes, 128);
+            if (thumb == null)
+            {
+                CrashLogger.Info($"probe:decode-null {item.FileName} bytes={bytes.Length}");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log(ex, $"probe-image-bg:{item.FullPath}");
+            return false;
+        }
+
+        if (ct.IsCancellationRequested) return false;
 
         try
         {
-            Dispatcher.Invoke(() =>
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                try
-                {
-                    var thumb = ThumbnailLoader.BitmapFromBytes(bytes, 128);
-                    if (thumb != null) item.Thumbnail = thumb;
-                }
-                catch (Exception ex) { CrashLogger.Log(ex, $"decode:{item.FullPath}"); }
-            });
+                if (ct.IsCancellationRequested) return;
+                item.Thumbnail = thumb;
+            }));
+            return true;
         }
-        catch (Exception ex) { CrashLogger.Log(ex, $"dispatch-decode:{item.FullPath}"); }
+        catch (Exception ex)
+        {
+            CrashLogger.Log(ex, $"dispatch-assign:{item.FullPath}");
+            return false;
+        }
     }
 
-    private void ProbeVideo(MediaItem item)
+    private void ProbeVideo(MediaItem item, CancellationToken ct)
     {
         try
         {
             var (w, h, dur) = VideoProbe.TryReadVideoInfo(item.FullPath);
-            Dispatcher.Invoke(() =>
+            if (ct.IsCancellationRequested) return;
+            Dispatcher.BeginInvoke(new Action(() =>
             {
                 if (w > 0 && h > 0) { item.PixelWidth = w; item.PixelHeight = h; }
                 if (dur > 0) item.DurationSeconds = dur;
-            });
+            }));
         }
         catch (Exception ex) { CrashLogger.Log(ex, $"video-probe:{item.FullPath}"); }
     }
@@ -1295,7 +1341,7 @@ public partial class MainWindow : Window
                     var item = new MediaItem(r.FinalPath);
                     _allItems.Add(item);
                     restored++;
-                    StartBackgroundProbe(new List<MediaItem> { item });
+                    StartBackgroundProbe(new List<MediaItem> { item }, _probeCts?.Token ?? CancellationToken.None);
                 }
             }
             else if (rec.Action == "Trash")

@@ -30,4 +30,16 @@ public static class CrashLogger
             // Crash logger must never throw
         }
     }
+
+    /// <summary>Lightweight informational log line. Same crash.log file. Never throws.</summary>
+    public static void Info(string message)
+    {
+        try
+        {
+            Directory.CreateDirectory(LogDir);
+            using var sw = File.AppendText(LogPath);
+            sw.WriteLine($"---- {DateTime.Now:yyyy-MM-dd HH:mm:ss}  INFO  {message}");
+        }
+        catch { }
+    }
 }
