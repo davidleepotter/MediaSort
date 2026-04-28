@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Edit Destination"
         Height="280" Width="520"
-        Background="#1E1E1E"
-        Foreground="#EEE"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource PanelForeground}"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
     <Grid Margin="16">
@@ -23,18 +23,36 @@
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
 
-        <TextBlock Grid.Row="0" Grid.Column="0" Text="Name" VerticalAlignment="Center"/>
-        <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" x:Name="NameBox" Margin="0,0,0,8" Padding="4" Background="#2A2A2A" Foreground="#EEE" BorderBrush="#444"/>
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Name" VerticalAlignment="Center"
+                   Foreground="{DynamicResource PanelForeground}"/>
+        <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" x:Name="NameBox"
+                 Margin="0,0,0,8" Padding="4"
+                 Background="{DynamicResource InputBackground}"
+                 Foreground="{DynamicResource PanelForeground}"
+                 BorderBrush="{DynamicResource ButtonBorder}"/>
 
-        <TextBlock Grid.Row="1" Grid.Column="0" Text="Folder" VerticalAlignment="Center"/>
-        <TextBox Grid.Row="1" Grid.Column="1" x:Name="FolderBox" Margin="0,0,4,8" Padding="4" Background="#2A2A2A" Foreground="#EEE" BorderBrush="#444"/>
-        <Button Grid.Row="1" Grid.Column="2" Content="Browse..." Style="{StaticResource ToolButton}" Click="Browse_Click" Margin="0,0,0,8"/>
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Folder" VerticalAlignment="Center"
+                   Foreground="{DynamicResource PanelForeground}"/>
+        <TextBox Grid.Row="1" Grid.Column="1" x:Name="FolderBox"
+                 Margin="0,0,4,8" Padding="4"
+                 Background="{DynamicResource InputBackground}"
+                 Foreground="{DynamicResource PanelForeground}"
+                 BorderBrush="{DynamicResource ButtonBorder}"/>
+        <Button Grid.Row="1" Grid.Column="2" Content="Browse..." Style="{StaticResource ToolButton}"
+                Click="Browse_Click" Margin="0,0,0,8"/>
 
-        <TextBlock Grid.Row="2" Grid.Column="0" Text="Hotkey" VerticalAlignment="Center"/>
-        <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" x:Name="HotkeyBox" IsReadOnly="True" Margin="0,0,0,8" Padding="4" Background="#2A2A2A" Foreground="#EEE" BorderBrush="#444"
-                 PreviewKeyDown="HotkeyBox_PreviewKeyDown" Text="(click here, then press a key)"/>
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Hotkey" VerticalAlignment="Center"
+                   Foreground="{DynamicResource PanelForeground}"/>
+        <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" x:Name="HotkeyBox"
+                 IsReadOnly="True" Margin="0,0,0,8" Padding="4"
+                 Background="{DynamicResource InputBackground}"
+                 Foreground="{DynamicResource PanelForeground}"
+                 BorderBrush="{DynamicResource ButtonBorder}"
+                 PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                 Text="(click here, then press a key)"/>
 
-        <TextBlock Grid.Row="3" Grid.ColumnSpan="3" FontSize="11" Opacity="0.7"
+        <TextBlock Grid.Row="3" Grid.ColumnSpan="3" FontSize="11"
+                   Foreground="{DynamicResource MutedForeground}"
                    Text="Tip: hold Ctrl, Alt, or Shift while pressing the key to set a modified shortcut. Press Backspace or Delete to clear."
                    TextWrapping="Wrap" Margin="0,0,0,8"/>
 

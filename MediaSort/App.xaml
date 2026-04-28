@@ -4,24 +4,37 @@
              StartupUri="Views/MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
-            <SolidColorBrush x:Key="PanelBackground" Color="#1E1E1E"/>
-            <SolidColorBrush x:Key="PanelForeground" Color="#EEEEEE"/>
-            <SolidColorBrush x:Key="AccentBrush" Color="#2D7BD4"/>
-            <SolidColorBrush x:Key="BorderBrush" Color="#333333"/>
+            <!-- Placeholder brushes; ThemeManager replaces these at startup -->
+            <SolidColorBrush x:Key="WindowBackground"   Color="#181818"/>
+            <SolidColorBrush x:Key="PanelBackground"    Color="#1E1E1E"/>
+            <SolidColorBrush x:Key="PanelHeader"        Color="#252525"/>
+            <SolidColorBrush x:Key="PanelForeground"    Color="#EEEEEE"/>
+            <SolidColorBrush x:Key="MutedForeground"    Color="#AAAAAA"/>
+            <SolidColorBrush x:Key="BorderBrushColor"   Color="#333333"/>
+            <SolidColorBrush x:Key="AccentBrush"        Color="#2D7BD4"/>
+            <SolidColorBrush x:Key="AccentForeground"   Color="White"/>
+            <SolidColorBrush x:Key="ButtonBackground"   Color="#2A2A2A"/>
+            <SolidColorBrush x:Key="ButtonForeground"   Color="#EEEEEE"/>
+            <SolidColorBrush x:Key="ButtonBorder"       Color="#444444"/>
+            <SolidColorBrush x:Key="InputBackground"    Color="#2A2A2A"/>
+            <SolidColorBrush x:Key="ItemBackground"     Color="#262626"/>
+            <SolidColorBrush x:Key="PreviewBackground"  Color="#0F0F0F"/>
+            <SolidColorBrush x:Key="SplitterBrush"      Color="#0A0A0A"/>
+            <SolidColorBrush x:Key="EmptyForeground"    Color="#666666"/>
 
             <Style TargetType="Button" x:Key="ToolButton">
-                <Setter Property="Background" Value="#2A2A2A"/>
-                <Setter Property="Foreground" Value="#EEEEEE"/>
-                <Setter Property="BorderBrush" Value="#444"/>
+                <Setter Property="Background" Value="{DynamicResource ButtonBackground}"/>
+                <Setter Property="Foreground" Value="{DynamicResource ButtonForeground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorder}"/>
                 <Setter Property="Padding" Value="10,5"/>
                 <Setter Property="Margin" Value="2"/>
                 <Setter Property="MinWidth" Value="80"/>
             </Style>
 
             <Style TargetType="Button" x:Key="DestButton">
-                <Setter Property="Background" Value="#2D7BD4"/>
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="BorderBrush" Value="#1E5A9E"/>
+                <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                 <Setter Property="Padding" Value="8,6"/>
                 <Setter Property="Margin" Value="4"/>
                 <Setter Property="MinHeight" Value="42"/>

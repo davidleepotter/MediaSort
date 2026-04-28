@@ -7,10 +7,12 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using LibVLCSharp.Shared;
 using MediaSort.Models;
 using MediaSort.Services;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using ListBox = System.Windows.Controls.ListBox;
+using ListView = System.Windows.Controls.ListView;
 using MessageBox = System.Windows.MessageBox;
 using TextBox = System.Windows.Controls.TextBox;
 
@@ -24,6 +26,9 @@ public partial class MainWindow : Window
     private AppSettings _settings = new();
     private bool _suppressSliderUpdate;
     private bool _suppressSelectionUpdate;
+
+    private LibVLC? _libVlc;
+    private MediaPlayer? _mediaPlayer;
 
     public MainWindow()
     {
@@ -42,6 +47,19 @@ public partial class MainWindow : Window
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        // Initialize VLC for video playback
+        try
+        {
+            Core.Initialize();
+            _libVlc = new LibVLC();
+            _mediaPlayer = new MediaPlayer(_libVlc);
+            PreviewVideo.MediaPlayer = _mediaPlayer;
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Video playback unavailable: {ex.Message}";
+        }
+
         _settings = SettingsService.Load();
 
         RecursiveCheck.IsChecked = _settings.RecursiveScan;
@@ -61,6 +79,10 @@ public partial class MainWindow : Window
 
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        try { _mediaPlayer?.Stop(); } catch { }
+        try { _mediaPlayer?.Dispose(); } catch { }
+        try { _libVlc?.Dispose(); } catch { }
+
         SaveSettings();
     }
 
@@ -126,7 +148,7 @@ public partial class MainWindow : Window
             ClearPreview();
         }
 
-        // background-load thumbnails
+        // background-load thumbnails for image items
         _ = Task.Run(() =>
         {
             foreach (var item in items)
@@ -168,9 +190,9 @@ public partial class MainWindow : Window
                 break;
         }
 
-        // sync selection across the (now visible) list
         var idx = GetSelectedIndex();
-        SelectIndex(idx >= 0 ? idx : 0);
+        if (MediaItems.Count > 0)
+            SelectIndex(idx >= 0 ? idx : 0);
     }
 
     private Selector? ActiveSelector =>
@@ -199,8 +221,15 @@ public partial class MainWindow : Window
         _suppressSelectionUpdate = false;
 
         ActiveSelector?.Focus();
-        if (ActiveSelector is ListBox lb && lb.SelectedItem != null)
-            lb.ScrollIntoView(lb.SelectedItem);
+        switch (ActiveSelector)
+        {
+            case ListBox lb when lb.SelectedItem != null:
+                lb.ScrollIntoView(lb.SelectedItem);
+                break;
+            case ListView lv when lv.SelectedItem != null:
+                lv.ScrollIntoView(lv.SelectedItem);
+                break;
+        }
 
         UpdatePositionDisplay();
         UpdatePreview(MediaItems[index]);
@@ -234,8 +263,6 @@ public partial class MainWindow : Window
 
     private void MediaList_KeyDown(object sender, KeyEventArgs e)
     {
-        // Allow arrow keys to flow naturally for list selection,
-        // but also explicitly handle them so all three list controls behave the same.
         if (e.Key == Key.Down || e.Key == Key.Right)
         {
             SelectIndex(GetSelectedIndex() + 1);
@@ -289,27 +316,51 @@ public partial class MainWindow : Window
     private void UpdatePreview(MediaItem item)
     {
         PreviewTitle.Text = $"Preview — {item.FileName}";
-        PreviewEmpty.Visibility = Visibility.Collapsed;
 
         try
         {
             if (item.Kind == MediaKind.Image)
             {
-                PreviewVideo.Stop();
-                PreviewVideo.Source = null;
+                StopVideo();
                 PreviewVideo.Visibility = Visibility.Collapsed;
+                VideoControls.Visibility = Visibility.Collapsed;
 
-                PreviewImage.Source = ThumbnailLoader.LoadFull(item.FullPath);
+                var bmp = ThumbnailLoader.LoadFull(item.FullPath);
+                if (bmp == null)
+                {
+                    PreviewImage.Source = null;
+                    PreviewImage.Visibility = Visibility.Collapsed;
+                    PreviewEmpty.Text = $"Cannot decode {item.Extension}";
+                    PreviewEmpty.Visibility = Visibility.Visible;
+                    StatusText.Text = $"Cannot decode {item.FileName}";
+                    return;
+                }
+
+                PreviewImage.Source = bmp;
                 PreviewImage.Visibility = Visibility.Visible;
+                PreviewEmpty.Visibility = Visibility.Collapsed;
             }
             else if (item.Kind == MediaKind.Video)
             {
                 PreviewImage.Source = null;
                 PreviewImage.Visibility = Visibility.Collapsed;
 
-                PreviewVideo.Source = new Uri(item.FullPath, UriKind.Absolute);
+                if (_mediaPlayer == null || _libVlc == null)
+                {
+                    PreviewEmpty.Text = "Video playback unavailable (LibVLC failed to initialize).";
+                    PreviewEmpty.Visibility = Visibility.Visible;
+                    PreviewVideo.Visibility = Visibility.Collapsed;
+                    VideoControls.Visibility = Visibility.Collapsed;
+                    return;
+                }
+
                 PreviewVideo.Visibility = Visibility.Visible;
-                PreviewVideo.Play();
+                VideoControls.Visibility = Visibility.Visible;
+                PreviewEmpty.Visibility = Visibility.Collapsed;
+
+                StopVideo();
+                using var media = new Media(_libVlc, new Uri(item.FullPath));
+                _mediaPlayer.Play(media);
             }
             else
             {
@@ -319,7 +370,11 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             StatusText.Text = $"Preview error: {ex.Message}";
-            ClearPreview();
+            PreviewImage.Visibility = Visibility.Collapsed;
+            PreviewVideo.Visibility = Visibility.Collapsed;
+            VideoControls.Visibility = Visibility.Collapsed;
+            PreviewEmpty.Text = $"Preview error: {ex.Message}";
+            PreviewEmpty.Visibility = Visibility.Visible;
         }
     }
 
@@ -327,16 +382,30 @@ public partial class MainWindow : Window
     {
         PreviewImage.Source = null;
         PreviewImage.Visibility = Visibility.Collapsed;
-        PreviewVideo.Stop();
-        PreviewVideo.Source = null;
+        StopVideo();
         PreviewVideo.Visibility = Visibility.Collapsed;
+        VideoControls.Visibility = Visibility.Collapsed;
+        PreviewEmpty.Text = "Select a media file to preview";
         PreviewEmpty.Visibility = Visibility.Visible;
         PreviewTitle.Text = "Preview";
     }
 
-    private void VideoPlay_Click(object sender, RoutedEventArgs e) => PreviewVideo.Play();
-    private void VideoPause_Click(object sender, RoutedEventArgs e) => PreviewVideo.Pause();
-    private void VideoStop_Click(object sender, RoutedEventArgs e) => PreviewVideo.Stop();
+    private void StopVideo()
+    {
+        try { _mediaPlayer?.Stop(); } catch { }
+    }
+
+    private void VideoPlay_Click(object sender, RoutedEventArgs e)
+    {
+        try { _mediaPlayer?.Play(); } catch { }
+    }
+
+    private void VideoPause_Click(object sender, RoutedEventArgs e)
+    {
+        try { _mediaPlayer?.Pause(); } catch { }
+    }
+
+    private void VideoStop_Click(object sender, RoutedEventArgs e) => StopVideo();
 
     // ----------------- DESTINATIONS -----------------
 
@@ -396,11 +465,14 @@ public partial class MainWindow : Window
 
         var item = MediaItems[idx];
 
-        // Stop preview to release file handles for video
+        // Release file handles before moving
         if (item.Kind == MediaKind.Video)
         {
-            PreviewVideo.Stop();
-            PreviewVideo.Source = null;
+            StopVideo();
+        }
+        else if (item.Kind == MediaKind.Image)
+        {
+            PreviewImage.Source = null;
         }
 
         try
@@ -431,7 +503,6 @@ public partial class MainWindow : Window
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
-        // Global shortcut: Ctrl+, opens settings
         if (e.Key == Key.OemComma && Keyboard.Modifiers == ModifierKeys.Control)
         {
             Settings_Click(this, new RoutedEventArgs());
@@ -439,7 +510,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Don't hijack typing in textboxes / dialogs
         if (Keyboard.FocusedElement is TextBox) return;
 
         foreach (var dest in Destinations)
@@ -461,7 +531,6 @@ public partial class MainWindow : Window
         var dlg = new SettingsWindow(_settings, Destinations) { Owner = this };
         if (dlg.ShowDialog() == true)
         {
-            // Apply any source-folder change
             if (!string.IsNullOrWhiteSpace(_settings.SourceFolder)
                 && _settings.SourceFolder != SourcePathText.Text)
             {

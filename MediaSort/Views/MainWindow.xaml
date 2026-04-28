@@ -3,10 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:MediaSort.Converters"
         xmlns:models="clr-namespace:MediaSort.Models"
+        xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
         Title="MediaSort"
         Height="800" Width="1400"
-        Background="#181818"
-        Foreground="#EEE"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource PanelForeground}"
         WindowStartupLocation="CenterScreen"
         KeyDown="Window_KeyDown">
     <Window.Resources>
@@ -17,21 +18,33 @@
 
     <DockPanel>
         <!-- Top Toolbar -->
-        <Border DockPanel.Dock="Top" Background="#222" BorderBrush="#333" BorderThickness="0,0,0,1">
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource PanelHeader}"
+                BorderBrush="{DynamicResource BorderBrushColor}"
+                BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal" Margin="6">
                 <Button Content="Pick Source Folder..." Style="{StaticResource ToolButton}" Click="PickSource_Click"/>
-                <TextBlock x:Name="SourcePathText" Text="(no source folder)" VerticalAlignment="Center" Margin="10,0" Foreground="#AAA" MaxWidth="600" TextTrimming="CharacterEllipsis"/>
+                <TextBlock x:Name="SourcePathText" Text="(no source folder)"
+                           VerticalAlignment="Center" Margin="10,0"
+                           Foreground="{DynamicResource MutedForeground}"
+                           MaxWidth="600" TextTrimming="CharacterEllipsis"/>
 
                 <Separator Margin="6,0"/>
 
-                <TextBlock Text="View:" VerticalAlignment="Center" Margin="6,0,4,0"/>
-                <ComboBox x:Name="ViewModeCombo" Width="110" SelectionChanged="ViewModeCombo_SelectionChanged" VerticalAlignment="Center">
+                <TextBlock Text="View:" VerticalAlignment="Center" Margin="6,0,4,0"
+                           Foreground="{DynamicResource PanelForeground}"/>
+                <ComboBox x:Name="ViewModeCombo" Width="110"
+                          SelectionChanged="ViewModeCombo_SelectionChanged"
+                          VerticalAlignment="Center">
                     <ComboBoxItem Content="List"/>
                     <ComboBoxItem Content="Details" IsSelected="True"/>
                     <ComboBoxItem Content="Thumbnails"/>
                 </ComboBox>
 
-                <CheckBox x:Name="RecursiveCheck" Content="Recursive" Foreground="#DDD" VerticalAlignment="Center" Margin="12,0,0,0" Checked="Recursive_Changed" Unchecked="Recursive_Changed"/>
+                <CheckBox x:Name="RecursiveCheck" Content="Recursive"
+                          Foreground="{DynamicResource PanelForeground}"
+                          VerticalAlignment="Center" Margin="12,0,0,0"
+                          Checked="Recursive_Changed" Unchecked="Recursive_Changed"/>
 
                 <Button Content="Refresh" Style="{StaticResource ToolButton}" Margin="12,0,0,0" Click="Refresh_Click"/>
 
@@ -43,9 +56,12 @@
         </Border>
 
         <!-- Status Bar -->
-        <Border DockPanel.Dock="Bottom" Background="#222" BorderBrush="#333" BorderThickness="0,1,0,0">
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource PanelHeader}"
+                BorderBrush="{DynamicResource BorderBrushColor}"
+                BorderThickness="0,1,0,0">
             <StackPanel Orientation="Horizontal" Margin="6,3">
-                <TextBlock x:Name="StatusText" Text="Ready" Foreground="#AAA"/>
+                <TextBlock x:Name="StatusText" Text="Ready" Foreground="{DynamicResource MutedForeground}"/>
             </StackPanel>
         </Border>
 
@@ -59,29 +75,36 @@
             </Grid.ColumnDefinitions>
 
             <!-- LEFT: Source list -->
-            <Border Grid.Column="0" Background="#1E1E1E" BorderBrush="#333" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0"
+                    Background="{DynamicResource PanelBackground}"
+                    BorderBrush="{DynamicResource BorderBrushColor}"
+                    BorderThickness="0,0,1,0">
                 <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="#252525" Padding="8,4">
-                        <TextBlock Text="Source" FontWeight="Bold" Foreground="#DDD"/>
+                    <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
+                        <TextBlock Text="Source" FontWeight="Bold" Foreground="{DynamicResource PanelForeground}"/>
                     </Border>
 
-                    <!-- Slider on bottom of list -->
                     <Grid DockPanel.Dock="Bottom" Margin="6">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="Pos" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#AAA"/>
-                        <Slider Grid.Column="1" x:Name="PositionSlider" Minimum="0" Maximum="0" SmallChange="1" LargeChange="5" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="PositionSlider_ValueChanged"/>
-                        <TextBlock Grid.Column="2" x:Name="PositionText" Text="0/0" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="#AAA"/>
+                        <TextBlock Grid.Column="0" Text="Pos" VerticalAlignment="Center" Margin="0,0,6,0"
+                                   Foreground="{DynamicResource MutedForeground}"/>
+                        <Slider Grid.Column="1" x:Name="PositionSlider" Minimum="0" Maximum="0"
+                                SmallChange="1" LargeChange="5" IsSnapToTickEnabled="True" TickFrequency="1"
+                                ValueChanged="PositionSlider_ValueChanged"/>
+                        <TextBlock Grid.Column="2" x:Name="PositionText" Text="0/0" VerticalAlignment="Center" Margin="6,0,0,0"
+                                   Foreground="{DynamicResource MutedForeground}"/>
                     </Grid>
 
                     <Grid>
-                        <!-- List View -->
                         <ListBox x:Name="ListView_List"
                                  Visibility="Collapsed"
-                                 Background="#1E1E1E" Foreground="#DDD" BorderThickness="0"
+                                 Background="{DynamicResource PanelBackground}"
+                                 Foreground="{DynamicResource PanelForeground}"
+                                 BorderThickness="0"
                                  SelectionChanged="MediaList_SelectionChanged"
                                  KeyDown="MediaList_KeyDown">
                             <ListBox.ItemTemplate>
@@ -91,9 +114,10 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
 
-                        <!-- Details View -->
                         <ListView x:Name="ListView_Details"
-                                  Background="#1E1E1E" Foreground="#DDD" BorderThickness="0"
+                                  Background="{DynamicResource PanelBackground}"
+                                  Foreground="{DynamicResource PanelForeground}"
+                                  BorderThickness="0"
                                   SelectionChanged="MediaList_SelectionChanged"
                                   KeyDown="MediaList_KeyDown">
                             <ListView.View>
@@ -105,9 +129,10 @@
                             </ListView.View>
                         </ListView>
 
-                        <!-- Thumbnails View -->
                         <ListBox x:Name="ListView_Thumbs"
-                                 Background="#1E1E1E" Foreground="#DDD" BorderThickness="0"
+                                 Background="{DynamicResource PanelBackground}"
+                                 Foreground="{DynamicResource PanelForeground}"
+                                 BorderThickness="0"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  SelectionChanged="MediaList_SelectionChanged"
                                  KeyDown="MediaList_KeyDown">
@@ -118,12 +143,17 @@
                             </ListBox.ItemsPanel>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Width="120" Height="140" Margin="4" Background="#262626" BorderBrush="#444" BorderThickness="1">
+                                    <Border Width="120" Height="140" Margin="4"
+                                            Background="{DynamicResource ItemBackground}"
+                                            BorderBrush="{DynamicResource BorderBrushColor}" BorderThickness="1">
                                         <DockPanel>
-                                            <TextBlock DockPanel.Dock="Bottom" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" TextAlignment="Center" Foreground="#DDD" Margin="2"/>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="{Binding FileName}"
+                                                       TextTrimming="CharacterEllipsis" TextAlignment="Center"
+                                                       Foreground="{DynamicResource PanelForeground}" Margin="2"/>
                                             <Grid>
                                                 <Image Source="{Binding Thumbnail}" Stretch="Uniform" Margin="2"/>
-                                                <TextBlock Text="🎬" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                <TextBlock Text="🎬" FontSize="32"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Visibility="{Binding Kind, Converter={StaticResource KindVis}, ConverterParameter=Video}"/>
                                             </Grid>
                                         </DockPanel>
@@ -135,17 +165,20 @@
                 </DockPanel>
             </Border>
 
-            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="#0A0A0A"/>
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
+                          Background="{DynamicResource SplitterBrush}"/>
 
             <!-- CENTER: Preview -->
-            <Border Grid.Column="2" Background="#0F0F0F">
+            <Border Grid.Column="2" Background="{DynamicResource PreviewBackground}">
                 <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="#252525" Padding="8,4">
-                        <TextBlock x:Name="PreviewTitle" Text="Preview" FontWeight="Bold" Foreground="#DDD"/>
+                    <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
+                        <TextBlock x:Name="PreviewTitle" Text="Preview" FontWeight="Bold"
+                                   Foreground="{DynamicResource PanelForeground}"/>
                     </Border>
 
-                    <Border DockPanel.Dock="Bottom" Background="#1A1A1A" Padding="8,6"
-                            Visibility="{Binding ElementName=PreviewVideo, Path=Source, Converter={StaticResource NullVis}}">
+                    <Border DockPanel.Dock="Bottom" x:Name="VideoControls"
+                            Background="{DynamicResource PanelBackground}" Padding="8,6"
+                            Visibility="Collapsed">
                         <StackPanel Orientation="Horizontal">
                             <Button Content="▶ Play" Style="{StaticResource ToolButton}" Click="VideoPlay_Click"/>
                             <Button Content="⏸ Pause" Style="{StaticResource ToolButton}" Click="VideoPause_Click"/>
@@ -154,25 +187,29 @@
                     </Border>
 
                     <Grid>
-                        <!-- Image preview -->
-                        <Image x:Name="PreviewImage" Stretch="Uniform" Margin="10"/>
-                        <!-- Video preview -->
-                        <MediaElement x:Name="PreviewVideo" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" Margin="10"/>
-                        <!-- Empty placeholder -->
-                        <TextBlock x:Name="PreviewEmpty" Text="Select a media file to preview" Foreground="#666" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image x:Name="PreviewImage" Stretch="Uniform" Margin="10" Visibility="Collapsed"/>
+                        <vlc:VideoView x:Name="PreviewVideo" Margin="10" Visibility="Collapsed"/>
+                        <TextBlock x:Name="PreviewEmpty" Text="Select a media file to preview"
+                                   Foreground="{DynamicResource EmptyForeground}" FontSize="16"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
                 </DockPanel>
             </Border>
 
-            <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch" Background="#0A0A0A"/>
+            <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
+                          Background="{DynamicResource SplitterBrush}"/>
 
             <!-- RIGHT: Destination buttons -->
-            <Border Grid.Column="4" Background="#1E1E1E" BorderBrush="#333" BorderThickness="1,0,0,0">
+            <Border Grid.Column="4"
+                    Background="{DynamicResource PanelBackground}"
+                    BorderBrush="{DynamicResource BorderBrushColor}"
+                    BorderThickness="1,0,0,0">
                 <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="#252525" Padding="8,4">
+                    <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
                         <DockPanel>
                             <Button DockPanel.Dock="Right" Content="+ Add" Style="{StaticResource ToolButton}" Click="AddDestination_Click"/>
-                            <TextBlock Text="Destinations" FontWeight="Bold" Foreground="#DDD" VerticalAlignment="Center"/>
+                            <TextBlock Text="Destinations" FontWeight="Bold"
+                                       Foreground="{DynamicResource PanelForeground}" VerticalAlignment="Center"/>
                         </DockPanel>
                     </Border>
 
@@ -180,7 +217,9 @@
                         <ItemsControl x:Name="DestinationsPanel">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="#262626" BorderBrush="#3A3A3A" BorderThickness="1" Margin="6,4" Padding="6">
+                                    <Border Background="{DynamicResource ItemBackground}"
+                                            BorderBrush="{DynamicResource BorderBrushColor}"
+                                            BorderThickness="1" Margin="6,4" Padding="6">
                                         <DockPanel>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                                                 <Button Content="✎" Width="28" Margin="2,0" Click="EditDestination_Click" Tag="{Binding}" ToolTip="Edit"/>

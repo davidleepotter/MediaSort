@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MediaSort Settings"
         Height="520" Width="640"
-        Background="#1E1E1E"
-        Foreground="#EEE"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource PanelForeground}"
         WindowStartupLocation="CenterOwner">
     <DockPanel Margin="16">
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
@@ -12,7 +12,8 @@
             <Button Content="OK" Style="{StaticResource ToolButton}" Click="Ok_Click" Width="90" Margin="6,0,0,0"/>
         </StackPanel>
 
-        <TextBlock DockPanel.Dock="Top" Text="General" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>
+        <TextBlock DockPanel.Dock="Top" Text="General" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"
+                   Foreground="{DynamicResource PanelForeground}"/>
 
         <StackPanel>
             <Grid Margin="0,0,0,8">
@@ -21,19 +22,25 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="Source folder" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="SourceFolderBox" Padding="4" Background="#2A2A2A" Foreground="#EEE" BorderBrush="#444"/>
+                <TextBlock Text="Source folder" VerticalAlignment="Center"
+                           Foreground="{DynamicResource PanelForeground}"/>
+                <TextBox Grid.Column="1" x:Name="SourceFolderBox" Padding="4"
+                         Background="{DynamicResource InputBackground}"
+                         Foreground="{DynamicResource PanelForeground}"
+                         BorderBrush="{DynamicResource ButtonBorder}"/>
                 <Button Grid.Column="2" Content="Browse..." Style="{StaticResource ToolButton}" Click="BrowseSource_Click"/>
             </Grid>
 
-            <CheckBox x:Name="RecursiveCheck" Content="Scan subfolders (recursive)" Margin="0,0,0,8" Foreground="#DDD"/>
+            <CheckBox x:Name="RecursiveCheck" Content="Scan subfolders (recursive)" Margin="0,0,0,8"
+                      Foreground="{DynamicResource PanelForeground}"/>
 
             <Grid Margin="0,0,0,16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="120"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="Default view" VerticalAlignment="Center"/>
+                <TextBlock Text="Default view" VerticalAlignment="Center"
+                           Foreground="{DynamicResource PanelForeground}"/>
                 <ComboBox Grid.Column="1" x:Name="ViewModeCombo">
                     <ComboBoxItem Content="List"/>
                     <ComboBoxItem Content="Details"/>
@@ -41,15 +48,22 @@
                 </ComboBox>
             </Grid>
 
-            <TextBlock Text="Destinations" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>
-            <TextBlock Text="Use the + Add and ✎ Edit buttons in the main window. Listed here for reference." Opacity="0.7" Margin="0,0,0,4"/>
-            <ListBox x:Name="DestinationsList" Height="200" Background="#1E1E1E" Foreground="#DDD" BorderBrush="#444">
+            <TextBlock Text="Destinations" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"
+                       Foreground="{DynamicResource PanelForeground}"/>
+            <TextBlock Text="Use the + Add and ✎ Edit buttons in the main window. Listed here for reference."
+                       Foreground="{DynamicResource MutedForeground}" Margin="0,0,0,4"/>
+            <ListBox x:Name="DestinationsList" Height="200"
+                     Background="{DynamicResource PanelBackground}"
+                     Foreground="{DynamicResource PanelForeground}"
+                     BorderBrush="{DynamicResource ButtonBorder}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>
                             <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
-                            <TextBlock Text="{Binding FolderPath}" Opacity="0.7" FontSize="11"/>
-                            <TextBlock Text="{Binding HotKeyDisplay}" Opacity="0.7" FontSize="11"/>
+                            <TextBlock Text="{Binding FolderPath}" FontSize="11"
+                                       Foreground="{DynamicResource MutedForeground}"/>
+                            <TextBlock Text="{Binding HotKeyDisplay}" FontSize="11"
+                                       Foreground="{DynamicResource MutedForeground}"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
