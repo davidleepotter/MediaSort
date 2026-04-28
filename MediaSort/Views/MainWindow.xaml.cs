@@ -881,7 +881,10 @@ public partial class MainWindow : Window
                 VideoControls.Visibility = Visibility.Visible;
                 PreviewEmpty.Visibility = Visibility.Collapsed;
 
-                StopVideo();
+                // Don't call _mediaPlayer.Stop() here — LibVLCSharp's Play(newMedia)
+                // already replaces the current media internally, and Stop() is a
+                // synchronous, blocking call that can hang the UI thread.
+                try { _videoTimer?.Stop(); } catch { }
                 using var media = new Media(_libVlc, new Uri(item.FullPath));
                 _mediaPlayer.Play(media);
                 _videoTimer?.Start();
@@ -939,8 +942,20 @@ public partial class MainWindow : Window
 
     private void StopVideo()
     {
+        // Tick timer is UI-thread; stopping it is cheap.
         try { _videoTimer?.Stop(); } catch { }
-        try { _mediaPlayer?.Stop(); } catch { }
+
+        // _mediaPlayer.Stop() is SYNCHRONOUS in LibVLCSharp and blocks the calling
+        // thread until VLC's internal threads tear down the playback pipeline.
+        // On the UI thread that can freeze the app for seconds (or indefinitely
+        // on a wedged stream). Run it on a background thread so folder switching
+        // stays responsive.
+        var mp = _mediaPlayer;
+        if (mp == null) return;
+        Task.Run(() =>
+        {
+            try { mp.Stop(); } catch { }
+        });
     }
 
     private void VideoTogglePlay_Click(object sender, RoutedEventArgs e)
