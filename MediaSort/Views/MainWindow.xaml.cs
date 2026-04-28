@@ -49,6 +49,7 @@ public partial class MainWindow : Window
     private bool _suppressSliderUpdate;
     private bool _suppressSelectionUpdate;
     private bool _suppressVideoScrub;
+    private bool _initializing = true; // suppress SaveSettings during startup so SelectionChanged etc. don't wipe the file before destinations are populated
 
     private LibVLC? _libVlc;
     private MediaPlayer? _mediaPlayer;
@@ -122,6 +123,10 @@ public partial class MainWindow : Window
         CrashLogger.Info($"startup: Destinations.Count after load = {Destinations.Count}");
         RefreshDestinationCounts();
 
+        // Done with initial UI population — allow SaveSettings to run again.
+        _initializing = false;
+        CrashLogger.Info("startup: _initializing = false (saves now enabled)");
+
         if (!string.IsNullOrWhiteSpace(_settings.SourceFolder) && Directory.Exists(_settings.SourceFolder))
         {
             SetSourceFolder(_settings.SourceFolder);
@@ -143,6 +148,11 @@ public partial class MainWindow : Window
 
     private void SaveSettings([System.Runtime.CompilerServices.CallerMemberName] string caller = "")
     {
+        if (_initializing)
+        {
+            CrashLogger.Info($"SaveSettings SKIPPED (initializing) from {caller}");
+            return;
+        }
         CrashLogger.Info($"SaveSettings called from {caller} (Destinations.Count={Destinations.Count}, IsLoaded={IsLoaded})");
         _settings.RecursiveScan = RecursiveCheck.IsChecked == true;
         if (ViewModeCombo.SelectedIndex >= 0)
