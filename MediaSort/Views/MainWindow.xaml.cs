@@ -7,6 +7,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using LibVLCSharp.Shared;
 using MediaSort.Models;
 using MediaSort.Services;
@@ -15,6 +18,7 @@ using ListBox = System.Windows.Controls.ListBox;
 using ListView = System.Windows.Controls.ListView;
 using MessageBox = System.Windows.MessageBox;
 using TextBox = System.Windows.Controls.TextBox;
+using MediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 
 namespace MediaSort.Views;
 
@@ -446,10 +450,10 @@ public partial class MainWindow : Window
     private void SendToDestination_Click(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement fe && fe.Tag is DestinationButton dest)
-            MoveCurrentTo(dest);
+            MoveCurrentTo(dest, fe);
     }
 
-    private void MoveCurrentTo(DestinationButton dest)
+    private void MoveCurrentTo(DestinationButton dest, FrameworkElement? destinationElement = null)
     {
         var idx = GetSelectedIndex();
         if (idx < 0 || idx >= MediaItems.Count)
@@ -465,6 +469,12 @@ public partial class MainWindow : Window
         }
 
         var item = MediaItems[idx];
+
+        // Capture snapshot + bounds for the fly-to-destination animation
+        // BEFORE we tear down the preview / mutate the list.
+        var sourceElement = GetSelectedItemElement();
+        var destElement = destinationElement ?? FindDestinationElement(dest);
+        TryPlayMoveAnimation(item, sourceElement, destElement);
 
         // Release file handles before moving
         if (item.Kind == MediaKind.Video)
@@ -497,6 +507,130 @@ public partial class MainWindow : Window
             MessageBox.Show($"Move failed: {ex.Message}", "MediaSort",
                 MessageBoxButton.OK, MessageBoxImage.Error);
             StatusText.Text = $"Move failed: {ex.Message}";
+        }
+    }
+
+    // ----------------- MOVE ANIMATION -----------------
+
+    private FrameworkElement? GetSelectedItemElement()
+    {
+        var selector = ActiveSelector;
+        if (selector == null || selector.SelectedItem == null) return null;
+
+        var container = selector.ItemContainerGenerator.ContainerFromItem(selector.SelectedItem)
+                        as FrameworkElement;
+        return container;
+    }
+
+    private FrameworkElement? FindDestinationElement(DestinationButton dest)
+    {
+        if (DestinationsPanel == null) return null;
+        var container = DestinationsPanel.ItemContainerGenerator.ContainerFromItem(dest)
+                        as FrameworkElement;
+        return container;
+    }
+
+    private ImageSource? CaptureItemVisual(MediaItem item, FrameworkElement? sourceElement)
+    {
+        // Prefer the live preview image when the item is the one being previewed.
+        if (item.Kind == MediaKind.Image && PreviewImage.Source is ImageSource imgSrc &&
+            PreviewImage.IsVisible)
+        {
+            return imgSrc;
+        }
+
+        // Otherwise fall back to the cached thumbnail on the item.
+        if (item.Thumbnail != null) return item.Thumbnail;
+
+        // Last resort: render whatever the source element looks like in the list.
+        if (sourceElement != null && sourceElement.ActualWidth > 0 && sourceElement.ActualHeight > 0)
+        {
+            try
+            {
+                var rtb = new RenderTargetBitmap(
+                    (int)sourceElement.ActualWidth,
+                    (int)sourceElement.ActualHeight,
+                    96, 96, PixelFormats.Pbgra32);
+                rtb.Render(sourceElement);
+                rtb.Freeze();
+                return rtb;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private void TryPlayMoveAnimation(MediaItem item,
+                                      FrameworkElement? sourceElement,
+                                      FrameworkElement? destElement)
+    {
+        try
+        {
+            if (AnimationOverlay == null) return;
+            if (sourceElement == null || destElement == null) return;
+            if (sourceElement.ActualWidth <= 0 || sourceElement.ActualHeight <= 0) return;
+            if (destElement.ActualWidth <= 0 || destElement.ActualHeight <= 0) return;
+
+            var visual = CaptureItemVisual(item, sourceElement);
+            if (visual == null) return;
+
+            // Translate source/destination bounds into overlay coordinates.
+            var srcTopLeft = sourceElement.TranslatePoint(new System.Windows.Point(0, 0), AnimationOverlay);
+            var dstTopLeft = destElement.TranslatePoint(new System.Windows.Point(0, 0), AnimationOverlay);
+
+            var srcW = sourceElement.ActualWidth;
+            var srcH = sourceElement.ActualHeight;
+            var dstW = destElement.ActualWidth;
+            var dstH = destElement.ActualHeight;
+
+            var ghost = new System.Windows.Controls.Image
+            {
+                Source = visual,
+                Stretch = Stretch.Uniform,
+                Width = srcW,
+                Height = srcH,
+                Opacity = 0.95,
+                IsHitTestVisible = false
+            };
+            // Soft shadow so it reads on any background
+            ghost.Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                BlurRadius = 18,
+                ShadowDepth = 0,
+                Opacity = 0.55,
+                Color = Colors.Black
+            };
+
+            Canvas.SetLeft(ghost, srcTopLeft.X);
+            Canvas.SetTop(ghost, srcTopLeft.Y);
+            AnimationOverlay.Children.Add(ghost);
+
+            var duration = TimeSpan.FromMilliseconds(420);
+            var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
+
+            var leftAnim = new DoubleAnimation(srcTopLeft.X, dstTopLeft.X, duration) { EasingFunction = ease };
+            var topAnim = new DoubleAnimation(srcTopLeft.Y, dstTopLeft.Y, duration) { EasingFunction = ease };
+            var widthAnim = new DoubleAnimation(srcW, dstW, duration) { EasingFunction = ease };
+            var heightAnim = new DoubleAnimation(srcH, dstH, duration) { EasingFunction = ease };
+            var opacityAnim = new DoubleAnimation(0.95, 0.0, duration) { EasingFunction = ease, BeginTime = TimeSpan.FromMilliseconds(180) };
+
+            opacityAnim.Completed += (_, _) =>
+            {
+                AnimationOverlay.Children.Remove(ghost);
+            };
+
+            ghost.BeginAnimation(Canvas.LeftProperty, leftAnim);
+            ghost.BeginAnimation(Canvas.TopProperty, topAnim);
+            ghost.BeginAnimation(FrameworkElement.WidthProperty, widthAnim);
+            ghost.BeginAnimation(FrameworkElement.HeightProperty, heightAnim);
+            ghost.BeginAnimation(UIElement.OpacityProperty, opacityAnim);
+        }
+        catch
+        {
+            // Animation is best-effort; never block a move.
         }
     }
 

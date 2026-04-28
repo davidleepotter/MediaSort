@@ -16,6 +16,7 @@
         <conv:NullToVisibilityConverter x:Key="NullVis"/>
     </Window.Resources>
 
+    <Grid>
     <DockPanel>
         <!-- Top Toolbar -->
         <Border DockPanel.Dock="Top"
@@ -242,4 +243,8 @@
             </Border>
         </Grid>
     </DockPanel>
+
+    <!-- Overlay layer for fly-to-destination animations -->
+    <Canvas x:Name="AnimationOverlay" IsHitTestVisible="False" Background="Transparent"/>
+    </Grid>
 </Window>

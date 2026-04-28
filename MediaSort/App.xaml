@@ -31,7 +31,7 @@
                 <Setter Property="MinWidth" Value="80"/>
             </Style>
 
-            <!-- GridView column header style (themed) -->
+            <!-- GridView column header (full template override so it actually themes) -->
             <Style TargetType="GridViewColumnHeader">
                 <Setter Property="Background" Value="{DynamicResource PanelHeader}"/>
                 <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
@@ -39,6 +39,43 @@
                 <Setter Property="BorderThickness" Value="0,0,1,1"/>
                 <Setter Property="Padding" Value="6,4"/>
                 <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GridViewColumnHeader">
+                            <Grid>
+                                <Border x:Name="HeaderBorder"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                    <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                      RecognizesAccessKey="True"
+                                                      VerticalAlignment="Center"
+                                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                                </Border>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="HeaderBorder" Property="Background" Value="{DynamicResource ItemBackground}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- The little gripper between header columns also needs themeing -->
+            <Style TargetType="Thumb" x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type GridViewColumnHeader}, ResourceId=GridViewColumnHeaderGripper}">
+                <Setter Property="Width" Value="8"/>
+                <Setter Property="Background" Value="{DynamicResource BorderBrushColor}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Thumb">
+                            <Border Background="Transparent" Padding="3,0">
+                                <Rectangle Width="1" Fill="{DynamicResource BorderBrushColor}"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <Style TargetType="Button" x:Key="DestButton">
