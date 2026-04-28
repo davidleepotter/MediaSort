@@ -122,17 +122,6 @@ public partial class MainWindow : Window
 
         ApplyViewMode();
         Title = $"MediaSort v{VersionInfo.GetVersion()}";
-
-        // Hook crash logger
-        AppDomain.CurrentDomain.UnhandledException += (_, ev) =>
-        {
-            if (ev.ExceptionObject is Exception ex2) CrashLogger.Log(ex2, "AppDomain");
-        };
-        Dispatcher.UnhandledException += (_, ev) =>
-        {
-            CrashLogger.Log(ev.Exception, "Dispatcher");
-            ev.Handled = false;
-        };
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
@@ -428,49 +417,91 @@ public partial class MainWindow : Window
 
     private void StartBackgroundProbe(List<MediaItem> items)
     {
+        // Capture once; settings may change during the run.
         _ = Task.Run(() =>
         {
             foreach (var item in items)
             {
-                if (item.Kind == MediaKind.Image)
+                try
                 {
-                    var (w, h) = ThumbnailLoader.TryReadImageDimensions(item.FullPath);
-                    if (w > 0 && h > 0)
+                    if (item.Kind == MediaKind.Image)
                     {
-                        Dispatcher.Invoke(() =>
-                        {
-                            item.PixelWidth = w;
-                            item.PixelHeight = h;
-                        });
+                        ProbeImage(item);
                     }
-
-                    var bytes = ThumbnailLoader.TryReadAllBytes(item.FullPath);
-                    if (bytes != null)
+                    else if (item.Kind == MediaKind.Video)
                     {
-                        Dispatcher.Invoke(() =>
-                        {
-                            var thumb = ThumbnailLoader.BitmapFromBytes(bytes, 128);
-                            if (thumb != null) item.Thumbnail = thumb;
-                        });
+                        ProbeVideo(item);
                     }
                 }
-                else if (item.Kind == MediaKind.Video)
+                catch (Exception ex)
                 {
-                    var (w, h, dur) = VideoProbe.TryReadVideoInfo(item.FullPath);
-                    Dispatcher.Invoke(() =>
-                    {
-                        if (w > 0 && h > 0) { item.PixelWidth = w; item.PixelHeight = h; }
-                        if (dur > 0) item.DurationSeconds = dur;
-                    });
+                    CrashLogger.Log(ex, $"probe:{item.FullPath}");
                 }
             }
 
+            try
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    if (_settings.SortKey == SortKey.Aspect || _settings.SortKey == SortKey.Duration)
+                        ApplySort();
+                });
+            }
+            catch (Exception ex) { CrashLogger.Log(ex, "probe:final-sort"); }
+        });
+    }
+
+    private void ProbeImage(MediaItem item)
+    {
+        // Dimensions (cheap, metadata-only)
+        try
+        {
+            var (w, h) = ThumbnailLoader.TryReadImageDimensions(item.FullPath);
+            if (w > 0 && h > 0)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    item.PixelWidth = w;
+                    item.PixelHeight = h;
+                });
+            }
+        }
+        catch (Exception ex) { CrashLogger.Log(ex, $"dims:{item.FullPath}"); }
+
+        // Thumbnail: read bytes on bg, decode + assign on UI
+        byte[]? bytes = null;
+        try { bytes = ThumbnailLoader.TryReadAllBytes(item.FullPath); }
+        catch (Exception ex) { CrashLogger.Log(ex, $"read:{item.FullPath}"); }
+
+        if (bytes == null) return;
+
+        try
+        {
             Dispatcher.Invoke(() =>
             {
-                if (_settings.SortKey == SortKey.Aspect || _settings.SortKey == SortKey.Duration)
-                    ApplySort();
+                try
+                {
+                    var thumb = ThumbnailLoader.BitmapFromBytes(bytes, 128);
+                    if (thumb != null) item.Thumbnail = thumb;
+                }
+                catch (Exception ex) { CrashLogger.Log(ex, $"decode:{item.FullPath}"); }
             });
-        });
+        }
+        catch (Exception ex) { CrashLogger.Log(ex, $"dispatch-decode:{item.FullPath}"); }
+    }
+
+    private void ProbeVideo(MediaItem item)
+    {
+        try
+        {
+            var (w, h, dur) = VideoProbe.TryReadVideoInfo(item.FullPath);
+            Dispatcher.Invoke(() =>
+            {
+                if (w > 0 && h > 0) { item.PixelWidth = w; item.PixelHeight = h; }
+                if (dur > 0) item.DurationSeconds = dur;
+            });
+        }
+        catch (Exception ex) { CrashLogger.Log(ex, $"video-probe:{item.FullPath}"); }
     }
 
     // ----------------- VIEW MODE -----------------
