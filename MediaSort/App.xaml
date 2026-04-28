@@ -444,12 +444,96 @@
                  Keyed styles (referenced by Style="{StaticResource ...}")
                  ============================================================ -->
 
+            <!-- ============================================================
+                 3D ToolButton: raised gradient + bevel highlight/shadow.
+                 Hover brightens the gradient. Pressed inverts ("pushed in").
+                 ============================================================ -->
             <Style TargetType="Button" x:Key="ToolButton" BasedOn="{StaticResource {x:Type Button}}">
                 <Setter Property="Padding" Value="10,5"/>
                 <Setter Property="Margin" Value="2"/>
                 <Setter Property="MinWidth" Value="80"/>
+                <Setter Property="Foreground" Value="{DynamicResource ButtonForeground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorder}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid>
+                                <!-- Outer border = subtle bevel -->
+                                <Border x:Name="Outer"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="3"
+                                        SnapsToDevicePixels="True">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#3C3C3C" Offset="0"/>
+                                            <GradientStop Color="#2A2A2A" Offset="0.5"/>
+                                            <GradientStop Color="#1E1E1E" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <!-- Inner top-left highlight (1px) -->
+                                <Border x:Name="Highlight"
+                                        BorderThickness="1,1,0,0"
+                                        BorderBrush="#55FFFFFF"
+                                        CornerRadius="3"
+                                        Margin="1"
+                                        IsHitTestVisible="False"/>
+                                <!-- Inner bottom-right shadow -->
+                                <Border x:Name="Shadow"
+                                        BorderThickness="0,0,1,1"
+                                        BorderBrush="#66000000"
+                                        CornerRadius="3"
+                                        Margin="1"
+                                        IsHitTestVisible="False"/>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  RecognizesAccessKey="True"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Outer" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#4A4A4A" Offset="0"/>
+                                                <GradientStop Color="#363636" Offset="0.5"/>
+                                                <GradientStop Color="#262626" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#80FFFFFF"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Outer" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#1A1A1A" Offset="0"/>
+                                                <GradientStop Color="#252525" Offset="0.5"/>
+                                                <GradientStop Color="#383838" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <!-- Invert bevel: shadow on top, highlight on bottom -->
+                                    <Setter TargetName="Highlight" Property="BorderThickness" Value="0,0,1,1"/>
+                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#33FFFFFF"/>
+                                    <Setter TargetName="Shadow" Property="BorderThickness" Value="1,1,0,0"/>
+                                    <Setter TargetName="Shadow" Property="BorderBrush" Value="#80000000"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
+            <!-- ============================================================
+                 3D DestButton: accent-tinted gradient + drop shadow for a
+                 raised, glossy look. Pressed removes shadow + inverts gradient.
+                 ============================================================ -->
             <Style TargetType="Button" x:Key="DestButton" BasedOn="{StaticResource {x:Type Button}}">
                 <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                 <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
@@ -458,6 +542,90 @@
                 <Setter Property="Margin" Value="4"/>
                 <Setter Property="MinHeight" Value="42"/>
                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid>
+                                <!-- Drop shadow halo (raised effect) -->
+                                <Border x:Name="ShadowHalo"
+                                        Background="{TemplateBinding Background}"
+                                        CornerRadius="5"
+                                        Margin="0,1,0,3">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Black"
+                                                          Direction="270"
+                                                          ShadowDepth="2"
+                                                          BlurRadius="5"
+                                                          Opacity="0.45"/>
+                                    </Border.Effect>
+                                </Border>
+                                <!-- Glossy accent gradient -->
+                                <Border x:Name="Outer"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="5"
+                                        Margin="0,1,0,3"
+                                        SnapsToDevicePixels="True">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#55FFFFFF" Offset="0"/>
+                                            <GradientStop Color="#00FFFFFF" Offset="0.5"/>
+                                            <GradientStop Color="#33000000" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <!-- Top-left highlight bevel -->
+                                <Border x:Name="Highlight"
+                                        BorderThickness="1,1,0,0"
+                                        BorderBrush="#66FFFFFF"
+                                        CornerRadius="5"
+                                        Margin="1,2,1,4"
+                                        IsHitTestVisible="False"/>
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  RecognizesAccessKey="True"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Outer" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#80FFFFFF" Offset="0"/>
+                                                <GradientStop Color="#10FFFFFF" Offset="0.5"/>
+                                                <GradientStop Color="#22000000" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#99FFFFFF"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <!-- Remove drop shadow + push down 2px -->
+                                    <Setter TargetName="ShadowHalo" Property="Effect" Value="{x:Null}"/>
+                                    <Setter TargetName="ShadowHalo" Property="Margin" Value="0,3,0,1"/>
+                                    <Setter TargetName="Outer" Property="Margin" Value="0,3,0,1"/>
+                                    <Setter TargetName="Highlight" Property="Margin" Value="1,4,1,2"/>
+                                    <Setter TargetName="Outer" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#44000000" Offset="0"/>
+                                                <GradientStop Color="#10000000" Offset="0.5"/>
+                                                <GradientStop Color="#33FFFFFF" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter TargetName="Highlight" Property="BorderThickness" Value="0,0,1,1"/>
+                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#55FFFFFF"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
         </ResourceDictionary>
     </Application.Resources>

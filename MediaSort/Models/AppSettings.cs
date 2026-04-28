@@ -83,6 +83,7 @@ public class AppSettings
     public ThemeOverride ThemeOverride { get; set; } = ThemeOverride.System;
     public string AccentColor { get; set; } = "#2D7BD4"; // hex; empty/invalid -> default
     public int AnimationDurationMs { get; set; } = 420;
+    public int ThumbnailSize { get; set; } = 120; // edge length of thumbnail tile in pixels (60–240)
 
     // ---- Behavior ----
     public ConflictPolicySetting ConflictPolicy { get; set; } = ConflictPolicySetting.Prompt;

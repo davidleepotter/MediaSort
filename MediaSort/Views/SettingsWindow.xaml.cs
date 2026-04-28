@@ -27,7 +27,9 @@ public partial class SettingsWindow : Window
         ThemeCombo.SelectedIndex = (int)settings.ThemeOverride;
         AccentBox.Text = settings.AccentColor;
         AnimationSlider.Value = Math.Max(60, Math.Min(1200, settings.AnimationDurationMs));
+        ThumbSizeSlider.Value = Math.Max(60, Math.Min(240, settings.ThumbnailSize));
         UpdateAnimationText();
+        UpdateThumbSizeText();
         UpdateAccentSwatch();
         DestinationsList.ItemsSource = destinations;
     }
@@ -37,9 +39,19 @@ public partial class SettingsWindow : Window
         AnimationValueText.Text = $"{(int)AnimationSlider.Value}ms";
     }
 
+    private void UpdateThumbSizeText()
+    {
+        ThumbSizeValueText.Text = $"{(int)ThumbSizeSlider.Value}px";
+    }
+
     private void AnimationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (AnimationValueText != null) UpdateAnimationText();
+    }
+
+    private void ThumbSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (ThumbSizeValueText != null) UpdateThumbSizeText();
     }
 
     private void AccentBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateAccentSwatch();
@@ -80,6 +92,7 @@ public partial class SettingsWindow : Window
         _settings.ThemeOverride = (ThemeOverride)ThemeCombo.SelectedIndex;
         _settings.AccentColor = AccentBox.Text.Trim();
         _settings.AnimationDurationMs = (int)AnimationSlider.Value;
+        _settings.ThumbnailSize = (int)ThumbSizeSlider.Value;
         DialogResult = true;
         Close();
     }

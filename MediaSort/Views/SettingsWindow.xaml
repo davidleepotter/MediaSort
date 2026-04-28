@@ -9,8 +9,8 @@
         WindowStartupLocation="CenterOwner">
     <DockPanel Margin="16">
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="Cancel" Style="{StaticResource ToolButton}" Click="Cancel_Click" Width="90"/>
-            <Button Content="OK" Style="{StaticResource ToolButton}" Click="Ok_Click" Width="90" Margin="6,0,0,0"/>
+            <Button Content="Cancel" Style="{StaticResource ToolButton}" Click="Cancel_Click" Width="90" ToolTip="Discard changes and close"/>
+            <Button Content="OK" Style="{StaticResource ToolButton}" Click="Ok_Click" Width="90" Margin="6,0,0,0" ToolTip="Save changes and close"/>
         </StackPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -29,15 +29,18 @@
                     <TextBox Grid.Column="1" x:Name="SourceFolderBox" Padding="4"
                              Background="{DynamicResource InputBackground}"
                              Foreground="{DynamicResource PanelForeground}"
-                             BorderBrush="{DynamicResource ButtonBorder}"/>
-                    <Button Grid.Column="2" Content="Browse..." Style="{StaticResource ToolButton}" Click="BrowseSource_Click"/>
+                             BorderBrush="{DynamicResource ButtonBorder}"
+                             ToolTip="The folder MediaSort scans for media files to sort"/>
+                    <Button Grid.Column="2" Content="Browse..." Style="{StaticResource ToolButton}" Click="BrowseSource_Click" ToolTip="Pick the source folder"/>
                 </Grid>
 
                 <CheckBox x:Name="RecursiveCheck" Content="Scan subfolders (recursive)" Margin="0,0,0,8"
-                          Foreground="{DynamicResource PanelForeground}"/>
+                          Foreground="{DynamicResource PanelForeground}"
+                          ToolTip="Include nested folders when scanning the source folder"/>
 
                 <CheckBox x:Name="AutoAdvanceCheck" Content="Auto-advance to next item after move" Margin="0,0,0,16"
-                          Foreground="{DynamicResource PanelForeground}"/>
+                          Foreground="{DynamicResource PanelForeground}"
+                          ToolTip="After sending a file to a destination, automatically select the next item"/>
 
                 <Grid Margin="0,0,0,8">
                     <Grid.ColumnDefinitions>
@@ -46,7 +49,8 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="Default view" VerticalAlignment="Center"
                                Foreground="{DynamicResource PanelForeground}"/>
-                    <ComboBox Grid.Column="1" x:Name="ViewModeCombo">
+                    <ComboBox Grid.Column="1" x:Name="ViewModeCombo"
+                              ToolTip="Initial view mode for the source list when MediaSort starts">
                         <ComboBoxItem Content="List"/>
                         <ComboBoxItem Content="Details"/>
                         <ComboBoxItem Content="Thumbnails"/>
@@ -60,7 +64,8 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="Conflict policy" VerticalAlignment="Center"
                                Foreground="{DynamicResource PanelForeground}"/>
-                    <ComboBox Grid.Column="1" x:Name="ConflictPolicyCombo">
+                    <ComboBox Grid.Column="1" x:Name="ConflictPolicyCombo"
+                              ToolTip="What to do when a destination already has a file with the same name">
                         <ComboBoxItem Content="Prompt each time"/>
                         <ComboBoxItem Content="Always rename"/>
                         <ComboBoxItem Content="Always overwrite"/>
@@ -78,7 +83,8 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="Theme" VerticalAlignment="Center"
                                Foreground="{DynamicResource PanelForeground}"/>
-                    <ComboBox Grid.Column="1" x:Name="ThemeCombo">
+                    <ComboBox Grid.Column="1" x:Name="ThemeCombo"
+                              ToolTip="Override the app theme. 'Follow system' matches Windows light/dark mode.">
                         <ComboBoxItem Content="Follow system"/>
                         <ComboBoxItem Content="Light"/>
                         <ComboBoxItem Content="Dark"/>
@@ -97,7 +103,8 @@
                              Background="{DynamicResource InputBackground}"
                              Foreground="{DynamicResource PanelForeground}"
                              BorderBrush="{DynamicResource ButtonBorder}"
-                             TextChanged="AccentBox_TextChanged"/>
+                             TextChanged="AccentBox_TextChanged"
+                             ToolTip="Hex color (e.g. #2D7BD4) used for destination buttons, selection, and highlights"/>
                     <Border Grid.Column="2" x:Name="AccentSwatch" Width="30" Height="22" Margin="6,0,0,0"
                             BorderBrush="{DynamicResource ButtonBorder}" BorderThickness="1" CornerRadius="3"/>
                 </Grid>
@@ -109,12 +116,33 @@
                         <ColumnDefinition Width="60"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="Animation speed" VerticalAlignment="Center"
-                               Foreground="{DynamicResource PanelForeground}"/>
+                               Foreground="{DynamicResource PanelForeground}"
+                               ToolTip="How long the source-to-destination fly animation lasts (milliseconds)"/>
                     <Slider Grid.Column="1" x:Name="AnimationSlider"
                             Minimum="60" Maximum="1200" SmallChange="20" LargeChange="100"
                             TickFrequency="100" IsSnapToTickEnabled="False"
-                            ValueChanged="AnimationSlider_ValueChanged"/>
+                            ValueChanged="AnimationSlider_ValueChanged"
+                            ToolTip="Drag to set animation duration (60ms = snappy, 1200ms = leisurely)"/>
                     <TextBlock Grid.Column="2" x:Name="AnimationValueText" VerticalAlignment="Center"
+                               TextAlignment="Right" Margin="6,0,0,0"
+                               Foreground="{DynamicResource MutedForeground}"/>
+                </Grid>
+
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="60"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Thumbnail size" VerticalAlignment="Center"
+                               Foreground="{DynamicResource PanelForeground}"
+                               ToolTip="Size in pixels of each tile in the Thumbnails view"/>
+                    <Slider Grid.Column="1" x:Name="ThumbSizeSlider"
+                            Minimum="60" Maximum="240" SmallChange="10" LargeChange="30"
+                            TickFrequency="20" IsSnapToTickEnabled="False"
+                            ValueChanged="ThumbSizeSlider_ValueChanged"
+                            ToolTip="Drag to resize the thumbnail tiles (60px = compact, 240px = large)"/>
+                    <TextBlock Grid.Column="2" x:Name="ThumbSizeValueText" VerticalAlignment="Center"
                                TextAlignment="Right" Margin="6,0,0,0"
                                Foreground="{DynamicResource MutedForeground}"/>
                 </Grid>

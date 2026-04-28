@@ -33,7 +33,8 @@
                  Margin="0,0,0,8" Padding="4"
                  Background="{DynamicResource InputBackground}"
                  Foreground="{DynamicResource PanelForeground}"
-                 BorderBrush="{DynamicResource ButtonBorder}"/>
+                 BorderBrush="{DynamicResource ButtonBorder}"
+                 ToolTip="Friendly label shown on the destination button"/>
 
         <TextBlock Grid.Row="1" Grid.Column="0" Text="Folder" VerticalAlignment="Center"
                    Foreground="{DynamicResource PanelForeground}"/>
@@ -41,9 +42,10 @@
                  Margin="0,0,4,8" Padding="4"
                  Background="{DynamicResource InputBackground}"
                  Foreground="{DynamicResource PanelForeground}"
-                 BorderBrush="{DynamicResource ButtonBorder}"/>
+                 BorderBrush="{DynamicResource ButtonBorder}"
+                 ToolTip="Files sent to this destination are moved into this folder"/>
         <Button Grid.Row="1" Grid.Column="2" Content="Browse..." Style="{StaticResource ToolButton}"
-                Click="Browse_Click" Margin="0,0,0,8"/>
+                Click="Browse_Click" Margin="0,0,0,8" ToolTip="Pick the destination folder"/>
 
         <TextBlock Grid.Row="2" Grid.Column="0" Text="Hotkey" VerticalAlignment="Center"
                    Foreground="{DynamicResource PanelForeground}"/>
@@ -53,7 +55,8 @@
                  Foreground="{DynamicResource PanelForeground}"
                  BorderBrush="{DynamicResource ButtonBorder}"
                  PreviewKeyDown="HotkeyBox_PreviewKeyDown"
-                 Text="(click here, then press a key)"/>
+                 Text="(click here, then press a key)"
+                 ToolTip="Click here, then press the key combo to bind to this destination. Backspace clears."/>
 
         <TextBlock Grid.Row="3" Grid.ColumnSpan="3" FontSize="11"
                    Foreground="{DynamicResource MutedForeground}"
@@ -63,7 +66,8 @@
         <TextBlock Grid.Row="4" Grid.Column="0" Text="Accept kind" VerticalAlignment="Center"
                    Foreground="{DynamicResource PanelForeground}"/>
         <ComboBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" x:Name="KindFilterCombo"
-                  Margin="0,0,0,8">
+                  Margin="0,0,0,8"
+                  ToolTip="Limit which media kinds this destination accepts">
             <ComboBoxItem Content="Any (images and videos)"/>
             <ComboBoxItem Content="Images only"/>
             <ComboBoxItem Content="Videos only"/>
@@ -75,7 +79,8 @@
                  Margin="0,0,0,4" Padding="4"
                  Background="{DynamicResource InputBackground}"
                  Foreground="{DynamicResource PanelForeground}"
-                 BorderBrush="{DynamicResource ButtonBorder}"/>
+                 BorderBrush="{DynamicResource ButtonBorder}"
+                 ToolTip="Optional subfolder pattern under the destination folder. Tokens: {date:yyyy-MM}, {kind}, {ext}"/>
         <TextBlock Grid.Row="6" Grid.ColumnSpan="3" FontSize="11"
                    Foreground="{DynamicResource MutedForeground}"
                    Text="Optional. Tokens: {date:yyyy-MM}, {kind}, {ext}. Example: Photos/{date:yyyy-MM}"
@@ -87,15 +92,16 @@
                  Margin="0,0,0,4" Padding="4"
                  Background="{DynamicResource InputBackground}"
                  Foreground="{DynamicResource PanelForeground}"
-                 BorderBrush="{DynamicResource ButtonBorder}"/>
+                 BorderBrush="{DynamicResource ButtonBorder}"
+                 ToolTip="Optional rename pattern. Tokens: {name}, {ext}, {date:yyyy-MM-dd}"/>
         <TextBlock Grid.Row="8" Grid.ColumnSpan="3" FontSize="11"
                    Foreground="{DynamicResource MutedForeground}"
                    Text="Optional. Tokens: {name}, {ext}, {date:yyyy-MM-dd}. Example: {date:yyyy-MM-dd}_{name}{ext}"
                    TextWrapping="Wrap" Margin="0,0,0,8"/>
 
         <StackPanel Grid.Row="9" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-            <Button Content="Cancel" Style="{StaticResource ToolButton}" Click="Cancel_Click" Width="90"/>
-            <Button Content="OK" Style="{StaticResource ToolButton}" Click="Ok_Click" Width="90" Margin="6,0,0,0"/>
+            <Button Content="Cancel" Style="{StaticResource ToolButton}" Click="Cancel_Click" Width="90" ToolTip="Discard changes and close"/>
+            <Button Content="OK" Style="{StaticResource ToolButton}" Click="Ok_Click" Width="90" Margin="6,0,0,0" ToolTip="Save the destination and close"/>
         </StackPanel>
     </Grid>
 </Window>

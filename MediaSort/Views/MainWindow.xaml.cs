@@ -123,6 +123,9 @@ public partial class MainWindow : Window
         CrashLogger.Info($"startup: Destinations.Count after load = {Destinations.Count}");
         RefreshDestinationCounts();
 
+        // Apply thumbnail tile size from settings.
+        ApplyThumbnailSize();
+
         // Done with initial UI population — allow SaveSettings to run again.
         _initializing = false;
         CrashLogger.Info("startup: _initializing = false (saves now enabled)");
@@ -1645,6 +1648,7 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog() == true)
         {
             ThemeManager.ApplyOverride(_settings.ThemeOverride, _settings.AccentColor);
+            ApplyThumbnailSize();
             if (!string.IsNullOrWhiteSpace(_settings.SourceFolder)
                 && _settings.SourceFolder != SourcePathText.Text)
             {
@@ -1652,6 +1656,18 @@ public partial class MainWindow : Window
             }
             SaveSettings();
         }
+    }
+
+    /// <summary>
+    /// Push the current AppSettings.ThumbnailSize into the Window resources so
+    /// the Thumbnails view tiles resize live.
+    /// </summary>
+    private void ApplyThumbnailSize()
+    {
+        if (_settings == null) return;
+        var size = Math.Max(60, Math.Min(240, _settings.ThumbnailSize));
+        Resources["ThumbTileSize"] = (double)size;
+        Resources["ThumbTileHeight"] = (double)(size + 20);
     }
 
     private void About_Click(object sender, RoutedEventArgs e)
