@@ -45,7 +45,10 @@ public static class SettingsService
         Name = d.Name,
         FolderPath = d.FolderPath,
         HotKey = d.HotKey.ToString(),
-        Modifiers = d.Modifiers.ToString()
+        Modifiers = d.Modifiers.ToString(),
+        KindFilter = d.KindFilter,
+        SubfolderTemplate = d.SubfolderTemplate,
+        RenameTemplate = d.RenameTemplate
     };
 
     public static DestinationButton FromSerializable(SerializableDestination s)
@@ -53,7 +56,10 @@ public static class SettingsService
         var d = new DestinationButton
         {
             Name = s.Name,
-            FolderPath = s.FolderPath
+            FolderPath = s.FolderPath,
+            KindFilter = s.KindFilter ?? "",
+            SubfolderTemplate = s.SubfolderTemplate ?? "",
+            RenameTemplate = s.RenameTemplate ?? ""
         };
         if (Enum.TryParse<Key>(s.HotKey, out var k)) d.HotKey = k;
         if (Enum.TryParse<ModifierKeys>(s.Modifiers, out var m)) d.Modifiers = m;

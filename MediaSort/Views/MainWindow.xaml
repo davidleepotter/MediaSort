@@ -6,70 +6,119 @@
         xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
         Title="MediaSort"
         Icon="pack://application:,,,/Assets/AppIcon.ico"
-        Height="800" Width="1400"
+        Height="820" Width="1480"
         Background="{DynamicResource WindowBackground}"
         Foreground="{DynamicResource PanelForeground}"
         WindowStartupLocation="CenterScreen"
+        AllowDrop="True"
+        Drop="Window_Drop"
+        DragOver="Window_DragOver"
         KeyDown="Window_KeyDown">
     <Window.Resources>
         <conv:MediaKindToVisibilityConverter x:Key="KindVis"/>
         <conv:ViewModeToVisibilityConverter x:Key="ModeVis"/>
         <conv:NullToVisibilityConverter x:Key="NullVis"/>
+        <conv:BoolToVisibilityConverter x:Key="BoolVis"/>
     </Window.Resources>
 
     <Grid>
     <DockPanel>
-        <!-- Top Toolbar -->
+        <!-- Top Toolbar (row 1) -->
         <Border DockPanel.Dock="Top"
                 Background="{DynamicResource PanelHeader}"
                 BorderBrush="{DynamicResource BorderBrushColor}"
                 BorderThickness="0,0,0,1">
-            <StackPanel Orientation="Horizontal" Margin="6">
-                <Button Content="Pick Source Folder..." Style="{StaticResource ToolButton}" Click="PickSource_Click"/>
-                <TextBlock x:Name="SourcePathText" Text="(no source folder)"
-                           VerticalAlignment="Center" Margin="10,0"
-                           Foreground="{DynamicResource MutedForeground}"
-                           MaxWidth="600" TextTrimming="CharacterEllipsis"/>
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="6,4,6,2">
+                    <Button Content="Pick Source Folder..." Style="{StaticResource ToolButton}" Click="PickSource_Click"/>
+                    <TextBlock x:Name="SourcePathText" Text="(no source folder)"
+                               VerticalAlignment="Center" Margin="10,0"
+                               Foreground="{DynamicResource MutedForeground}"
+                               MaxWidth="500" TextTrimming="CharacterEllipsis"/>
 
-                <Separator Margin="6,0"/>
+                    <Separator Margin="6,0"/>
 
-                <TextBlock Text="View:" VerticalAlignment="Center" Margin="6,0,4,0"
-                           Foreground="{DynamicResource PanelForeground}"/>
-                <ComboBox x:Name="ViewModeCombo" Width="110"
-                          SelectionChanged="ViewModeCombo_SelectionChanged"
-                          VerticalAlignment="Center">
-                    <ComboBoxItem Content="List"/>
-                    <ComboBoxItem Content="Details" IsSelected="True"/>
-                    <ComboBoxItem Content="Thumbnails"/>
-                </ComboBox>
+                    <TextBlock Text="View:" VerticalAlignment="Center" Margin="6,0,4,0"
+                               Foreground="{DynamicResource PanelForeground}"/>
+                    <ComboBox x:Name="ViewModeCombo" Width="110"
+                              SelectionChanged="ViewModeCombo_SelectionChanged"
+                              VerticalAlignment="Center">
+                        <ComboBoxItem Content="List"/>
+                        <ComboBoxItem Content="Details" IsSelected="True"/>
+                        <ComboBoxItem Content="Thumbnails"/>
+                    </ComboBox>
 
-                <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="12,0,4,0"
-                           Foreground="{DynamicResource PanelForeground}"/>
-                <ComboBox x:Name="SortKeyCombo" Width="110"
-                          SelectionChanged="SortKeyCombo_SelectionChanged"
-                          VerticalAlignment="Center">
-                    <ComboBoxItem Content="Name" IsSelected="True"/>
-                    <ComboBoxItem Content="Size"/>
-                    <ComboBoxItem Content="Aspect"/>
-                    <ComboBoxItem Content="Modified"/>
-                    <ComboBoxItem Content="Kind"/>
-                </ComboBox>
-                <Button x:Name="SortDirButton" Content="▲" Width="30"
-                        Style="{StaticResource ToolButton}"
-                        Margin="4,0,0,0" Click="SortDir_Click"
-                        ToolTip="Toggle sort direction"/>
+                    <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="12,0,4,0"
+                               Foreground="{DynamicResource PanelForeground}"/>
+                    <ComboBox x:Name="SortKeyCombo" Width="110"
+                              SelectionChanged="SortKeyCombo_SelectionChanged"
+                              VerticalAlignment="Center">
+                        <ComboBoxItem Content="Name" IsSelected="True"/>
+                        <ComboBoxItem Content="Size"/>
+                        <ComboBoxItem Content="Aspect"/>
+                        <ComboBoxItem Content="Modified"/>
+                        <ComboBoxItem Content="Kind"/>
+                        <ComboBoxItem Content="Duration"/>
+                    </ComboBox>
+                    <Button x:Name="SortDirButton" Content="▲" Width="30"
+                            Style="{StaticResource ToolButton}"
+                            Margin="4,0,0,0" Click="SortDir_Click"
+                            ToolTip="Toggle sort direction"/>
 
-                <CheckBox x:Name="RecursiveCheck" Content="Recursive"
-                          Foreground="{DynamicResource PanelForeground}"
-                          VerticalAlignment="Center" Margin="12,0,0,0"
-                          Checked="Recursive_Changed" Unchecked="Recursive_Changed"/>
+                    <CheckBox x:Name="RecursiveCheck" Content="Recursive"
+                              Foreground="{DynamicResource PanelForeground}"
+                              VerticalAlignment="Center" Margin="12,0,0,0"
+                              Checked="Recursive_Changed" Unchecked="Recursive_Changed"/>
 
-                <Button Content="Refresh" Style="{StaticResource ToolButton}" Margin="12,0,0,0" Click="Refresh_Click"/>
+                    <Button Content="Refresh" Style="{StaticResource ToolButton}" Margin="12,0,0,0" Click="Refresh_Click"/>
+                    <Button x:Name="UndoButton" Content="↶ Undo" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            Click="Undo_Click" ToolTip="Undo last move (Ctrl+Z)" IsEnabled="False"/>
 
-                <Separator Margin="6,0"/>
+                    <Separator Margin="6,0"/>
 
-                <Button Content="Settings" Style="{StaticResource ToolButton}" Click="Settings_Click"/>
-                <Button Content="About" Style="{StaticResource ToolButton}" Click="About_Click"/>
+                    <Button Content="Settings" Style="{StaticResource ToolButton}" Click="Settings_Click"/>
+                    <Button Content="?" Style="{StaticResource ToolButton}" Width="28" ToolTip="Keyboard shortcuts"
+                            Click="Help_Click" Margin="6,0,0,0"/>
+                    <Button Content="About" Style="{StaticResource ToolButton}" Click="About_Click"/>
+                </StackPanel>
+
+                <!-- Toolbar row 2: filters + search -->
+                <StackPanel Orientation="Horizontal" Margin="6,2,6,4">
+                    <TextBlock Text="Search:" VerticalAlignment="Center" Margin="0,0,4,0"
+                               Foreground="{DynamicResource PanelForeground}"/>
+                    <TextBox x:Name="SearchBox" Width="220" VerticalAlignment="Center"
+                             TextChanged="SearchBox_TextChanged"
+                             ToolTip="Filter the source list (Ctrl+F)"/>
+                    <Button Content="✕" Width="24" Margin="2,0,0,0" Style="{StaticResource ToolButton}"
+                            Click="ClearSearch_Click" ToolTip="Clear"/>
+
+                    <TextBlock Text="Date:" VerticalAlignment="Center" Margin="14,0,4,0"
+                               Foreground="{DynamicResource PanelForeground}"/>
+                    <ComboBox x:Name="DateFilterCombo" Width="120" VerticalAlignment="Center"
+                              SelectionChanged="DateFilterCombo_SelectionChanged">
+                        <ComboBoxItem Content="All time" IsSelected="True"/>
+                        <ComboBoxItem Content="Last 7 days"/>
+                        <ComboBoxItem Content="Last 30 days"/>
+                        <ComboBoxItem Content="This year"/>
+                    </ComboBox>
+
+                    <TextBlock Text="Aspect:" VerticalAlignment="Center" Margin="14,0,4,0"
+                               Foreground="{DynamicResource PanelForeground}"/>
+                    <ComboBox x:Name="AspectFilterCombo" Width="110" VerticalAlignment="Center"
+                              SelectionChanged="AspectFilterCombo_SelectionChanged">
+                        <ComboBoxItem Content="Any" IsSelected="True"/>
+                        <ComboBoxItem Content="Portrait"/>
+                        <ComboBoxItem Content="Landscape"/>
+                        <ComboBoxItem Content="Square"/>
+                    </ComboBox>
+
+                    <Button Content="Find duplicates" Style="{StaticResource ToolButton}" Margin="14,0,0,0"
+                            Click="FindDuplicates_Click" ToolTip="Highlight near-duplicate images"/>
+                    <Button Content="Skip (N)" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            Click="Skip_Click" ToolTip="Advance to next without moving"/>
+                    <Button Content="🗑 Trash" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            Click="Trash_Click" ToolTip="Send selected to Recycle Bin (Del)"/>
+                </StackPanel>
             </StackPanel>
         </Border>
 
@@ -78,9 +127,14 @@
                 Background="{DynamicResource PanelHeader}"
                 BorderBrush="{DynamicResource BorderBrushColor}"
                 BorderThickness="0,1,0,0">
-            <StackPanel Orientation="Horizontal" Margin="6,3">
-                <TextBlock x:Name="StatusText" Text="Ready" Foreground="{DynamicResource MutedForeground}"/>
-            </StackPanel>
+            <Grid Margin="6,3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" x:Name="StatusText" Text="Ready" Foreground="{DynamicResource MutedForeground}"/>
+                <TextBlock Grid.Column="1" x:Name="StatsText" Text="" Foreground="{DynamicResource MutedForeground}"/>
+            </Grid>
         </Border>
 
         <Grid>
@@ -89,7 +143,7 @@
                 <ColumnDefinition Width="5"/>
                 <ColumnDefinition Width="*" MinWidth="300"/>
                 <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="320" MinWidth="220"/>
+                <ColumnDefinition Width="340" MinWidth="240"/>
             </Grid.ColumnDefinitions>
 
             <!-- LEFT: Source list -->
@@ -123,8 +177,20 @@
                                  Background="{DynamicResource PanelBackground}"
                                  Foreground="{DynamicResource PanelForeground}"
                                  BorderThickness="0"
+                                 SelectionMode="Extended"
+                                 AllowDrop="True"
+                                 PreviewMouseLeftButtonDown="MediaList_PreviewMouseDown"
+                                 MouseMove="MediaList_MouseMove"
                                  SelectionChanged="MediaList_SelectionChanged"
                                  KeyDown="MediaList_KeyDown">
+                            <ListBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
+                                    <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding FileName}"/>
@@ -136,8 +202,20 @@
                                   Background="{DynamicResource PanelBackground}"
                                   Foreground="{DynamicResource PanelForeground}"
                                   BorderThickness="0"
+                                  SelectionMode="Extended"
+                                  AllowDrop="True"
+                                  PreviewMouseLeftButtonDown="MediaList_PreviewMouseDown"
+                                  MouseMove="MediaList_MouseMove"
                                   SelectionChanged="MediaList_SelectionChanged"
                                   KeyDown="MediaList_KeyDown">
+                            <ListView.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
+                                    <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
+                                </ContextMenu>
+                            </ListView.ContextMenu>
                             <ListView.View>
                                 <GridView>
                                     <GridViewColumn Width="180" DisplayMemberBinding="{Binding FileName}">
@@ -148,6 +226,9 @@
                                     </GridViewColumn>
                                     <GridViewColumn Width="120" DisplayMemberBinding="{Binding AspectDisplay}">
                                         <GridViewColumnHeader Content="Aspect" Tag="Aspect" Click="GridHeader_Click"/>
+                                    </GridViewColumn>
+                                    <GridViewColumn Width="70" DisplayMemberBinding="{Binding DurationDisplay}">
+                                        <GridViewColumnHeader Content="Duration" Tag="Duration" Click="GridHeader_Click"/>
                                     </GridViewColumn>
                                     <GridViewColumn Width="120" DisplayMemberBinding="{Binding ModifiedDate, StringFormat=yyyy-MM-dd HH:mm}">
                                         <GridViewColumnHeader Content="Modified" Tag="Modified" Click="GridHeader_Click"/>
@@ -160,9 +241,21 @@
                                  Background="{DynamicResource PanelBackground}"
                                  Foreground="{DynamicResource PanelForeground}"
                                  BorderThickness="0"
+                                 SelectionMode="Extended"
+                                 AllowDrop="True"
+                                 PreviewMouseLeftButtonDown="MediaList_PreviewMouseDown"
+                                 MouseMove="MediaList_MouseMove"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  SelectionChanged="MediaList_SelectionChanged"
                                  KeyDown="MediaList_KeyDown">
+                            <ListBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
+                                    <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <WrapPanel/>
@@ -186,6 +279,11 @@
                                                            Foreground="{DynamicResource MutedForeground}"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Visibility="{Binding Thumbnail, Converter={StaticResource NullVis}, ConverterParameter=Invert}"/>
+                                                <Border Background="#CCFF6B6B" CornerRadius="3" Padding="4,1"
+                                                        HorizontalAlignment="Right" VerticalAlignment="Top" Margin="2"
+                                                        Visibility="{Binding IsDuplicate, Converter={StaticResource BoolVis}}">
+                                                    <TextBlock Text="DUP" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                                </Border>
                                             </Grid>
                                         </DockPanel>
                                     </Border>
@@ -210,15 +308,36 @@
                     <Border DockPanel.Dock="Bottom" x:Name="VideoControls"
                             Background="{DynamicResource PanelBackground}" Padding="8,6"
                             Visibility="Collapsed">
-                        <StackPanel Orientation="Horizontal">
-                            <Button Content="▶ Play" Style="{StaticResource ToolButton}" Click="VideoPlay_Click"/>
-                            <Button Content="⏸ Pause" Style="{StaticResource ToolButton}" Click="VideoPause_Click"/>
-                            <Button Content="⏹ Stop" Style="{StaticResource ToolButton}" Click="VideoStop_Click"/>
-                        </StackPanel>
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                                <Button Content="▶/⏸" Width="46" Style="{StaticResource ToolButton}" Click="VideoTogglePlay_Click" ToolTip="Play / Pause (Space)"/>
+                                <Button Content="⏹" Width="32" Style="{StaticResource ToolButton}" Click="VideoStop_Click"/>
+                                <ToggleButton x:Name="LoopToggle" Content="↻" Width="32" Margin="4,0,0,0"
+                                              ToolTip="Loop"/>
+                            </StackPanel>
+                            <TextBlock DockPanel.Dock="Right" x:Name="VideoTimeText" Text="0:00 / 0:00"
+                                       VerticalAlignment="Center" Margin="8,0,0,0"
+                                       Foreground="{DynamicResource MutedForeground}"/>
+                            <Slider x:Name="VideoScrub" Minimum="0" Maximum="1000" Margin="10,0"
+                                    VerticalAlignment="Center"
+                                    Thumb.DragStarted="VideoScrub_DragStarted"
+                                    Thumb.DragCompleted="VideoScrub_DragCompleted"
+                                    PreviewMouseDown="VideoScrub_PreviewMouseDown"/>
+                        </DockPanel>
                     </Border>
 
-                    <Grid>
-                        <Image x:Name="PreviewImage" Stretch="Uniform" Margin="10" Visibility="Collapsed"/>
+                    <Grid x:Name="PreviewArea" ClipToBounds="True">
+                        <ScrollViewer x:Name="PreviewScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <Image x:Name="PreviewImage" Stretch="Uniform" Margin="10" Visibility="Collapsed"
+                                   MouseWheel="PreviewImage_MouseWheel"
+                                   MouseLeftButtonDown="PreviewImage_MouseDown"
+                                   MouseLeftButtonUp="PreviewImage_MouseUp"
+                                   MouseMove="PreviewImage_MouseMove">
+                                <Image.LayoutTransform>
+                                    <ScaleTransform x:Name="PreviewImageScale" ScaleX="1" ScaleY="1"/>
+                                </Image.LayoutTransform>
+                            </Image>
+                        </ScrollViewer>
                         <vlc:VideoView x:Name="PreviewVideo" Margin="10" Visibility="Collapsed"/>
                         <TextBlock x:Name="PreviewEmpty" Text="Select a media file to preview"
                                    Foreground="{DynamicResource EmptyForeground}" FontSize="16"
@@ -230,7 +349,7 @@
             <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
                           Background="{DynamicResource SplitterBrush}"/>
 
-            <!-- RIGHT: Destination buttons -->
+            <!-- RIGHT: Destinations + EXIF -->
             <Border Grid.Column="4"
                     Background="{DynamicResource PanelBackground}"
                     BorderBrush="{DynamicResource BorderBrushColor}"
@@ -244,15 +363,43 @@
                         </DockPanel>
                     </Border>
 
+                    <!-- EXIF / file info section pinned to bottom -->
+                    <Expander DockPanel.Dock="Bottom" Header="File info / EXIF" IsExpanded="False"
+                              Foreground="{DynamicResource PanelForeground}" Margin="6,4">
+                        <ItemsControl x:Name="ExifItems" Margin="6,4">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Key}" Foreground="{DynamicResource MutedForeground}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Expander>
+
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <ItemsControl x:Name="DestinationsPanel">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="{DynamicResource ItemBackground}"
                                             BorderBrush="{DynamicResource BorderBrushColor}"
-                                            BorderThickness="1" Margin="6,4" Padding="6">
+                                            BorderThickness="1" Margin="6,4" Padding="6"
+                                            AllowDrop="True"
+                                            Drop="Destination_Drop"
+                                            DragOver="Destination_DragOver"
+                                            DragEnter="Destination_DragEnter"
+                                            DragLeave="Destination_DragLeave"
+                                            Tag="{Binding}">
                                         <DockPanel>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <Button Content="↑" Width="22" Margin="1,0" Click="MoveDestUp_Click" Tag="{Binding}" ToolTip="Move up"/>
+                                                <Button Content="↓" Width="22" Margin="1,0" Click="MoveDestDown_Click" Tag="{Binding}" ToolTip="Move down"/>
+                                                <Button Content="📂" Width="28" Margin="2,0" Click="OpenDestFolder_Click" Tag="{Binding}" ToolTip="Open folder"/>
                                                 <Button Content="✎" Width="28" Margin="2,0" Click="EditDestination_Click" Tag="{Binding}" ToolTip="Edit"/>
                                                 <Button Content="✕" Width="28" Margin="2,0" Click="RemoveDestination_Click" Tag="{Binding}" ToolTip="Remove"/>
                                             </StackPanel>
@@ -261,6 +408,7 @@
                                                     <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
                                                     <TextBlock Text="{Binding HotKeyDisplay}" FontSize="10" Opacity="0.8"/>
                                                     <TextBlock Text="{Binding FolderPath}" FontSize="10" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding BadgeText}" FontSize="10" Opacity="0.65" FontStyle="Italic"/>
                                                 </StackPanel>
                                             </Button>
                                         </DockPanel>

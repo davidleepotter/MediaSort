@@ -1,0 +1,27 @@
+<Window x:Class="MediaSort.Views.ConflictDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="File Conflict"
+        Icon="pack://application:,,,/Assets/AppIcon.ico"
+        Height="260" Width="540"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource PanelForeground}"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <DockPanel Margin="14">
+        <TextBlock DockPanel.Dock="Top" Text="A file with the same name already exists" FontSize="14" FontWeight="Bold" Margin="0,0,0,8"/>
+        <TextBlock DockPanel.Dock="Top" x:Name="MessageText" TextWrapping="Wrap" Margin="0,0,0,12"
+                   Foreground="{DynamicResource MutedForeground}"/>
+
+        <CheckBox DockPanel.Dock="Top" x:Name="ApplyAllCheck" Content="Apply this choice to all remaining conflicts"
+                  Margin="0,0,0,12" Foreground="{DynamicResource PanelForeground}"/>
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Rename" Width="100" Margin="4,0" Click="Rename_Click"/>
+            <Button Content="Overwrite" Width="100" Margin="4,0" Click="Overwrite_Click"/>
+            <Button Content="Skip" Width="100" Margin="4,0" Click="Skip_Click"/>
+            <Button Content="Cancel" Width="100" Margin="4,0" IsCancel="True" Click="Cancel_Click"/>
+        </StackPanel>
+        <Grid/>
+    </DockPanel>
+</Window>

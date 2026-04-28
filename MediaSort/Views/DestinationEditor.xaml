@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Edit Destination"
         Icon="pack://application:,,,/Assets/AppIcon.ico"
-        Height="280" Width="520"
+        Height="460" Width="560"
         Background="{DynamicResource WindowBackground}"
         Foreground="{DynamicResource PanelForeground}"
         WindowStartupLocation="CenterOwner"
@@ -15,11 +15,14 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="100"/>
+            <ColumnDefinition Width="120"/>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
@@ -55,9 +58,42 @@
         <TextBlock Grid.Row="3" Grid.ColumnSpan="3" FontSize="11"
                    Foreground="{DynamicResource MutedForeground}"
                    Text="Tip: hold Ctrl, Alt, or Shift while pressing the key to set a modified shortcut. Press Backspace or Delete to clear."
+                   TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="Accept kind" VerticalAlignment="Center"
+                   Foreground="{DynamicResource PanelForeground}"/>
+        <ComboBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" x:Name="KindFilterCombo"
+                  Margin="0,0,0,8">
+            <ComboBoxItem Content="Any (images and videos)"/>
+            <ComboBoxItem Content="Images only"/>
+            <ComboBoxItem Content="Videos only"/>
+        </ComboBox>
+
+        <TextBlock Grid.Row="5" Grid.Column="0" Text="Subfolder" VerticalAlignment="Center"
+                   Foreground="{DynamicResource PanelForeground}"/>
+        <TextBox Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" x:Name="SubfolderBox"
+                 Margin="0,0,0,4" Padding="4"
+                 Background="{DynamicResource InputBackground}"
+                 Foreground="{DynamicResource PanelForeground}"
+                 BorderBrush="{DynamicResource ButtonBorder}"/>
+        <TextBlock Grid.Row="6" Grid.ColumnSpan="3" FontSize="11"
+                   Foreground="{DynamicResource MutedForeground}"
+                   Text="Optional. Tokens: {date:yyyy-MM}, {kind}, {ext}. Example: Photos/{date:yyyy-MM}"
                    TextWrapping="Wrap" Margin="0,0,0,8"/>
 
-        <StackPanel Grid.Row="6" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+        <TextBlock Grid.Row="7" Grid.Column="0" Text="Rename" VerticalAlignment="Center"
+                   Foreground="{DynamicResource PanelForeground}"/>
+        <TextBox Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="2" x:Name="RenameBox"
+                 Margin="0,0,0,4" Padding="4"
+                 Background="{DynamicResource InputBackground}"
+                 Foreground="{DynamicResource PanelForeground}"
+                 BorderBrush="{DynamicResource ButtonBorder}"/>
+        <TextBlock Grid.Row="8" Grid.ColumnSpan="3" FontSize="11"
+                   Foreground="{DynamicResource MutedForeground}"
+                   Text="Optional. Tokens: {name}, {ext}, {date:yyyy-MM-dd}. Example: {date:yyyy-MM-dd}_{name}{ext}"
+                   TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+        <StackPanel Grid.Row="9" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
             <Button Content="Cancel" Style="{StaticResource ToolButton}" Click="Cancel_Click" Width="90"/>
             <Button Content="OK" Style="{StaticResource ToolButton}" Click="Ok_Click" Width="90" Margin="6,0,0,0"/>
         </StackPanel>

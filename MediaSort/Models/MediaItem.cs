@@ -18,6 +18,9 @@ public class MediaItem : INotifyPropertyChanged
     private BitmapImage? _thumbnail;
     private int _pixelWidth;
     private int _pixelHeight;
+    private double _durationSeconds;
+    private string _perceptualHash = "";
+    private bool _isDuplicate;
 
     public string FullPath { get; }
     public string FileName { get; }
@@ -60,6 +63,57 @@ public class MediaItem : INotifyPropertyChanged
 
     /// <summary>Friendly aspect-ratio label, e.g. "Landscape 16:9" or "Portrait 9:16".</summary>
     public string AspectDisplay => FormatAspect(PixelWidth, PixelHeight);
+
+    /// <summary>Video duration in seconds. 0 for images or unknown.</summary>
+    public double DurationSeconds
+    {
+        get => _durationSeconds;
+        set
+        {
+            if (_durationSeconds == value) return;
+            _durationSeconds = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(DurationDisplay));
+        }
+    }
+
+    public string DurationDisplay
+    {
+        get
+        {
+            if (DurationSeconds <= 0) return "";
+            var t = TimeSpan.FromSeconds(DurationSeconds);
+            return t.TotalHours >= 1
+                ? $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}"
+                : $"{t.Minutes}:{t.Seconds:00}";
+        }
+    }
+
+    /// <summary>Aspect bucket: Portrait, Landscape, Square, or Unknown.</summary>
+    public string AspectBucket
+    {
+        get
+        {
+            if (PixelWidth <= 0 || PixelHeight <= 0) return "Unknown";
+            var r = (double)PixelWidth / PixelHeight;
+            if (Math.Abs(r - 1.0) < 0.05) return "Square";
+            return r > 1.0 ? "Landscape" : "Portrait";
+        }
+    }
+
+    /// <summary>Perceptual hash string (set by duplicate detector).</summary>
+    public string PerceptualHash
+    {
+        get => _perceptualHash;
+        set { _perceptualHash = value ?? ""; OnPropertyChanged(); }
+    }
+
+    /// <summary>True if duplicate detector flagged this item.</summary>
+    public bool IsDuplicate
+    {
+        get => _isDuplicate;
+        set { _isDuplicate = value; OnPropertyChanged(); }
+    }
 
     public MediaItem(string fullPath)
     {

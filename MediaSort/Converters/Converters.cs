@@ -46,6 +46,20 @@ public class ViewModeToVisibilityConverter : IValueConverter
         => Binding.DoNothing;
 }
 
+public class BoolToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var invert = parameter is string s &&
+                     s.Equals("Invert", StringComparison.OrdinalIgnoreCase);
+        bool b = value is bool x && x;
+        if (invert) b = !b;
+        return b ? Visibility.Visible : Visibility.Collapsed;
+    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
+
 public class NullToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

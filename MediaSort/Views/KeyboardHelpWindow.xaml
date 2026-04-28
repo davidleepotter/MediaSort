@@ -1,0 +1,75 @@
+<Window x:Class="MediaSort.Views.KeyboardHelpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Keyboard Shortcuts"
+        Icon="pack://application:,,,/Assets/AppIcon.ico"
+        Height="540" Width="560"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource PanelForeground}"
+        WindowStartupLocation="CenterOwner">
+    <DockPanel Margin="16">
+        <TextBlock DockPanel.Dock="Top" Text="Keyboard Shortcuts" FontSize="18" FontWeight="Bold" Margin="0,0,0,12"/>
+
+        <Button DockPanel.Dock="Bottom" Content="Close" Width="90" HorizontalAlignment="Right" IsCancel="True" Click="Close_Click" Margin="0,12,0,0"/>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="Navigation" FontWeight="Bold" Margin="0,8,0,4"/>
+                <Grid Margin="12,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="↑ / ↓ / ← / →" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Move selection in the source list"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Home / End" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Jump to first/last item"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Page Up/Down" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Page through the list"/>
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Ctrl+F" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Focus the search box"/>
+                </Grid>
+
+                <TextBlock Text="Sorting / moving" FontWeight="Bold" Margin="0,12,0,4"/>
+                <Grid Margin="12,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Destination hotkey" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Move selected item(s) to that destination"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+Z" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Undo last move (or batch)"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="N" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Skip — advance to next without moving"/>
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Delete" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Send selected item(s) to Recycle Bin"/>
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Ctrl+A" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Select all visible items"/>
+                </Grid>
+
+                <TextBlock Text="View / preview" FontWeight="Bold" Margin="0,12,0,4"/>
+                <Grid Margin="12,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Space" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Play/pause video preview"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Mouse wheel" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Zoom image preview"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Click + drag" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Pan zoomed image"/>
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="0" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Reset image zoom to fit"/>
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="?" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Show this help"/>
+                </Grid>
+
+                <TextBlock Text="Other" FontWeight="Bold" Margin="0,12,0,4"/>
+                <Grid Margin="12,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl+," FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Open Settings"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="F5" FontFamily="Consolas"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Refresh source list"/>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

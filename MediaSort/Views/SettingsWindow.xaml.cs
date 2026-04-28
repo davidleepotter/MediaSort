@@ -1,7 +1,11 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using MediaSort.Models;
 using MediaSort.Services;
+using Color = System.Windows.Media.Color;
 
 namespace MediaSort.Views;
 
@@ -17,8 +21,42 @@ public partial class SettingsWindow : Window
 
         SourceFolderBox.Text = settings.SourceFolder;
         RecursiveCheck.IsChecked = settings.RecursiveScan;
+        WatchCheck.IsChecked = settings.WatchSourceFolder;
+        AutoAdvanceCheck.IsChecked = settings.AutoAdvanceAfterMove;
         ViewModeCombo.SelectedIndex = (int)settings.ViewMode;
+        ConflictPolicyCombo.SelectedIndex = (int)settings.ConflictPolicy;
+        ThemeCombo.SelectedIndex = (int)settings.ThemeOverride;
+        AccentBox.Text = settings.AccentColor;
+        AnimationSlider.Value = Math.Max(60, Math.Min(1200, settings.AnimationDurationMs));
+        UpdateAnimationText();
+        UpdateAccentSwatch();
         DestinationsList.ItemsSource = destinations;
+    }
+
+    private void UpdateAnimationText()
+    {
+        AnimationValueText.Text = $"{(int)AnimationSlider.Value}ms";
+    }
+
+    private void AnimationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (AnimationValueText != null) UpdateAnimationText();
+    }
+
+    private void AccentBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateAccentSwatch();
+
+    private void UpdateAccentSwatch()
+    {
+        if (AccentSwatch == null) return;
+        try
+        {
+            var c = (Color)System.Windows.Media.ColorConverter.ConvertFromString(AccentBox.Text);
+            AccentSwatch.Background = new SolidColorBrush(c);
+        }
+        catch
+        {
+            AccentSwatch.Background = System.Windows.Media.Brushes.Transparent;
+        }
     }
 
     private void BrowseSource_Click(object sender, RoutedEventArgs e)
@@ -37,7 +75,13 @@ public partial class SettingsWindow : Window
     {
         _settings.SourceFolder = SourceFolderBox.Text.Trim();
         _settings.RecursiveScan = RecursiveCheck.IsChecked == true;
+        _settings.WatchSourceFolder = WatchCheck.IsChecked == true;
+        _settings.AutoAdvanceAfterMove = AutoAdvanceCheck.IsChecked == true;
         _settings.ViewMode = (ViewMode)ViewModeCombo.SelectedIndex;
+        _settings.ConflictPolicy = (ConflictPolicySetting)ConflictPolicyCombo.SelectedIndex;
+        _settings.ThemeOverride = (ThemeOverride)ThemeCombo.SelectedIndex;
+        _settings.AccentColor = AccentBox.Text.Trim();
+        _settings.AnimationDurationMs = (int)AnimationSlider.Value;
         DialogResult = true;
         Close();
     }

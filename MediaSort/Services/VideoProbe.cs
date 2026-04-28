@@ -35,26 +35,39 @@ public static class VideoProbe
     /// </summary>
     public static (int width, int height) TryReadVideoDimensions(string path, int timeoutMs = 3000)
     {
+        var (w, h, _) = TryReadVideoInfo(path, timeoutMs);
+        return (w, h);
+    }
+
+    /// <summary>
+    /// Probe a video file for (width, height, durationSeconds). Returns zeros on failure.
+    /// </summary>
+    public static (int width, int height, double durationSeconds) TryReadVideoInfo(string path, int timeoutMs = 3000)
+    {
         try
         {
             var libVlc = Instance();
             using var media = new Media(libVlc, new Uri(path));
 
-            // ParseAsync blocks until parsing completes or times out.
             var task = media.Parse(MediaParseOptions.ParseLocal, timeoutMs);
             task.Wait(timeoutMs + 500);
 
             var videoTrack = media.Tracks.FirstOrDefault(t => t.TrackType == TrackType.Video);
-            if (videoTrack.TrackType != TrackType.Video) return (0, 0);
+            int w = 0, h = 0;
+            if (videoTrack.TrackType == TrackType.Video)
+            {
+                var v = videoTrack.Data.Video;
+                w = (int)v.Width;
+                h = (int)v.Height;
+            }
 
-            var v = videoTrack.Data.Video;
-            int w = (int)v.Width;
-            int h = (int)v.Height;
-            return (w, h);
+            // Duration is in milliseconds in libVLC
+            double dur = media.Duration > 0 ? media.Duration / 1000.0 : 0;
+            return (w, h, dur);
         }
         catch
         {
-            return (0, 0);
+            return (0, 0, 0);
         }
     }
 }

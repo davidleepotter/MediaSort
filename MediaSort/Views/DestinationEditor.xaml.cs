@@ -19,6 +19,14 @@ public partial class DestinationEditor : Window
         NameBox.Text = dest.Name;
         FolderBox.Text = dest.FolderPath;
         UpdateHotkeyDisplay(dest.HotKey, dest.Modifiers);
+        SubfolderBox.Text = dest.SubfolderTemplate;
+        RenameBox.Text = dest.RenameTemplate;
+        KindFilterCombo.SelectedIndex = dest.KindFilter switch
+        {
+            "Image" => 1,
+            "Video" => 2,
+            _ => 0,
+        };
     }
 
     private Key _pendingKey;
@@ -79,6 +87,14 @@ public partial class DestinationEditor : Window
         _dest.FolderPath = FolderBox.Text.Trim();
         _dest.HotKey = _pendingKey;
         _dest.Modifiers = _pendingModifiers;
+        _dest.KindFilter = KindFilterCombo.SelectedIndex switch
+        {
+            1 => "Image",
+            2 => "Video",
+            _ => "",
+        };
+        _dest.SubfolderTemplate = SubfolderBox.Text.Trim();
+        _dest.RenameTemplate = RenameBox.Text.Trim();
         DialogResult = true;
         Close();
     }

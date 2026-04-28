@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Media;
+using MediaSort.Models;
 using Microsoft.Win32;
 using Color = System.Windows.Media.Color;
 using Colors = System.Windows.Media.Colors;
@@ -67,6 +68,49 @@ public static class ThemeManager
                 });
             }
         }
+    }
+
+    /// <summary>
+    /// Applies an explicit theme override (System/Light/Dark) and a custom accent color (hex like "#2D7BD4").
+    /// Empty/invalid accent falls back to the theme default.
+    /// </summary>
+    public static void ApplyOverride(ThemeOverride themeOverride, string? accentColorHex)
+    {
+        var theme = themeOverride switch
+        {
+            ThemeOverride.Light => AppTheme.Light,
+            ThemeOverride.Dark  => AppTheme.Dark,
+            _ => DetectSystemTheme(),
+        };
+        Current = theme;
+        ApplyTheme(theme);
+
+        if (!string.IsNullOrWhiteSpace(accentColorHex))
+        {
+            try
+            {
+                var c = (Color)System.Windows.Media.ColorConverter.ConvertFromString(accentColorHex!);
+                var app = System.Windows.Application.Current;
+                if (app != null)
+                {
+                    app.Resources["AccentBrush"] = new SolidColorBrush(c);
+                    // Foreground that contrasts with accent: use luminance test
+                    var lum = (0.299 * c.R + 0.587 * c.G + 0.114 * c.B) / 255.0;
+                    app.Resources["AccentForeground"] = new SolidColorBrush(
+                        lum > 0.6 ? Color.FromRgb(0x10, 0x10, 0x10) : Colors.White);
+                }
+            }
+            catch { /* ignore bad hex */ }
+        }
+
+        // Re-apply dark titlebar to all open windows
+        var application = System.Windows.Application.Current;
+        if (application != null)
+        {
+            foreach (Window w in application.Windows)
+                WindowChrome.ApplyCurrentTheme(w);
+        }
+        ThemeChanged?.Invoke(null, EventArgs.Empty);
     }
 
     public static void ApplyTheme(AppTheme theme)
