@@ -15,7 +15,7 @@ public enum MediaKind
 
 public class MediaItem : INotifyPropertyChanged
 {
-    private BitmapImage? _thumbnail;
+    private System.Windows.Media.Imaging.BitmapSource? _thumbnail;
     private int _pixelWidth;
     private int _pixelHeight;
     private double _durationSeconds;
@@ -31,7 +31,7 @@ public class MediaItem : INotifyPropertyChanged
 
     public string SizeDisplay => FormatSize(SizeBytes);
 
-    public BitmapImage? Thumbnail
+    public System.Windows.Media.Imaging.BitmapSource? Thumbnail
     {
         get => _thumbnail;
         set { _thumbnail = value; OnPropertyChanged(); }

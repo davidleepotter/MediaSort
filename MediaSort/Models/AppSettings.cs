@@ -86,7 +86,6 @@ public class AppSettings
 
     // ---- Behavior ----
     public ConflictPolicySetting ConflictPolicy { get; set; } = ConflictPolicySetting.Prompt;
-    public bool WatchSourceFolder { get; set; } = true;
     public bool AutoAdvanceAfterMove { get; set; } = true;
 
     // ---- Memory ----

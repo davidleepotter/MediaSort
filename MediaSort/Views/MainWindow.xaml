@@ -80,6 +80,9 @@
                     <Separator Margin="6,0"/>
 
                     <Button Content="Settings" Style="{StaticResource ToolButton}" Click="Settings_Click"/>
+                    <Button Content="Save Debug Log" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            Click="SaveDebugLog_Click"
+                            ToolTip="Bundle the crash log + system info into a single text file you can share"/>
                     <Button Content="?" Style="{StaticResource ToolButton}" Width="28" ToolTip="Keyboard shortcuts"
                             Click="Help_Click" Margin="6,0,0,0"/>
                     <Button Content="About" Style="{StaticResource ToolButton}" Click="About_Click"/>

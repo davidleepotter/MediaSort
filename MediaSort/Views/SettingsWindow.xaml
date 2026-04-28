@@ -36,9 +36,6 @@
                 <CheckBox x:Name="RecursiveCheck" Content="Scan subfolders (recursive)" Margin="0,0,0,8"
                           Foreground="{DynamicResource PanelForeground}"/>
 
-                <CheckBox x:Name="WatchCheck" Content="Watch source folder for changes" Margin="0,0,0,8"
-                          Foreground="{DynamicResource PanelForeground}"/>
-
                 <CheckBox x:Name="AutoAdvanceCheck" Content="Auto-advance to next item after move" Margin="0,0,0,16"
                           Foreground="{DynamicResource PanelForeground}"/>
 

@@ -25,69 +25,67 @@ public static class ThumbnailLoader
     }
 
     /// <summary>
-    /// Build a BitmapImage from in-memory bytes. Safe to call from a background
-    /// thread (we Freeze the result before returning).
+    /// Build a thumbnail BitmapSource from in-memory bytes. Safe to call from a
+    /// background thread — we Freeze the result. Returns BitmapSource (not BitmapImage)
+    /// because BitmapFrame freezes cross-thread cleanly while BitmapImage often does not.
     /// </summary>
-    public static BitmapImage? BitmapFromBytes(byte[] bytes, int decodePixelWidth)
+    public static BitmapSource? BitmapFromBytes(byte[] bytes, int decodePixelWidth)
     {
-        // Strategy 1: BitmapImage with DecodePixelWidth (cheapest, but rejects some PNGs).
+        // Strategy 1: BitmapDecoder → BitmapFrame → optional scale via TransformedBitmap.
+        // BitmapFrame is the most permissive cross-thread image source in WPF.
         try
         {
-            using var ms = new MemoryStream(bytes);
-            var bmp = new BitmapImage();
-            bmp.BeginInit();
-            bmp.CacheOption = BitmapCacheOption.OnLoad;
-            bmp.CreateOptions = BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.IgnoreColorProfile;
-            if (decodePixelWidth > 0) bmp.DecodePixelWidth = decodePixelWidth;
-            bmp.StreamSource = ms;
-            bmp.EndInit();
-            bmp.Freeze();
-            if (bmp.PixelWidth > 0) return bmp;
-        }
-        catch (Exception ex) { CrashLogger.Info($"thumb-strategy1-fail {ex.GetType().Name}: {ex.Message}"); }
-
-        // Strategy 2: BitmapImage WITHOUT DecodePixelWidth (some PNGs go black if we set it).
-        try
-        {
-            using var ms = new MemoryStream(bytes);
-            var bmp = new BitmapImage();
-            bmp.BeginInit();
-            bmp.CacheOption = BitmapCacheOption.OnLoad;
-            bmp.CreateOptions = BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.IgnoreColorProfile;
-            bmp.StreamSource = ms;
-            bmp.EndInit();
-            bmp.Freeze();
-            if (bmp.PixelWidth > 0) return bmp;
-        }
-        catch (Exception ex) { CrashLogger.Info($"thumb-strategy2-fail {ex.GetType().Name}: {ex.Message}"); }
-
-        // Strategy 3: BitmapDecoder → re-encode as PNG → BitmapImage.
-        try
-        {
-            using var inMs = new MemoryStream(bytes);
+            var ms = new MemoryStream(bytes);
             var decoder = BitmapDecoder.Create(
-                inMs,
+                ms,
                 BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.PreservePixelFormat,
                 BitmapCacheOption.OnLoad);
-            if (decoder.Frames.Count == 0) return null;
+            if (decoder.Frames.Count == 0)
+            {
+                CrashLogger.Info($"thumb-strategy1: no frames");
+                return null;
+            }
             var frame = decoder.Frames[0];
+            BitmapSource result = frame;
 
-            using var outMs = new MemoryStream();
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(frame));
-            encoder.Save(outMs);
-            outMs.Position = 0;
+            if (decodePixelWidth > 0 && frame.PixelWidth > decodePixelWidth)
+            {
+                var scale = (double)decodePixelWidth / frame.PixelWidth;
+                var tb = new TransformedBitmap(frame, new System.Windows.Media.ScaleTransform(scale, scale));
+                tb.Freeze();
+                result = tb;
+            }
+            else
+            {
+                if (result.CanFreeze) result.Freeze();
+            }
 
+            if (result.PixelWidth > 0) return result;
+            CrashLogger.Info($"thumb-strategy1: zero dims after decode");
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Info($"thumb-strategy1-fail {ex.GetType().Name}: {ex.Message}");
+        }
+
+        // Strategy 2: BitmapImage with full options. May fail on PNGs with weird
+        // color profile chunks; we skip DecodePixelWidth to avoid the black-image bug.
+        try
+        {
+            var ms = new MemoryStream(bytes);
             var bmp = new BitmapImage();
             bmp.BeginInit();
             bmp.CacheOption = BitmapCacheOption.OnLoad;
             bmp.CreateOptions = BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.IgnoreColorProfile;
-            bmp.StreamSource = outMs;
+            bmp.StreamSource = ms;
             bmp.EndInit();
             bmp.Freeze();
             if (bmp.PixelWidth > 0) return bmp;
         }
-        catch (Exception ex) { CrashLogger.Info($"thumb-strategy3-fail {ex.GetType().Name}: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            CrashLogger.Info($"thumb-strategy2-fail {ex.GetType().Name}: {ex.Message}");
+        }
 
         return null;
     }

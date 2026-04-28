@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -52,7 +53,6 @@ public partial class MainWindow : Window
     private LibVLC? _libVlc;
     private MediaPlayer? _mediaPlayer;
     private DispatcherTimer? _videoTimer;
-    private FolderWatcher? _watcher;
     private readonly MoveHistoryService _history = new();
     private CancellationTokenSource? _probeCts;
 
@@ -131,7 +131,6 @@ public partial class MainWindow : Window
         try { _mediaPlayer?.Stop(); } catch { }
         try { _mediaPlayer?.Dispose(); } catch { }
         try { _libVlc?.Dispose(); } catch { }
-        try { _watcher?.Dispose(); } catch { }
 
         SaveSettings();
     }
@@ -410,39 +409,6 @@ public partial class MainWindow : Window
 
         // Background pass for thumbnails + dimensions
         StartBackgroundProbe(items, _probeCts.Token);
-
-        // Watch the folder for changes (debounced refresh)
-        if (_settings.WatchSourceFolder)
-        {
-            _watcher ??= new FolderWatcher(Dispatcher);
-            _watcher.Changed -= OnWatchedFolderChanged;
-            _watcher.Changed += OnWatchedFolderChanged;
-            _watcher.Watch(folder, RecursiveCheck.IsChecked == true);
-        }
-        else
-        {
-            _watcher?.Stop();
-        }
-    }
-
-    private void OnWatchedFolderChanged()
-    {
-        if (string.IsNullOrWhiteSpace(_settings.SourceFolder)) return;
-        // Re-scan only the file list (don't disturb thumbnails of items still present)
-        var fresh = MediaScanner.Scan(_settings.SourceFolder, RecursiveCheck.IsChecked == true)
-                                .Select(m => m.FullPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var existing = _allItems.Select(m => m.FullPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var added = fresh.Except(existing).Select(p => new MediaItem(p)).ToList();
-        var removed = _allItems.Where(m => !fresh.Contains(m.FullPath)).ToList();
-
-        if (added.Count == 0 && removed.Count == 0) return;
-
-        foreach (var r in removed) _allItems.Remove(r);
-        _allItems.AddRange(added);
-        ApplyFilter();
-
-        if (added.Count > 0) StartBackgroundProbe(added, _probeCts?.Token ?? CancellationToken.None);
     }
 
     private void StartBackgroundProbe(List<MediaItem> items, CancellationToken ct)
@@ -513,9 +479,9 @@ public partial class MainWindow : Window
 
         if (ct.IsCancellationRequested) return false;
 
-        // Thumbnail: read bytes + decode on the background thread (BitmapImage.Freeze
-        // makes the result safe to hand to the UI thread). Assign on UI thread only.
-        BitmapImage? thumb = null;
+        // Thumbnail: read bytes + decode on the background thread. BitmapFromBytes
+        // returns a frozen BitmapSource that's safe to hand to the UI thread.
+        BitmapSource? thumb = null;
         try
         {
             var bytes = ThumbnailLoader.TryReadAllBytes(item.FullPath);
@@ -658,6 +624,7 @@ public partial class MainWindow : Window
             var idx = sel.SelectedIndex;
             if (idx >= 0 && idx < MediaItems.Count)
             {
+                CrashLogger.Info($"select idx={idx} file={MediaItems[idx].FileName}");
                 UpdatePositionDisplay();
                 UpdatePreview(MediaItems[idx]);
                 UpdateStats();
@@ -1680,5 +1647,77 @@ public partial class MainWindow : Window
     {
         var dlg = new KeyboardHelpWindow { Owner = this };
         dlg.ShowDialog();
+    }
+
+    private void SaveDebugLog_Click(object sender, RoutedEventArgs e)
+    {
+        var sfd = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Save Debug Log",
+            FileName = $"mediasort-debug-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
+            DefaultExt = ".txt",
+            Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*.*"
+        };
+        if (sfd.ShowDialog() != true) return;
+
+        try
+        {
+            using var sw = new StreamWriter(sfd.FileName, false);
+
+            sw.WriteLine("=== MediaSort Debug Log ===");
+            sw.WriteLine($"Captured:        {DateTime.Now:yyyy-MM-dd HH:mm:ss zzz}");
+            sw.WriteLine($"Version:         {VersionInfo.GetVersion()}");
+            sw.WriteLine($"OS:              {Environment.OSVersion}");
+            sw.WriteLine($".NET runtime:    {Environment.Version}");
+            sw.WriteLine($"Process bits:    {(Environment.Is64BitProcess ? "64" : "32")}-bit");
+            sw.WriteLine($"Working set:     {Environment.WorkingSet / (1024 * 1024)} MB");
+            sw.WriteLine();
+
+            sw.WriteLine("=== State ===");
+            sw.WriteLine($"Source folder:   {_settings?.SourceFolder ?? "(none)"}");
+            sw.WriteLine($"Recursive:       {_settings?.RecursiveScan}");
+            sw.WriteLine($"View mode:       {_settings?.ViewMode}");
+            sw.WriteLine($"Sort key:        {_settings?.SortKey}");
+            sw.WriteLine($"Theme override:  {_settings?.ThemeOverride}");
+            sw.WriteLine($"All items:       {_allItems.Count}");
+            sw.WriteLine($"Visible items:   {MediaItems.Count}");
+            sw.WriteLine($"Destinations:    {Destinations.Count}");
+            sw.WriteLine();
+
+            sw.WriteLine("=== Items (first 50) ===");
+            foreach (var m in _allItems.Take(50))
+            {
+                sw.WriteLine($"  [{m.Kind}] {m.FileName}  size={m.SizeBytes}  dims={m.PixelWidth}x{m.PixelHeight}  thumb={(m.Thumbnail != null ? "YES" : "no")}");
+            }
+            if (_allItems.Count > 50) sw.WriteLine($"  ... and {_allItems.Count - 50} more");
+            sw.WriteLine();
+
+            sw.WriteLine("=== Crash log (%LOCALAPPDATA%\\MediaSort\\crash.log) ===");
+            try
+            {
+                if (File.Exists(CrashLogger.LogFilePath))
+                {
+                    sw.WriteLine($"(from {CrashLogger.LogFilePath})");
+                    sw.WriteLine();
+                    sw.Write(File.ReadAllText(CrashLogger.LogFilePath));
+                }
+                else
+                {
+                    sw.WriteLine("(no crash.log found yet)");
+                }
+            }
+            catch (Exception ex)
+            {
+                sw.WriteLine($"(could not read crash.log: {ex.Message})");
+            }
+
+            StatusText.Text = $"Debug log saved to {sfd.FileName}";
+            try { System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{sfd.FileName}\""); } catch { }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Could not save debug log:\n\n{ex.Message}", "Save Debug Log",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 }

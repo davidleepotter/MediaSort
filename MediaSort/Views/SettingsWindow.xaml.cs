@@ -21,7 +21,6 @@ public partial class SettingsWindow : Window
 
         SourceFolderBox.Text = settings.SourceFolder;
         RecursiveCheck.IsChecked = settings.RecursiveScan;
-        WatchCheck.IsChecked = settings.WatchSourceFolder;
         AutoAdvanceCheck.IsChecked = settings.AutoAdvanceAfterMove;
         ViewModeCombo.SelectedIndex = (int)settings.ViewMode;
         ConflictPolicyCombo.SelectedIndex = (int)settings.ConflictPolicy;
@@ -75,7 +74,6 @@ public partial class SettingsWindow : Window
     {
         _settings.SourceFolder = SourceFolderBox.Text.Trim();
         _settings.RecursiveScan = RecursiveCheck.IsChecked == true;
-        _settings.WatchSourceFolder = WatchCheck.IsChecked == true;
         _settings.AutoAdvanceAfterMove = AutoAdvanceCheck.IsChecked == true;
         _settings.ViewMode = (ViewMode)ViewModeCombo.SelectedIndex;
         _settings.ConflictPolicy = (ConflictPolicySetting)ConflictPolicyCombo.SelectedIndex;
