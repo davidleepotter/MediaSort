@@ -43,6 +43,22 @@
                     <ComboBoxItem Content="Thumbnails"/>
                 </ComboBox>
 
+                <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="12,0,4,0"
+                           Foreground="{DynamicResource PanelForeground}"/>
+                <ComboBox x:Name="SortKeyCombo" Width="110"
+                          SelectionChanged="SortKeyCombo_SelectionChanged"
+                          VerticalAlignment="Center">
+                    <ComboBoxItem Content="Name" IsSelected="True"/>
+                    <ComboBoxItem Content="Size"/>
+                    <ComboBoxItem Content="Aspect"/>
+                    <ComboBoxItem Content="Modified"/>
+                    <ComboBoxItem Content="Kind"/>
+                </ComboBox>
+                <Button x:Name="SortDirButton" Content="▲" Width="30"
+                        Style="{StaticResource ToolButton}"
+                        Margin="4,0,0,0" Click="SortDir_Click"
+                        ToolTip="Toggle sort direction"/>
+
                 <CheckBox x:Name="RecursiveCheck" Content="Recursive"
                           Foreground="{DynamicResource PanelForeground}"
                           VerticalAlignment="Center" Margin="12,0,0,0"
@@ -124,10 +140,18 @@
                                   KeyDown="MediaList_KeyDown">
                             <ListView.View>
                                 <GridView>
-                                    <GridViewColumn Header="Name" Width="180" DisplayMemberBinding="{Binding FileName}"/>
-                                    <GridViewColumn Header="Size" Width="80" DisplayMemberBinding="{Binding SizeDisplay}"/>
-                                    <GridViewColumn Header="Aspect" Width="120" DisplayMemberBinding="{Binding AspectDisplay}"/>
-                                    <GridViewColumn Header="Modified" Width="120" DisplayMemberBinding="{Binding ModifiedDate, StringFormat=yyyy-MM-dd HH:mm}"/>
+                                    <GridViewColumn Width="180" DisplayMemberBinding="{Binding FileName}">
+                                        <GridViewColumnHeader Content="Name" Tag="Name" Click="GridHeader_Click"/>
+                                    </GridViewColumn>
+                                    <GridViewColumn Width="80" DisplayMemberBinding="{Binding SizeDisplay}">
+                                        <GridViewColumnHeader Content="Size" Tag="Size" Click="GridHeader_Click"/>
+                                    </GridViewColumn>
+                                    <GridViewColumn Width="120" DisplayMemberBinding="{Binding AspectDisplay}">
+                                        <GridViewColumnHeader Content="Aspect" Tag="Aspect" Click="GridHeader_Click"/>
+                                    </GridViewColumn>
+                                    <GridViewColumn Width="120" DisplayMemberBinding="{Binding ModifiedDate, StringFormat=yyyy-MM-dd HH:mm}">
+                                        <GridViewColumnHeader Content="Modified" Tag="Modified" Click="GridHeader_Click"/>
+                                    </GridViewColumn>
                                 </GridView>
                             </ListView.View>
                         </ListView>

@@ -69,6 +69,8 @@ public partial class MainWindow : Window
 
         RecursiveCheck.IsChecked = _settings.RecursiveScan;
         ViewModeCombo.SelectedIndex = (int)_settings.ViewMode;
+        SortKeyCombo.SelectedIndex = (int)_settings.SortKey;
+        UpdateSortDirButton();
 
         foreach (var d in _settings.Destinations)
             Destinations.Add(SettingsService.FromSerializable(d));
@@ -95,8 +97,110 @@ public partial class MainWindow : Window
     {
         _settings.RecursiveScan = RecursiveCheck.IsChecked == true;
         _settings.ViewMode = (ViewMode)ViewModeCombo.SelectedIndex;
+        if (SortKeyCombo.SelectedIndex >= 0)
+            _settings.SortKey = (SortKey)SortKeyCombo.SelectedIndex;
         _settings.Destinations = Destinations.Select(SettingsService.ToSerializable).ToList();
         SettingsService.Save(_settings);
+    }
+
+    // ----------------- SORTING -----------------
+
+    private void SortKeyCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded) return;
+        if (SortKeyCombo.SelectedIndex >= 0)
+            _settings.SortKey = (SortKey)SortKeyCombo.SelectedIndex;
+        ApplySort();
+        SaveSettings();
+    }
+
+    private void SortDir_Click(object sender, RoutedEventArgs e)
+    {
+        _settings.SortDescending = !_settings.SortDescending;
+        UpdateSortDirButton();
+        ApplySort();
+        SaveSettings();
+    }
+
+    private void GridHeader_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not GridViewColumnHeader header) return;
+        if (header.Tag is not string tag) return;
+        if (!Enum.TryParse<SortKey>(tag, out var key)) return;
+
+        if (_settings.SortKey == key)
+        {
+            // Same column clicked again -> flip direction
+            _settings.SortDescending = !_settings.SortDescending;
+        }
+        else
+        {
+            _settings.SortKey = key;
+            _settings.SortDescending = false;
+        }
+        SortKeyCombo.SelectedIndex = (int)key;
+        UpdateSortDirButton();
+        ApplySort();
+        SaveSettings();
+    }
+
+    private void UpdateSortDirButton()
+    {
+        SortDirButton.Content = _settings.SortDescending ? "\u25BC" : "\u25B2";
+        SortDirButton.ToolTip = _settings.SortDescending
+            ? "Sort: Descending (click for Ascending)"
+            : "Sort: Ascending (click for Descending)";
+    }
+
+    private static double AspectRatioFor(MediaItem m)
+    {
+        if (m.PixelHeight <= 0 || m.PixelWidth <= 0) return double.MaxValue; // unknowns sort to end
+        return (double)m.PixelWidth / m.PixelHeight;
+    }
+
+    private void ApplySort()
+    {
+        if (MediaItems.Count == 0) return;
+
+        // Preserve currently selected item across the reorder
+        var selected = ActiveSelector?.SelectedItem as MediaItem;
+
+        IOrderedEnumerable<MediaItem> ordered = _settings.SortKey switch
+        {
+            SortKey.Size     => _settings.SortDescending
+                                ? MediaItems.OrderByDescending(m => m.SizeBytes)
+                                : MediaItems.OrderBy(m => m.SizeBytes),
+            SortKey.Aspect   => _settings.SortDescending
+                                ? MediaItems.OrderByDescending(AspectRatioFor)
+                                : MediaItems.OrderBy(AspectRatioFor),
+            SortKey.Modified => _settings.SortDescending
+                                ? MediaItems.OrderByDescending(m => m.ModifiedDate)
+                                : MediaItems.OrderBy(m => m.ModifiedDate),
+            SortKey.Kind     => _settings.SortDescending
+                                ? MediaItems.OrderByDescending(m => m.Kind.ToString())
+                                : MediaItems.OrderBy(m => m.Kind.ToString()),
+            _                => _settings.SortDescending
+                                ? MediaItems.OrderByDescending(m => m.FileName, StringComparer.OrdinalIgnoreCase)
+                                : MediaItems.OrderBy(m => m.FileName, StringComparer.OrdinalIgnoreCase),
+        };
+
+        // Always tie-break on FileName for stable visible order
+        var sorted = (_settings.SortKey == SortKey.Name
+                        ? ordered
+                        : ordered.ThenBy(m => m.FileName, StringComparer.OrdinalIgnoreCase))
+                     .ToList();
+
+        // Re-populate ObservableCollection in place (keeps ItemsSource bindings alive)
+        _suppressSelectionUpdate = true;
+        MediaItems.Clear();
+        foreach (var m in sorted) MediaItems.Add(m);
+        _suppressSelectionUpdate = false;
+
+        // Restore selection (or fall back to first)
+        var newIdx = selected != null ? MediaItems.IndexOf(selected) : -1;
+        if (newIdx < 0 && MediaItems.Count > 0) newIdx = 0;
+        if (newIdx >= 0) SelectIndex(newIdx);
+        UpdatePositionDisplay();
     }
 
     // ----------------- SOURCE FOLDER -----------------
@@ -140,6 +244,7 @@ public partial class MainWindow : Window
 
         var items = MediaScanner.Scan(folder, RecursiveCheck.IsChecked == true).ToList();
         foreach (var i in items) MediaItems.Add(i);
+        ApplySort();
 
         UpdatePositionDisplay();
         StatusText.Text = $"{MediaItems.Count} media file(s) found";
@@ -172,8 +277,20 @@ public partial class MainWindow : Window
                         });
                     }
 
-                    var thumb = ThumbnailLoader.LoadThumbnail(item, 128);
-                    Dispatcher.Invoke(() => item.Thumbnail = thumb);
+                    // Read raw bytes on the background thread (cheap, no WPF objects),
+                    // then construct the BitmapImage on the UI thread. Building a
+                    // BitmapImage on a worker thread can produce blank images even with
+                    // Freeze() on some Windows configurations — doing the decode on the
+                    // dispatcher avoids it entirely.
+                    var bytes = ThumbnailLoader.TryReadAllBytes(item.FullPath);
+                    if (bytes != null)
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            var thumb = ThumbnailLoader.BitmapFromBytes(bytes, 128);
+                            if (thumb != null) item.Thumbnail = thumb;
+                        });
+                    }
                 }
                 else if (item.Kind == MediaKind.Video)
                 {
@@ -188,6 +305,13 @@ public partial class MainWindow : Window
                     }
                 }
             }
+
+            // Once dimensions are known, re-apply sort if user is sorting by Aspect
+            // so previously "unknown" items shuffle into their correct position.
+            Dispatcher.Invoke(() =>
+            {
+                if (_settings.SortKey == SortKey.Aspect) ApplySort();
+            });
         });
     }
 
