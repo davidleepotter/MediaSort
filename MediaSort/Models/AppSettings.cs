@@ -113,6 +113,12 @@ public class AppSettings
 
     /// <summary>Full paths of items the user has starred/favorited (#11).</summary>
     public List<string> Favorites { get; set; } = new();
+
+    // ---- (#20) Audio preview for videos ----
+    /// <summary>Video player volume 0..100. Persists across sessions.</summary>
+    public int VideoVolume { get; set; } = 60;
+    /// <summary>When true, the video player is muted regardless of VideoVolume.</summary>
+    public bool VideoMuted { get; set; } = false;
 }
 
 public enum ConflictPolicySetting

@@ -109,6 +109,13 @@ public partial class MainWindow : Window
         ActionCombo.SelectedIndex = (int)_settings.Action;
         UpdateSortDirButton();
 
+        // (#20) Restore audio preview state. Slider .Value / ToggleButton .IsChecked
+        // sets only fire ValueChanged once after _initializing flips to false, so we
+        // do not need to suppress them here.
+        VolumeSlider.Value = Math.Max(0, Math.Min(100, _settings.VideoVolume));
+        MuteToggle.IsChecked = _settings.VideoMuted;
+        MuteToggle.Content = _settings.VideoMuted ? "\ud83d\udd07" : "\ud83d\udd0a";
+
         ThemeManager.ApplyOverride(_settings.ThemeOverride, _settings.AccentColor);
 
         CrashLogger.Info($"startup: loading {_settings.Destinations.Count} destinations from settings");
@@ -1164,6 +1171,7 @@ public partial class MainWindow : Window
                 try { _videoTimer?.Stop(); } catch { }
                 using var media = new Media(_libVlc, new Uri(item.FullPath));
                 _mediaPlayer.Play(media);
+                ApplyAudioPreviewState(); // (#20) carry mute / volume into the new media
                 _videoTimer?.Start();
 
                 PopulateExif(item); // shows file info even for videos (no EXIF, but file size etc)
@@ -1244,6 +1252,64 @@ public partial class MainWindow : Window
             else _mediaPlayer.Play();
         }
         catch { }
+    }
+
+    // ===================== (#20) AUDIO PREVIEW =====================
+    // Per-session mute toggle and volume slider for video preview. State persists
+    // across sessions in AppSettings.VideoMuted / VideoVolume, applied on each
+    // new media load (LibVLC resets per-media volume on Play()).
+
+    private void VolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_initializing || _settings == null) return;
+        var v = (int)Math.Round(e.NewValue);
+        if (v < 0) v = 0; if (v > 100) v = 100;
+        _settings.VideoVolume = v;
+        // Adjusting volume implicitly unmutes — matches every other media app.
+        if (v > 0 && _settings.VideoMuted)
+        {
+            _settings.VideoMuted = false;
+            MuteToggle.IsChecked = false;
+            MuteToggle.Content = "\ud83d\udd0a";
+        }
+        ApplyAudioPreviewState();
+        SaveSettings();
+    }
+
+    private void MuteToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_settings == null) return;
+        _settings.VideoMuted = MuteToggle.IsChecked == true;
+        MuteToggle.Content = _settings.VideoMuted ? "\ud83d\udd07" : "\ud83d\udd0a";
+        ApplyAudioPreviewState();
+        SaveSettings();
+    }
+
+    /// <summary>
+    /// (#20) Push the current mute / volume state into LibVLC. Safe to call before
+    /// the media player is initialized — it just no-ops.
+    /// </summary>
+    private void ApplyAudioPreviewState()
+    {
+        var mp = _mediaPlayer;
+        if (mp == null || _settings == null) return;
+        try
+        {
+            mp.Volume = Math.Max(0, Math.Min(100, _settings.VideoVolume));
+            mp.Mute   = _settings.VideoMuted;
+        }
+        catch { /* LibVLC native call may fail if media not ready; will retry on next Play */ }
+    }
+
+    private void ToggleMuteFromKeyboard()
+    {
+        if (_settings == null) return;
+        _settings.VideoMuted = !_settings.VideoMuted;
+        MuteToggle.IsChecked = _settings.VideoMuted;
+        MuteToggle.Content = _settings.VideoMuted ? "\ud83d\udd07" : "\ud83d\udd0a";
+        ApplyAudioPreviewState();
+        StatusText.Text = _settings.VideoMuted ? "Audio muted" : $"Audio on ({_settings.VideoVolume}%)";
+        SaveSettings();
     }
 
     private void VideoStop_Click(object sender, RoutedEventArgs e) => StopVideo();
@@ -2704,6 +2770,19 @@ public partial class MainWindow : Window
             if (!ownedByDest)
             {
                 ToggleFavoriteOnSelection();
+                e.Handled = true;
+                return;
+            }
+        }
+
+        // (#20) M toggles audio mute for video preview. Skipped if a destination
+        // owns M as its own hotkey.
+        if (e.Key == Key.M && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            bool ownedByDest = Destinations.Any(d => d.HotKey == Key.M && d.Modifiers == ModifierKeys.None);
+            if (!ownedByDest)
+            {
+                ToggleMuteFromKeyboard();
                 e.Handled = true;
                 return;
             }

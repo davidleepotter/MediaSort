@@ -88,9 +88,11 @@
                             <TextBlock Text="View / preview" FontWeight="Bold" Margin="0,12,0,4"/>
                             <Grid Margin="12,0">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Space" FontFamily="Consolas"/>
                                 <TextBlock Grid.Row="0" Grid.Column="1" Text="Play/pause video preview"/>
+                                <TextBlock Grid.Row="5" Grid.Column="0" Text="M" FontFamily="Consolas"/>
+                                <TextBlock Grid.Row="5" Grid.Column="1" Text="Mute / unmute audio (volume slider in the video controls bar)"/>
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Mouse wheel" FontFamily="Consolas"/>
                                 <TextBlock Grid.Row="1" Grid.Column="1" Text="Zoom image preview"/>
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Click + drag" FontFamily="Consolas"/>

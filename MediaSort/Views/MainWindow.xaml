@@ -392,6 +392,13 @@
                                         ToolTip="Stop playback"/>
                                 <ToggleButton x:Name="LoopToggle" Content="↻" Width="32" Margin="4,0,0,0"
                                               ToolTip="Loop"/>
+                                <!-- (#20) Audio preview: mute toggle + volume slider. M toggles mute. -->
+                                <ToggleButton x:Name="MuteToggle" Content="🔊" Width="32" Margin="8,0,0,0"
+                                              ToolTip="Mute / unmute (M)" Click="MuteToggle_Click"/>
+                                <Slider x:Name="VolumeSlider" Width="90" Minimum="0" Maximum="100"
+                                        Margin="6,0,0,0" VerticalAlignment="Center"
+                                        ToolTip="Volume (0–100)"
+                                        ValueChanged="VolumeSlider_ValueChanged"/>
                             </StackPanel>
                             <TextBlock DockPanel.Dock="Right" x:Name="VideoTimeText" Text="0:00 / 0:00"
                                        VerticalAlignment="Center" Margin="8,0,0,0"
