@@ -3050,6 +3050,11 @@ public partial class MainWindow : Window
         if (groups.Count == 0)
         {
             StatusText.Text = "No near-duplicates found.";
+            MessageBox.Show(this,
+                $"No duplicates found.\n\nScanned {images.Count} image(s).",
+                "Find Duplicates",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
             return;
         }
 
