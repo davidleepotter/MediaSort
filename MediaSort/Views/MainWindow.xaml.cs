@@ -890,13 +890,14 @@ public partial class MainWindow : Window
         // this throw) by simply skipping the popup — scan continues normally.
         //
         // UX rules:
-        //   1. Don't show at all if the scan finishes before 250 ms (avoid noise).
+        //   1. Don't show at all if the scan finishes before 80 ms (avoid noise on
+        //      already-cached folders — most quick scans are well under 80 ms).
         //   2. Once shown, stay visible for at least 600 ms so the user can read
         //      it (otherwise it just flashes when scans take ~300 ms).
         ProgressDialog? scanDialog = null;
         DispatcherTimer? revealTimer = null;
         DateTime dialogShownAt = DateTime.MinValue;
-        const int RevealDelayMs = 250;
+        const int RevealDelayMs = 80;
         const int MinVisibleMs = 600;
         // We register a callback on the dialog's cancel token to cancel the scan.
         // The registration MUST be disposed before we Close() the dialog ourselves,
@@ -1058,10 +1059,10 @@ public partial class MainWindow : Window
             var images = items.Where(i => i.Kind == MediaKind.Image).ToList();
             var videos = items.Where(i => i.Kind == MediaKind.Video).ToList();
 
-            // Reasonable cap: 4 in flight is plenty for HDD; SSDs aren't bottlenecked
-            // by the decode itself anyway. ProcessorCount/2 gives a sane upper bound
-            // on big workstations.
-            int dop = Math.Min(4, Math.Max(2, Environment.ProcessorCount / 2));
+            // Reasonable cap: 2 in flight is plenty. Going higher saturates SATA/USB
+            // and floods the dispatcher with thumbnail-assign posts, making the UI
+            // sluggish during scan-and-probe of large folders (700+ items).
+            int dop = Math.Min(2, Math.Max(1, Environment.ProcessorCount / 4));
             try
             {
                 Parallel.ForEach(
@@ -1144,7 +1145,11 @@ public partial class MainWindow : Window
             var (w, h) = ThumbnailLoader.TryReadImageDimensions(item.FullPath);
             if (w > 0 && h > 0 && !ct.IsCancellationRequested)
             {
-                Dispatcher.BeginInvoke(new Action(() =>
+                // DispatcherPriority.Background lets user input (clicks, scrolls,
+                // keyboard) win over thumbnail metadata posts. Without this, large
+                // folder probes flood the queue at default Normal priority and
+                // make the whole app feel sluggish.
+                Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
                 {
                     item.PixelWidth = w;
                     item.PixelHeight = h;
@@ -1194,7 +1199,7 @@ public partial class MainWindow : Window
 
         try
         {
-            Dispatcher.BeginInvoke(new Action(() =>
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
                 if (ct.IsCancellationRequested) return;
                 item.Thumbnail = thumb;
@@ -1219,7 +1224,7 @@ public partial class MainWindow : Window
             var (w, h, dur) = VideoProbe.TryReadVideoInfo(item.FullPath);
             if (ct.IsCancellationRequested) return (false, false);
             if (w > 0 && h > 0) gotDims = true;
-            Dispatcher.BeginInvoke(new Action(() =>
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
                 if (w > 0 && h > 0) { item.PixelWidth = w; item.PixelHeight = h; }
                 if (dur > 0) item.DurationSeconds = dur;
@@ -1250,7 +1255,7 @@ public partial class MainWindow : Window
 
             if (thumb != null && !ct.IsCancellationRequested)
             {
-                Dispatcher.BeginInvoke(new Action(() =>
+                Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
                 {
                     if (ct.IsCancellationRequested) return;
                     item.Thumbnail = thumb;
