@@ -278,10 +278,23 @@ public class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
     {
         switch (args.Action)
         {
+            case NotifyCollectionChangedAction.Add:
+                // Items were appended (or inserted) into the source collection.
+                // We must invalidate measure so the new items get realized when
+                // they fall in the viewport. Without this, binding 1,938 items
+                // one-by-one to an initially empty ObservableCollection (which is
+                // exactly what SetSourceFolderAsync does) leaves the panel empty
+                // because no measure pass is ever triggered for the newly-added
+                // items.
+                InvalidateMeasure();
+                ScrollOwner?.InvalidateScrollInfo();
+                break;
             case NotifyCollectionChangedAction.Remove:
             case NotifyCollectionChangedAction.Replace:
             case NotifyCollectionChangedAction.Move:
                 RemoveInternalChildRange(args.Position.Index, args.ItemUICount);
+                InvalidateMeasure();
+                ScrollOwner?.InvalidateScrollInfo();
                 break;
             case NotifyCollectionChangedAction.Reset:
                 // Full reset: recycle everything; next measure pass realizes from scratch.
