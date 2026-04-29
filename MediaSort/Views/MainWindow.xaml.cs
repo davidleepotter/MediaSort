@@ -1442,8 +1442,17 @@ public partial class MainWindow : Window
 
         var firstIdx = MediaItems.IndexOf(items[0]);
         var batch = new List<MoveHistoryService.MoveRecord>();
-        foreach (var item in items.ToList())
+        var delSnapshot = items.ToList();
+        int delTotal = delSnapshot.Count;
+        int delProcessed = 0;
+        foreach (var item in delSnapshot)
         {
+            delProcessed++;
+            if (delTotal > 1)
+            {
+                StatusText.Text = $"Deleting {delProcessed}/{delTotal}: {item.FileName}";
+                try { Dispatcher.Invoke(() => { }, DispatcherPriority.Background); } catch { }
+            }
             if (FileMover.SendToRecycleBin(item.FullPath))
             {
                 batch.Add(new MoveHistoryService.MoveRecord
@@ -1893,8 +1902,17 @@ public partial class MainWindow : Window
 
         var firstIdx = MediaItems.IndexOf(items[0]);
         var batch = new List<MoveHistoryService.MoveRecord>();
-        foreach (var item in items.ToList())
+        var delSnapshot = items.ToList();
+        int delTotal = delSnapshot.Count;
+        int delProcessed = 0;
+        foreach (var item in delSnapshot)
         {
+            delProcessed++;
+            if (delTotal > 1)
+            {
+                StatusText.Text = $"Deleting {delProcessed}/{delTotal}: {item.FileName}";
+                try { Dispatcher.Invoke(() => { }, DispatcherPriority.Background); } catch { }
+            }
             if (FileMover.SendToRecycleBin(item.FullPath))
             {
                 batch.Add(new MoveHistoryService.MoveRecord
