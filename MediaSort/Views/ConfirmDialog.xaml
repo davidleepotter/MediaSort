@@ -29,9 +29,9 @@
                    MaxWidth="480"/>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button x:Name="CancelButton" Content="Cancel" Width="90" Margin="4,0"
+            <Button x:Name="CancelButton" Content="Cancel" MinWidth="90" Padding="14,4" Margin="4,0"
                     IsCancel="True" Click="Cancel_Click"/>
-            <Button x:Name="OkButton" Content="OK" Width="90" Margin="4,0"
+            <Button x:Name="OkButton" Content="OK" MinWidth="90" Padding="14,4" Margin="4,0"
                     IsDefault="True" Click="Ok_Click"/>
         </StackPanel>
     </Grid>

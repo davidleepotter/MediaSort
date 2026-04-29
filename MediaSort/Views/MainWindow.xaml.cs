@@ -2226,6 +2226,48 @@ public partial class MainWindow : Window
     private ConflictPolicy _conflictPolicyForBatch = ConflictPolicy.Prompt;
     private bool _applyToAllForBatch = false;
 
+    // Batch-level progress dialog. Set while a multi-file Copy/Move batch is
+    // running so per-file progress reports update one persistent dialog instead
+    // of flashing a fresh modal per file.
+    private MediaSort.Views.ProgressDialog? _batchProgressDialog;
+    private bool _batchCancelled;
+    // Threshold (item count) at which Copy/Move batches show a progress dialog.
+    private const int BatchProgressMinItems = 5;
+
+    /// <summary>
+    /// Open a non-modal batch progress dialog covering an entire Copy/Move batch.
+    /// Per-file <see cref="MoveOrCopyWithProgressDialog"/> calls inside the batch
+    /// detect this dialog and route their progress into it instead of opening a
+    /// nested modal.
+    /// </summary>
+    private void BeginBatchProgress(string header, int totalItems)
+    {
+        _batchCancelled = false;
+        var dlg = new MediaSort.Views.ProgressDialog(header, $"0 / {totalItems}") { Owner = this };
+        // Show non-modal so the loop on this UI thread can keep running and
+        // updating the dialog as it goes.
+        dlg.Show();
+        dlg.ReportCount(0, totalItems);
+        _batchProgressDialog = dlg;
+    }
+
+    private void UpdateBatchProgress(int done, int total, string currentFile)
+    {
+        if (_batchProgressDialog == null) return;
+        _batchProgressDialog.SetDetail($"{done} / {total}  —  {currentFile}");
+        _batchProgressDialog.ReportCount(done, total);
+        if (_batchProgressDialog.Token.IsCancellationRequested) _batchCancelled = true;
+        // Pump so the dialog actually paints between files.
+        try { Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background); } catch { }
+    }
+
+    private void EndBatchProgress()
+    {
+        try { _batchProgressDialog?.Close(); } catch { }
+        _batchProgressDialog = null;
+        _batchCancelled = false;
+    }
+
     private void AddDestination_Click(object sender, RoutedEventArgs e)
     {
         var dest = new DestinationButton();
@@ -2548,20 +2590,42 @@ public partial class MainWindow : Window
         _conflictPolicyForBatch = SettingPolicyToConflict(_settings.ConflictPolicy);
         _applyToAllForBatch = _conflictPolicyForBatch != ConflictPolicy.Prompt;
 
+        var snapshot = items.ToList();
+        int total = snapshot.Count;
+        bool showBatch = total >= BatchProgressMinItems;
+        if (showBatch) BeginBatchProgress($"Copying to {dest.Name}…", total);
+
         int copied = 0;
-        foreach (var item in items.ToList())
+        try
         {
-            var rec = CopyWithPolicy(item.FullPath, dest, ref _conflictPolicyForBatch, ref _applyToAllForBatch);
-            if (rec != null)
+            int idx = 0;
+            foreach (var item in snapshot)
             {
-                copied++;
-                _sessionStats.RecordCopy(item.SizeBytes); // (#11)
+                idx++;
+                if (showBatch)
+                {
+                    UpdateBatchProgress(idx - 1, total, item.FileName);
+                    if (_batchCancelled) break;
+                }
+                var rec = CopyWithPolicy(item.FullPath, dest, ref _conflictPolicyForBatch, ref _applyToAllForBatch);
+                if (rec != null)
+                {
+                    copied++;
+                    _sessionStats.RecordCopy(item.SizeBytes); // (#11)
+                }
             }
+            if (showBatch) UpdateBatchProgress(total, total, "done");
+        }
+        finally
+        {
+            if (showBatch) EndBatchProgress();
         }
 
         if (copied > 0)
         {
-            StatusText.Text = $"Copied {copied} file(s) to {dest.Name}";
+            StatusText.Text = _batchCancelled
+                ? $"Copied {copied} of {total} file(s) to {dest.Name} (cancelled)"
+                : $"Copied {copied} file(s) to {dest.Name}";
             FlashDestinationBadge(dest, copied);
             RefreshDestinationCounts();
         }
@@ -2808,22 +2872,44 @@ public partial class MainWindow : Window
         _conflictPolicyForBatch = SettingPolicyToConflict(_settings.ConflictPolicy);
         _applyToAllForBatch = _conflictPolicyForBatch != ConflictPolicy.Prompt;
 
-        foreach (var item in items.ToList())
+        var snapshot = items.ToList();
+        int total = snapshot.Count;
+        bool showBatch = total >= BatchProgressMinItems;
+        if (showBatch) BeginBatchProgress($"Moving to {dest.Name}…", total);
+
+        try
         {
-            var rec = MoveWithPolicy(item.FullPath, dest, ref _conflictPolicyForBatch, ref _applyToAllForBatch);
-            if (rec == null) continue; // user cancelled or skipped
-            batch.Add(rec);
-            _sessionStats.RecordMove(item.SizeBytes); // (#11)
-            // remove from collections
-            _allItems.Remove(item);
-            MediaItems.Remove(item);
+            int idx = 0;
+            foreach (var item in snapshot)
+            {
+                idx++;
+                if (showBatch)
+                {
+                    UpdateBatchProgress(idx - 1, total, item.FileName);
+                    if (_batchCancelled) break;
+                }
+                var rec = MoveWithPolicy(item.FullPath, dest, ref _conflictPolicyForBatch, ref _applyToAllForBatch);
+                if (rec == null) continue; // user cancelled or skipped
+                batch.Add(rec);
+                _sessionStats.RecordMove(item.SizeBytes); // (#11)
+                // remove from collections
+                _allItems.Remove(item);
+                MediaItems.Remove(item);
+            }
+            if (showBatch) UpdateBatchProgress(total, total, "done");
+        }
+        finally
+        {
+            if (showBatch) EndBatchProgress();
         }
 
         if (batch.Count > 0)
         {
             _history.Push(batch);
             UndoButton.IsEnabled = _history.CanUndo;
-            StatusText.Text = $"Moved {batch.Count} file(s) to {dest.Name}";
+            StatusText.Text = _batchCancelled
+                ? $"Moved {batch.Count} of {total} file(s) to {dest.Name} (cancelled)"
+                : $"Moved {batch.Count} file(s) to {dest.Name}";
             RefreshDestinationCounts();
             // Flash a transient "+N" badge on the destination so the user gets a clear
             // confirmation that the batch landed there, even if the fly-to animation
@@ -2959,10 +3045,25 @@ public partial class MainWindow : Window
     private MoveResult MoveOrCopyWithProgressDialog(string sourcePath, string targetFolder,
         ConflictPolicy policy, string? rename, bool isCopy)
     {
+        // If a batch progress dialog is already on screen for this Copy/Move
+        // batch, route per-file byte progress into it instead of opening a
+        // nested per-file modal that would flash open and closed for every
+        // large file in the batch.
+        if (_batchProgressDialog != null)
+        {
+            return RunFileWithProgress(_batchProgressDialog, sourcePath, targetFolder, policy, rename, isCopy,
+                                       owns: false);
+        }
+
         var header = isCopy ? "Copying file…" : "Moving file…";
         var detail = System.IO.Path.GetFileName(sourcePath) + "  →  " + targetFolder;
         var dlg = new MediaSort.Views.ProgressDialog(header, detail) { Owner = this };
+        return RunFileWithProgress(dlg, sourcePath, targetFolder, policy, rename, isCopy, owns: true);
+    }
 
+    private MoveResult RunFileWithProgress(MediaSort.Views.ProgressDialog dlg,
+        string sourcePath, string targetFolder, ConflictPolicy policy, string? rename, bool isCopy, bool owns)
+    {
         MoveResult? captured = null;
         var progress = new System.Progress<(long done, long total)>(p => dlg.ReportProgress(p.done, p.total));
         var ct = dlg.Token;
@@ -2981,14 +3082,28 @@ public partial class MainWindow : Window
             }
             finally
             {
-                Dispatcher.BeginInvoke(new System.Action(() => { try { dlg.Close(); } catch { } }));
+                if (owns)
+                    Dispatcher.BeginInvoke(new System.Action(() => { try { dlg.Close(); } catch { } }));
             }
         });
         thread.IsBackground = true;
         thread.Start();
 
-        dlg.ShowDialog();
-        thread.Join();
+        if (owns)
+        {
+            dlg.ShowDialog();
+            thread.Join();
+        }
+        else
+        {
+            // Pump the UI while the worker runs so the shared batch dialog updates.
+            while (thread.IsAlive)
+            {
+                try { Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background); } catch { }
+                if (!thread.Join(50)) continue;
+                break;
+            }
+        }
         return captured ?? new MoveResult { Outcome = MoveOutcome.Failed, ErrorMessage = "No result" };
     }
 
