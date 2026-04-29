@@ -3003,28 +3003,67 @@ public partial class MainWindow : Window
         };
         var ct = progress.Token;
 
-        // Drive the hashing on a worker thread so we can pump progress updates
-        // into the dialog. We use Task.Run + the thread pool here (not
-        // Parallel.ForEach) because perceptual hashing decodes JPEGs and we
-        // already cap CPU elsewhere via BelowNormal threads.
+        // Drive the hashing on a background thread. Two issues we're fixing here:
+        //
+        //   1. The original code did Dispatcher.Invoke(() => m.PerceptualHash = h)
+        //      on every iteration. For 1938 images that's 1938 synchronous round-
+        //      trips to the UI thread — combined with rapid ReportProgress posts
+        //      it choked the dispatcher and the modal dialog stopped repainting,
+        //      so the app *looked* frozen even though hashing was running.
+        //
+        //   2. Single-threaded hashing of UNC images is slow. We parallelize on
+        //      the thread pool but cap DOP for UNC sources so we don't hammer
+        //      the SMB stack the way the scan code already avoids.
+        //
+        // Strategy: collect (item, hash) pairs in a thread-safe bag, throttle
+        // progress updates to ~10/sec, then assign every hash back to its
+        // MediaItem in ONE dispatcher pass at the end.
+        var hashed = new System.Collections.Concurrent.ConcurrentBag<(MediaItem item, string hash)>();
+        int doneCount = 0;
+        int totalToHash = toHash.Count;
+        var lastUiTickMs = 0L;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        bool isNetwork = toHash.Count > 0
+                         && (toHash[0].FullPath.StartsWith(@"\\") || toHash[0].FullPath.StartsWith("//"));
+        int dop = isNetwork ? 2 : Math.Max(2, Environment.ProcessorCount / 2);
+
         var hashTask = Task.Run(() =>
         {
-            int done = 0;
-            int total = toHash.Count;
-            foreach (var m in toHash)
+            try
             {
-                if (ct.IsCancellationRequested) break;
-                try
-                {
-                    var h = PerceptualHasher.Hash(m.FullPath);
-                    Dispatcher.Invoke(() => m.PerceptualHash = h);
-                }
-                catch { /* unreadable file: leave hash empty so it just won't match anything */ }
-                done++;
-                int snapshotDone = done;
-                progress.ReportProgress(snapshotDone, total);
-                progress.SetDetail($"Hashed {snapshotDone} / {total} · {Path.GetFileName(m.FullPath)}");
+                System.Threading.Tasks.Parallel.ForEach(
+                    toHash,
+                    new System.Threading.Tasks.ParallelOptions
+                    {
+                        MaxDegreeOfParallelism = dop,
+                        CancellationToken = ct
+                    },
+                    m =>
+                    {
+                        try
+                        {
+                            var h = PerceptualHasher.Hash(m.FullPath);
+                            if (!string.IsNullOrEmpty(h)) hashed.Add((m, h));
+                        }
+                        catch { /* unreadable file: leave hash empty so it just won't match anything */ }
+
+                        var snapshotDone = System.Threading.Interlocked.Increment(ref doneCount);
+
+                        // Throttle UI updates: at most one ReportCount + SetDetail every ~100ms.
+                        // This keeps the dispatcher responsive and the dialog actually paints.
+                        var now = sw.ElapsedMilliseconds;
+                        var prev = System.Threading.Interlocked.Read(ref lastUiTickMs);
+                        if (now - prev >= 100 || snapshotDone == totalToHash)
+                        {
+                            if (System.Threading.Interlocked.CompareExchange(ref lastUiTickMs, now, prev) == prev)
+                            {
+                                progress.ReportCount(snapshotDone, totalToHash);
+                                progress.SetDetail($"Hashed {snapshotDone} / {totalToHash} · {Path.GetFileName(m.FullPath)}");
+                            }
+                        }
+                    });
             }
+            catch (OperationCanceledException) { /* user hit Cancel */ }
         }, ct);
 
         progress.ShowDialog();    // blocks until dialog closes (Cancel) or we close it below
@@ -3041,6 +3080,11 @@ public partial class MainWindow : Window
         // we need to close it ourselves. WPF's ShowDialog already returned by now if the
         // user hit Cancel. If hashing finished first the dialog is still open, so close it.
         if (progress.IsVisible) progress.Close();
+
+        // Apply all the computed hashes back to their MediaItems in one pass on
+        // the UI thread. This replaces the per-item Dispatcher.Invoke that used
+        // to hammer the dispatcher and freeze the dialog.
+        foreach (var (item, hash) in hashed) item.PerceptualHash = hash;
 
         // Build duplicate groups via union-find: every pair within Hamming distance 6
         // becomes a single component, so a chain a~b~c collapses into one group even

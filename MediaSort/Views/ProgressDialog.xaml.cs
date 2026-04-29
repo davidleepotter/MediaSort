@@ -38,6 +38,30 @@ public partial class ProgressDialog : Window
         StatusText.Text = $"{FormatBytes(bytesDone)} / {FormatBytes(bytesTotal)}  ({pct:0.0}%)";
     }
 
+    /// <summary>
+    /// Count-style progress (e.g. "42 / 1938") used by Find Duplicates and other
+    /// item-count flows. Avoids the bytes-formatted label that confuses users
+    /// when the units are images, not bytes.
+    /// </summary>
+    public void ReportCount(int done, int total)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(new Action(() => ReportCount(done, total)));
+            return;
+        }
+        if (total <= 0)
+        {
+            Bar.IsIndeterminate = true;
+            StatusText.Text = $"{done}";
+            return;
+        }
+        Bar.IsIndeterminate = false;
+        var pct = (double)done / total * 100.0;
+        Bar.Value = Math.Clamp(pct, 0, 100);
+        StatusText.Text = $"{done} / {total}  ({pct:0.0}%)";
+    }
+
     public void SetDetail(string detail)
     {
         if (!Dispatcher.CheckAccess())
