@@ -38,6 +38,10 @@
                           Foreground="{DynamicResource PanelForeground}"
                           ToolTip="Include nested folders when scanning the source folder"/>
 
+                <CheckBox x:Name="IncludeHiddenCheck" Content="Include hidden and system files" Margin="0,0,0,8"
+                          Foreground="{DynamicResource PanelForeground}"
+                          ToolTip="Off by default. Skips files/folders with the Hidden or System attribute (e.g. AppData, $RECYCLE.BIN, .git)."/>
+
                 <CheckBox x:Name="AutoAdvanceCheck" Content="Auto-advance to next item after move" Margin="0,0,0,16"
                           Foreground="{DynamicResource PanelForeground}"
                           ToolTip="After sending a file to a destination, automatically select the next item"/>

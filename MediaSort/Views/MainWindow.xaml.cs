@@ -60,6 +60,9 @@ public partial class MainWindow : Window
     private MediaItem? _pendingPreviewItem;
     private readonly MoveHistoryService _history = new();
     private CancellationTokenSource? _probeCts;
+    // Separate CTS so we can cancel an in-flight folder enumeration when the user
+    // picks a new source folder mid-scan (huge folders / network shares).
+    private CancellationTokenSource? _scanCts;
 
     // Image preview pan/zoom state
     private bool _imagePanning;
@@ -610,6 +613,11 @@ public partial class MainWindow : Window
         try { _probeCts?.Cancel(); } catch { }
         _probeCts = new CancellationTokenSource();
 
+        // Cancel a still-running enumeration from a previous folder pick (#23).
+        try { _scanCts?.Cancel(); } catch { }
+        _scanCts = new CancellationTokenSource();
+        var scanToken = _scanCts.Token;
+
         // Stop any video that is still playing from the previous selection so
         // LibVLC isn't holding a file handle while we switch folders.
         StopVideo();
@@ -620,13 +628,23 @@ public partial class MainWindow : Window
         StatusText.Text = "Scanning…";
 
         bool recursive = RecursiveCheck.IsChecked == true;
+        bool includeHidden = _settings.IncludeHiddenFiles;
 
         // Heavy folder enumeration on a background thread — huge folders can take seconds
-        // and would otherwise freeze the UI right after launch.
+        // and would otherwise freeze the UI right after launch. Now cancellation-aware (#23)
+        // and hidden/system-aware (#24).
         List<MediaItem> items;
         try
         {
-            items = await Task.Run(() => MediaScanner.Scan(folder, recursive).ToList());
+            items = await Task.Run(
+                () => MediaScanner.Scan(folder, recursive, includeHidden, scanToken).ToList(),
+                scanToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer scan started — silently abandon this one. The newer call already
+            // cleared collections and updated status text.
+            return;
         }
         catch (Exception ex)
         {
@@ -634,6 +652,9 @@ public partial class MainWindow : Window
             StatusText.Text = $"Scan failed: {ex.Message}";
             return;
         }
+
+        // If we were cancelled while the result list was being materialized, bail.
+        if (scanToken.IsCancellationRequested) return;
 
         _allItems.AddRange(items);
         ApplyFilter(); // also applies sort

@@ -100,6 +100,9 @@ public class AppSettings
     /// <summary>What action to perform when sending selected items to a destination.</summary>
     public FileAction Action { get; set; } = FileAction.Move;
 
+    /// <summary>When false (default), files and folders with the Hidden or System attribute are skipped during folder scans.</summary>
+    public bool IncludeHiddenFiles { get; set; } = false;
+
     // ---- Memory ----
     public List<PerFolderState> FolderStates { get; set; } = new();
 
