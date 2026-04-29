@@ -5,6 +5,7 @@
         xmlns:conv="clr-namespace:MediaSort.Converters"
         xmlns:models="clr-namespace:MediaSort.Models"
         xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
+        xmlns:views="clr-namespace:MediaSort.Views"
         Title="MediaSort"
         Icon="pack://application:,,,/Assets/AppIcon.ico"
         Height="820" Width="1480"
@@ -313,6 +314,11 @@
                                  BorderThickness="0"
                                  SelectionMode="Extended"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.CanContentScroll="True"
+                                 VirtualizingPanel.IsVirtualizing="True"
+                                 VirtualizingPanel.VirtualizationMode="Recycling"
+                                 VirtualizingPanel.CacheLengthUnit="Item"
+                                 VirtualizingPanel.CacheLength="50"
                                  SelectionChanged="MediaList_SelectionChanged"
                                  KeyDown="MediaList_KeyDown">
                             <ListBox.ContextMenu>
@@ -324,9 +330,28 @@
                                     <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
                                 </ContextMenu>
                             </ListBox.ContextMenu>
+                            <!-- Use a virtualizing wrap panel so 1,938+ thumbnails don't all
+                                 measure on every Thumbnail PropertyChanged. The stock WrapPanel
+                                 instantiates every container; this one only realizes the rows
+                                 that are actually in the viewport. ScrollViewer.CanContentScroll=True
+                                 is REQUIRED for IScrollInfo to take effect. -->
+                            <ListBox.Template>
+                                <ControlTemplate TargetType="ListBox">
+                                    <Border BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            Background="{TemplateBinding Background}">
+                                        <ScrollViewer Focusable="False"
+                                                      CanContentScroll="True"
+                                                      HorizontalScrollBarVisibility="Disabled"
+                                                      VerticalScrollBarVisibility="Auto">
+                                            <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </ControlTemplate>
+                            </ListBox.Template>
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <WrapPanel HorizontalAlignment="Center"/>
+                                    <views:VirtualizingWrapPanel/>
                                 </ItemsPanelTemplate>
                             </ListBox.ItemsPanel>
                             <ListBox.ItemContainerStyle>
