@@ -3,25 +3,70 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="File Conflict"
         Icon="pack://application:,,,/Assets/AppIcon.ico"
-        Height="260" Width="540"
+        Height="460" Width="720"
         Background="{DynamicResource WindowBackground}"
         Foreground="{DynamicResource PanelForeground}"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
     <DockPanel Margin="14">
-        <TextBlock DockPanel.Dock="Top" Text="A file with the same name already exists" FontSize="14" FontWeight="Bold" Margin="0,0,0,8"/>
-        <TextBlock DockPanel.Dock="Top" x:Name="MessageText" TextWrapping="Wrap" Margin="0,0,0,12"
+        <TextBlock DockPanel.Dock="Top" Text="A file with the same name already exists" FontSize="14" FontWeight="Bold" Margin="0,0,0,4"/>
+        <TextBlock DockPanel.Dock="Top" x:Name="MessageText" TextWrapping="Wrap" Margin="0,0,0,10"
                    Foreground="{DynamicResource MutedForeground}"/>
 
-        <CheckBox DockPanel.Dock="Top" x:Name="ApplyAllCheck" Content="Apply this choice to all remaining conflicts"
-                  Margin="0,0,0,12" Foreground="{DynamicResource PanelForeground}"/>
+        <CheckBox DockPanel.Dock="Bottom" x:Name="ApplyAllCheck" Content="Apply this choice to all remaining conflicts"
+                  Margin="0,10,0,8" Foreground="{DynamicResource PanelForeground}"/>
 
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
             <Button Content="Rename" Width="100" Margin="4,0" Click="Rename_Click"/>
             <Button Content="Overwrite" Width="100" Margin="4,0" Click="Overwrite_Click"/>
             <Button Content="Skip" Width="100" Margin="4,0" Click="Skip_Click"/>
             <Button Content="Cancel" Width="100" Margin="4,0" IsCancel="True" Click="Cancel_Click"/>
         </StackPanel>
-        <Grid/>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Source -->
+            <Border Grid.Column="0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8"
+                    Background="{DynamicResource PanelBackground}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Source (incoming)" FontWeight="Bold" Margin="0,0,0,4"
+                               Foreground="{DynamicResource AccentBrush}"/>
+                    <TextBlock DockPanel.Dock="Top" x:Name="SourceNameText" TextTrimming="CharacterEllipsis" FontWeight="SemiBold"/>
+                    <TextBlock DockPanel.Dock="Top" x:Name="SourceMetaText" TextWrapping="Wrap" FontSize="11" Margin="0,2,0,6"
+                               Foreground="{DynamicResource MutedForeground}"/>
+                    <Border Background="#22000000" CornerRadius="2">
+                        <Grid>
+                            <TextBlock x:Name="SourcePlaceholder" Text="—" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       FontSize="32" Foreground="{DynamicResource MutedForeground}" Visibility="Collapsed"/>
+                            <Image x:Name="SourceImage" Stretch="Uniform" Margin="2"/>
+                        </Grid>
+                    </Border>
+                </DockPanel>
+            </Border>
+
+            <!-- Existing -->
+            <Border Grid.Column="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8"
+                    Background="{DynamicResource PanelBackground}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Existing (in destination)" FontWeight="Bold" Margin="0,0,0,4"
+                               Foreground="{DynamicResource AccentBrush}"/>
+                    <TextBlock DockPanel.Dock="Top" x:Name="ExistingNameText" TextTrimming="CharacterEllipsis" FontWeight="SemiBold"/>
+                    <TextBlock DockPanel.Dock="Top" x:Name="ExistingMetaText" TextWrapping="Wrap" FontSize="11" Margin="0,2,0,6"
+                               Foreground="{DynamicResource MutedForeground}"/>
+                    <Border Background="#22000000" CornerRadius="2">
+                        <Grid>
+                            <TextBlock x:Name="ExistingPlaceholder" Text="—" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       FontSize="32" Foreground="{DynamicResource MutedForeground}" Visibility="Collapsed"/>
+                            <Image x:Name="ExistingImage" Stretch="Uniform" Margin="2"/>
+                        </Grid>
+                    </Border>
+                </DockPanel>
+            </Border>
+        </Grid>
     </DockPanel>
 </Window>

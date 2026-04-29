@@ -1682,7 +1682,7 @@ public partial class MainWindow : Window
         var probable = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
         if (File.Exists(probable) && policy == ConflictPolicy.Prompt && !applyAll)
         {
-            var dlg = new ConflictDialog(Path.GetFileName(sourcePath), targetFolder) { Owner = this };
+            var dlg = new ConflictDialog(sourcePath, probable) { Owner = this };
             if (dlg.ShowDialog() != true) return null;
             policy = dlg.Choice;
             applyAll = dlg.ApplyToAll;
@@ -1857,7 +1857,7 @@ public partial class MainWindow : Window
         var probable = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
         if (File.Exists(probable) && policy == ConflictPolicy.Prompt && !applyAll)
         {
-            var dlg = new ConflictDialog(Path.GetFileName(sourcePath), targetFolder) { Owner = this };
+            var dlg = new ConflictDialog(sourcePath, probable) { Owner = this };
             if (dlg.ShowDialog() != true) return null;
             policy = dlg.Choice;
             applyAll = dlg.ApplyToAll;
