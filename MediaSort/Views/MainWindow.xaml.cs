@@ -27,6 +27,7 @@ using MessageBox = System.Windows.MessageBox;
 using TextBox = System.Windows.Controls.TextBox;
 using MediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 using DragEventArgs = System.Windows.DragEventArgs;
+using DragDropEffects = System.Windows.DragDropEffects;
 using Clipboard = System.Windows.Clipboard;
 using DataObject = System.Windows.DataObject;
 using DataFormats = System.Windows.DataFormats;
@@ -230,6 +231,7 @@ public partial class MainWindow : Window
 
         ApplyThumbnailSize();
         ApplyDestButtonFonts();
+        ApplyDestButtonSize();
         ApplyViewMode();
         Title = $"MediaSort v{VersionInfo.GetDisplayVersion()}";
         StatusText.Text = "Ready";
@@ -1675,6 +1677,122 @@ public partial class MainWindow : Window
             SelectIndex(MediaItems.Count - 1);
             e.Handled = true;
         }
+    }
+
+    // ---- (#8) External-Explorer drag-drop into the source list ------------------
+    // Lets the user drag files or folders from File Explorer onto any of the three
+    // source views to add them to the current session. Behavior:
+    //   - Files are added if their extension is in MediaFormats.AllExtensions.
+    //   - Folders are recursively walked using the same MediaScanner that powers
+    //     the normal source-folder load, honoring the Recursive and IncludeHiddenFiles
+    //     settings exactly as a normal scan would.
+    //   - Items already present (matched by FullPath, case-insensitive) are skipped
+    //     so repeated drags don't duplicate.
+    //   - The dropped items are appended to _allItems in memory; the source folder
+    //     setting is NOT changed, so the user can keep their original source while
+    //     pulling in stragglers from elsewhere.
+
+    private static bool DropContainsFiles(DragEventArgs e)
+        => e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop);
+
+    private void MediaList_DragEnter(object sender, DragEventArgs e)
+    {
+        e.Effects = DropContainsFiles(e) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void MediaList_DragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = DropContainsFiles(e) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private async void MediaList_Drop(object sender, DragEventArgs e)
+    {
+        if (!DropContainsFiles(e)) return;
+        e.Handled = true;
+
+        var paths = e.Data.GetData(DataFormats.FileDrop) as string[];
+        if (paths == null || paths.Length == 0) return;
+
+        bool recursive = RecursiveCheck.IsChecked == true;
+        bool includeHidden = _settings.IncludeHiddenFiles;
+
+        // Build the existing-paths set on the UI thread, then walk on a background
+        // thread so dropping a deep directory tree doesn't freeze the UI.
+        var existing = new HashSet<string>(
+            _allItems.Select(m => m.FullPath),
+            StringComparer.OrdinalIgnoreCase);
+
+        StatusText.Text = "Adding dropped items…";
+
+        List<MediaItem> newItems;
+        try
+        {
+            newItems = await Task.Run(() =>
+            {
+                var list = new List<MediaItem>();
+                var seen = new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
+                foreach (var p in paths)
+                {
+                    if (string.IsNullOrWhiteSpace(p)) continue;
+                    try
+                    {
+                        if (Directory.Exists(p))
+                        {
+                            foreach (var mi in MediaScanner.Scan(p, recursive, includeHidden, CancellationToken.None))
+                            {
+                                if (seen.Add(mi.FullPath)) list.Add(mi);
+                            }
+                        }
+                        else if (File.Exists(p))
+                        {
+                            var ext = Path.GetExtension(p).ToLowerInvariant();
+                            if (!MediaFormats.AllExtensions.Contains(ext)) continue;
+                            if (seen.Add(p))
+                            {
+                                list.Add(new MediaItem(p));
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        CrashLogger.Log(ex, $"drop-walk:{p}");
+                    }
+                }
+                return list;
+            });
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log(ex, "drop-walk");
+            StatusText.Text = $"Drop failed: {ex.Message}";
+            return;
+        }
+
+        if (newItems.Count == 0)
+        {
+            StatusText.Text = "No new media files in dropped item(s).";
+            return;
+        }
+
+        // Re-apply favorites so dropped paths the user previously starred still glow.
+        if (_settings.Favorites.Count > 0)
+        {
+            var favSet = new HashSet<string>(_settings.Favorites, StringComparer.OrdinalIgnoreCase);
+            foreach (var it in newItems)
+            {
+                if (favSet.Contains(it.FullPath)) it.IsFavorite = true;
+            }
+        }
+
+        _allItems.AddRange(newItems);
+        ApplyFilter(); // re-sort + rebuild MediaItems
+
+        // Background probe for thumbnails/dimensions on just the new ones.
+        StartBackgroundProbe(newItems, _probeCts?.Token ?? CancellationToken.None);
+
+        StatusText.Text = $"Added {newItems.Count} item(s) from drop ({_allItems.Count} total)";
     }
 
     private void PositionSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -3963,6 +4081,7 @@ public partial class MainWindow : Window
             ThemeManager.ApplyOverride(_settings.ThemeOverride, _settings.AccentColor);
             ApplyThumbnailSize();
             ApplyDestButtonFonts();
+            ApplyDestButtonSize();
             if (!string.IsNullOrWhiteSpace(_settings.SourceFolder)
                 && _settings.SourceFolder != SourcePathText.Text)
             {
@@ -4001,6 +4120,36 @@ public partial class MainWindow : Window
         Resources["DestPathFontSize"]    = ClampFontSize(_settings.DestPathFontSize, 10);
         Resources["DestBadgeFontFamily"] = ResolveFontFamily(_settings.DestBadgeFontFamily);
         Resources["DestBadgeFontSize"]   = ClampFontSize(_settings.DestBadgeFontSize, 10);
+    }
+
+    /// <summary>
+    /// Drives the DestButton size preset by writing MinHeight + Padding into the
+    /// window-level resource dictionary. The DestButton style picks them up via
+    /// DynamicResource so existing buttons re-layout immediately.
+    /// </summary>
+    private void ApplyDestButtonSize()
+    {
+        if (_settings == null) return;
+        double minHeight;
+        System.Windows.Thickness padding;
+        switch (_settings.DestButtonSize)
+        {
+            case DestButtonSizeMode.Compact:
+                minHeight = 32;
+                padding = new System.Windows.Thickness(6, 3, 6, 3);
+                break;
+            case DestButtonSizeMode.Large:
+                minHeight = 56;
+                padding = new System.Windows.Thickness(10, 10, 10, 10);
+                break;
+            case DestButtonSizeMode.Normal:
+            default:
+                minHeight = 42;
+                padding = new System.Windows.Thickness(8, 6, 8, 6);
+                break;
+        }
+        Resources["DestButtonMinHeight"] = minHeight;
+        Resources["DestButtonPadding"]   = padding;
     }
 
     private static System.Windows.Media.FontFamily ResolveFontFamily(string? name)

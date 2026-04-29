@@ -34,6 +34,11 @@
         <FontFamily x:Key="DestBadgeFontFamily">Segoe UI</FontFamily>
         <sys:Double x:Key="DestBadgeFontSize">10</sys:Double>
 
+        <!-- Destination button overall size (compact / normal / large).
+             Updated at runtime from settings via ApplyDestButtonSize(). -->
+        <sys:Double x:Key="DestButtonMinHeight">42</sys:Double>
+        <Thickness x:Key="DestButtonPadding">8,6</Thickness>
+
         <!-- Shared context menu for all three source-list views (List/Details/Thumbnails).
              The 'Send to' submenu is populated dynamically in MediaList_ContextMenuOpening
              from the current Destinations collection so menu items always match the right
@@ -250,7 +255,11 @@
                                  SelectionMode="Extended"
                                  ContextMenu="{StaticResource MediaListContextMenu}"
                                  SelectionChanged="MediaList_SelectionChanged"
-                                 KeyDown="MediaList_KeyDown">
+                                 KeyDown="MediaList_KeyDown"
+                                 AllowDrop="True"
+                                 DragEnter="MediaList_DragEnter"
+                                 DragOver="MediaList_DragOver"
+                                 Drop="MediaList_Drop">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
@@ -278,7 +287,11 @@
                                   SelectionMode="Extended"
                                   ContextMenu="{StaticResource MediaListContextMenu}"
                                   SelectionChanged="MediaList_SelectionChanged"
-                                  KeyDown="MediaList_KeyDown">
+                                  KeyDown="MediaList_KeyDown"
+                                  AllowDrop="True"
+                                  DragEnter="MediaList_DragEnter"
+                                  DragOver="MediaList_DragOver"
+                                  Drop="MediaList_Drop">
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
                                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
@@ -337,7 +350,11 @@
                                  VirtualizingPanel.CacheLengthUnit="Item"
                                  VirtualizingPanel.CacheLength="50"
                                  SelectionChanged="MediaList_SelectionChanged"
-                                 KeyDown="MediaList_KeyDown">
+                                 KeyDown="MediaList_KeyDown"
+                                 AllowDrop="True"
+                                 DragEnter="MediaList_DragEnter"
+                                 DragOver="MediaList_DragOver"
+                                 Drop="MediaList_Drop">
 
                             <!-- Use the well-tested WpfToolkit VirtualizingWrapPanel package.
                                  The stock WrapPanel doesn't virtualize; with 1,938 items every
