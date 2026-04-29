@@ -2992,6 +2992,12 @@ public partial class MainWindow : Window
         // Reset DUP badges from any previous run before we recompute.
         foreach (var m in images) m.IsDuplicate = false;
 
+        // We switched the hash algorithm from aHash to dHash, which produces
+        // completely different bit patterns. Force a re-hash this session by
+        // clearing any cached hashes — otherwise we'd compare new dHashes against
+        // old aHashes and everything would look very different.
+        foreach (var m in images) m.PerceptualHash = string.Empty;
+
         var toHash = images.Where(m => string.IsNullOrEmpty(m.PerceptualHash)).ToList();
 
         // Show the progress dialog immediately so the user sees feedback even on
@@ -3100,7 +3106,11 @@ public partial class MainWindow : Window
         // Build duplicate groups via union-find: every pair within Hamming distance 6
         // becomes a single component, so a chain a~b~c collapses into one group even
         // when a and c are not directly within threshold.
-        var groups = BuildDuplicateGroups(images, threshold: 6);
+        // dHash threshold of 4 (out of 64 bits) is the commonly recommended
+        // value for "near duplicates" with the difference-hash algorithm. It's
+        // tighter than the old aHash threshold of 6 because dHash is more
+        // discriminative — distinct photos rarely collide below 4.
+        var groups = BuildDuplicateGroups(images, threshold: 4);
 
         if (groups.Count == 0)
         {

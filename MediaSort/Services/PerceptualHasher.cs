@@ -7,14 +7,20 @@ using System.Windows.Media.Imaging;
 namespace MediaSort.Services;
 
 /// <summary>
-/// Average-hash perceptual hash (aHash). Computes a 64-bit fingerprint of an
-/// image; near-duplicates differ by Hamming distance &lt;= ~6 bits.
-/// Cheap (8x8 grayscale downscale + threshold) and works for any image format
-/// WPF can decode.
+/// Difference-hash perceptual hash (dHash). Encodes the gradient between
+/// adjacent pixels of a 9x8 grayscale downscale into a 64-bit fingerprint.
+/// Near-duplicates differ by Hamming distance &lt;= ~4 bits.
+///
+/// Why dHash and not aHash? aHash (mean threshold) only knows whether each
+/// cell is brighter or darker than the average, so two completely different
+/// photos with similar overall brightness distribution — e.g. two sky-heavy
+/// shots — collide. dHash measures *change* across the image (edges,
+/// gradients), which is much more discriminative for natural photos at the
+/// same speed.
 /// </summary>
 public static class PerceptualHasher
 {
-    /// <summary>Compute 64-bit aHash and return as 16-char hex. Empty string on failure.</summary>
+    /// <summary>Compute 64-bit dHash and return as 16-char hex. Empty string on failure.</summary>
     public static string Hash(string path)
     {
         try
@@ -24,38 +30,37 @@ public static class PerceptualHasher
                 BitmapCreateOptions.IgnoreColorProfile,
                 BitmapCacheOption.OnLoad).Frames[0];
 
-            // Scale to 8x8 grayscale
+            // Scale to 9x8 grayscale: 9 columns gives us 8 horizontal differences
+            // per row, and 8 rows = 64 bits total.
+            const int targetW = 9;
+            const int targetH = 8;
             var scaled = new TransformedBitmap(bmp, new ScaleTransform(
-                8.0 / bmp.PixelWidth, 8.0 / bmp.PixelHeight));
+                (double)targetW / bmp.PixelWidth, (double)targetH / bmp.PixelHeight));
             var gray = new FormatConvertedBitmap(scaled, PixelFormats.Gray8, null, 0);
 
             int w = gray.PixelWidth, h = gray.PixelHeight;
-            if (w <= 0 || h <= 0) return "";
+            if (w < 2 || h <= 0) return "";
 
             int stride = (w * gray.Format.BitsPerPixel + 7) / 8;
             byte[] pixels = new byte[h * stride];
             gray.CopyPixels(pixels, stride, 0);
 
-            // Compute mean
-            long sum = 0;
-            int count = 0;
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                {
-                    sum += pixels[y * stride + x];
-                    count++;
-                }
-            byte mean = (byte)(sum / Math.Max(1, count));
-
-            // Build 64-bit hash (or fewer bits if image was tiny)
+            // Build 64-bit hash from horizontal gradients: bit set if left pixel
+            // is brighter than the pixel to its right.
             ulong hash = 0;
             int bit = 0;
-            for (int y = 0; y < h && bit < 64; y++)
-                for (int x = 0; x < w && bit < 64; x++)
+            int cols = Math.Min(w - 1, 8);
+            int rows = Math.Min(h, 8);
+            for (int y = 0; y < rows && bit < 64; y++)
+            {
+                int rowOffset = y * stride;
+                for (int x = 0; x < cols && bit < 64; x++)
                 {
-                    if (pixels[y * stride + x] >= mean) hash |= (1UL << bit);
+                    if (pixels[rowOffset + x] > pixels[rowOffset + x + 1])
+                        hash |= (1UL << bit);
                     bit++;
                 }
+            }
             return hash.ToString("x16");
         }
         catch
