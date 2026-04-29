@@ -195,7 +195,11 @@
                             Click="Undo_Click" ToolTip="Undo last move or batch (Ctrl+Z)" IsEnabled="False"/>
                     <Button Content="History…" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="History_Click" ToolTip="Browse all undo batches and undo any one of them (Ctrl+H)"/>
-                    <Button Content="Skip (N)" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                </StackPanel>
+
+                <!-- Toolbar row 3: per-item actions -->
+                <StackPanel Orientation="Horizontal" Margin="6,2,6,4">
+                    <Button Content="Skip (N)" Style="{StaticResource ToolButton}"
                             Click="Skip_Click" ToolTip="Advance to next without moving"/>
                     <Button Content="✎ Rename" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="Rename_Click" ToolTip="Rename selected file (F2). Multi-select opens batch rename."/>
