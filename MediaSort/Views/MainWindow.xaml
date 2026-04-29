@@ -340,13 +340,22 @@
                                     <Border Width="{DynamicResource ThumbTileSize}" Height="{DynamicResource ThumbTileHeight}" Margin="4"
                                             Background="{DynamicResource ItemBackground}"
                                             BorderBrush="{DynamicResource BorderBrushColor}" BorderThickness="1"
+                                            UseLayoutRounding="True" SnapsToDevicePixels="True"
                                             ToolTip="{Binding FullPath}">
                                         <DockPanel>
                                             <TextBlock DockPanel.Dock="Bottom" Text="{Binding FileName}"
                                                        TextTrimming="CharacterEllipsis" TextAlignment="Center"
                                                        Foreground="{DynamicResource PanelForeground}" Margin="2"/>
-                                            <Grid Background="{DynamicResource PreviewBackground}" Margin="2">
-                                                <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
+                                            <Grid Background="{DynamicResource PreviewBackground}" Margin="2"
+                                                  UseLayoutRounding="True" SnapsToDevicePixels="True">
+                                                <!-- UseLayoutRounding+SnapsToDevicePixels eliminate the half-pixel jitter
+                                                     that appeared when async thumbnail assigns triggered re-measure on
+                                                     a Stretch=Uniform Image. RenderOptions.BitmapScalingMode=Linear
+                                                     (cheaper than HighQuality) avoids per-layout WIC rescaling. -->
+                                                <Image Source="{Binding Thumbnail}" Stretch="Uniform"
+                                                       UseLayoutRounding="True" SnapsToDevicePixels="True"
+                                                       RenderOptions.BitmapScalingMode="Linear"
+                                                       RenderOptions.EdgeMode="Aliased"/>
                                                 <TextBlock Text="🎬" FontSize="32"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Visibility="{Binding Kind, Converter={StaticResource KindVis}, ConverterParameter=Video}"/>
@@ -422,6 +431,8 @@
                     <Grid x:Name="PreviewArea" ClipToBounds="True">
                         <ScrollViewer x:Name="PreviewScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                             <Image x:Name="PreviewImage" Stretch="Uniform" Margin="10" Visibility="Collapsed"
+                                   UseLayoutRounding="True" SnapsToDevicePixels="True"
+                                   RenderOptions.BitmapScalingMode="HighQuality"
                                    MaxWidth="{Binding ViewportWidth, ElementName=PreviewScroll}"
                                    MaxHeight="{Binding ViewportHeight, ElementName=PreviewScroll}"
                                    MouseWheel="PreviewImage_MouseWheel"

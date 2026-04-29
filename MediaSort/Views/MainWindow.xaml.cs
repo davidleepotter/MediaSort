@@ -993,31 +993,23 @@ public partial class MainWindow : Window
         finally
         {
             try { revealTimer?.Stop(); } catch { }
-            // CRITICAL: dispose the cancel registration BEFORE closing the dialog.
-            // Otherwise ProgressDialog.OnClosed -> its CTS.Cancel() fires our
-            // registered callback which cancels _scanCts, making the next
-            // IsCancellationRequested check think the user cancelled the scan.
+            // CRITICAL: dispose the cancel registration BEFORE the dialog might be
+            // closed. Otherwise ProgressDialog.OnClosed -> its CTS.Cancel() fires
+            // our registered callback which cancels _scanCts. (We re-register below
+            // for the probe phase against the probe CTS instead.)
             try { scanCancelReg.Dispose(); } catch { }
-            // If the dialog was actually shown, enforce a minimum-visible duration
-            // so it doesn't just flash when a scan crosses the reveal threshold by
-            // a few ms. If it was never shown (fast scan), close immediately.
-            if (scanDialog != null)
-            {
-                if (dialogShownAt != DateTime.MinValue)
-                {
-                    var visibleFor = (DateTime.UtcNow - dialogShownAt).TotalMilliseconds;
-                    var remaining = MinVisibleMs - (int)visibleFor;
-                    if (remaining > 0)
-                    {
-                        try { await Task.Delay(remaining); } catch { }
-                    }
-                }
-                try { scanDialog.Close(); } catch { }
-            }
+            // NOTE: we deliberately DO NOT close scanDialog here anymore — on a
+            // network share the slow phase is the probe (thumbnail decoding), not
+            // enumeration. Keeping the popup open through probe gives the user the
+            // visual feedback they asked for. StartBackgroundProbe owns it from here.
         }
 
         // If we were cancelled while the result list was being materialized, bail.
-        if (scanToken.IsCancellationRequested) return;
+        if (scanToken.IsCancellationRequested)
+        {
+            try { scanDialog?.Close(); } catch { }
+            return;
+        }
 
         // (#11) Re-apply favorites flag from persisted set.
         if (_settings.Favorites.Count > 0)
@@ -1036,17 +1028,86 @@ public partial class MainWindow : Window
 
         if (MediaItems.Count > 0) SelectIndex(0); else ClearPreview();
 
-        // Background pass for thumbnails + dimensions
-        StartBackgroundProbe(items, _probeCts.Token);
+        // Hand the popup to the probe phase. It will switch the bar to determinate
+        // (X of Y), update detail text per file, and close the dialog when probe
+        // completes (or the user cancels). If no items were found, close immediately.
+        if (items.Count == 0)
+        {
+            try { scanDialog?.Close(); } catch { }
+            return;
+        }
+
+        // Background pass for thumbnails + dimensions — owns scanDialog from here.
+        StartBackgroundProbe(items, _probeCts.Token, reportCompletion: false,
+                             progressDialog: scanDialog,
+                             dialogShownAt: dialogShownAt,
+                             minVisibleMs: MinVisibleMs);
     }
 
-    private void StartBackgroundProbe(List<MediaItem> items, CancellationToken ct, bool reportCompletion = false)
+    private void StartBackgroundProbe(List<MediaItem> items, CancellationToken ct, bool reportCompletion = false,
+                                      ProgressDialog? progressDialog = null,
+                                      DateTime dialogShownAt = default,
+                                      int minVisibleMs = 0)
     {
         var imageCount = items.Count(i => i.Kind == MediaKind.Image);
         var videoCount = items.Count(i => i.Kind == MediaKind.Video);
         CrashLogger.Info($"probe:start total={items.Count} images={imageCount} videos={videoCount} report={reportCompletion}");
 
         int totalForStatus = items.Count;
+
+        // Detect UNC / network-share source. We use this to lower probe parallelism
+        // to 1 (SMB redirector serializes anyway, and 2 concurrent decoders cause WIC
+        // to block the dispatcher pump on slow shares).
+        string? samplePath = items.Count > 0 ? items[0].FullPath : null;
+        bool isNetworkSource = false;
+        try
+        {
+            if (!string.IsNullOrEmpty(samplePath))
+            {
+                if (samplePath.StartsWith(@"\\", StringComparison.Ordinal)) isNetworkSource = true;
+                else if (samplePath.Length >= 2 && samplePath[1] == ':')
+                {
+                    var di = new System.IO.DriveInfo(samplePath.Substring(0, 2) + "\\");
+                    if (di.DriveType == System.IO.DriveType.Network) isNetworkSource = true;
+                }
+            }
+        }
+        catch { }
+        CrashLogger.Info($"probe:source-type network={isNetworkSource} sample={samplePath}");
+
+        // Wire the popup's Cancel button to the probe CTS. Caller (SetSourceFolderAsync)
+        // already disposed its own scan-CTS registration; this one cancels probe.
+        CancellationTokenRegistration probeCancelReg = default;
+        DateTime probeDialogShownAt = dialogShownAt;
+        if (progressDialog != null)
+        {
+            try
+            {
+                progressDialog.SetDetail(items.Count == 1
+                    ? "Loading thumbnail for 1 file…"
+                    : $"Loading thumbnails for {items.Count:N0} files…");
+                // Switch to determinate progress (we now know total).
+                progressDialog.ReportProgress(0, items.Count);
+                // The reveal timer in SetSourceFolderAsync is stopped by the time we get
+                // here. If enumeration was faster than the 80ms reveal delay, the dialog
+                // was never shown — but we still need it visible during probe (which is
+                // the slow phase on network shares). Show it now if not already visible.
+                if (!progressDialog.IsVisible)
+                {
+                    try
+                    {
+                        progressDialog.Show();
+                        probeDialogShownAt = DateTime.UtcNow;
+                    }
+                    catch (Exception ex) { CrashLogger.Log(ex, "probe:dialog-show"); }
+                }
+                probeCancelReg = progressDialog.Token.Register(() =>
+                {
+                    try { _probeCts?.Cancel(); } catch { }
+                });
+            }
+            catch (Exception ex) { CrashLogger.Log(ex, "probe:dialog-init"); }
+        }
 
         _ = Task.Run(() =>
         {
@@ -1068,10 +1129,14 @@ public partial class MainWindow : Window
             var images = items.Where(i => i.Kind == MediaKind.Image).ToList();
             var videos = items.Where(i => i.Kind == MediaKind.Video).ToList();
 
-            // Reasonable cap: 2 in flight is plenty. Going higher saturates SATA/USB
-            // and floods the dispatcher with thumbnail-assign posts, making the UI
-            // sluggish during scan-and-probe of large folders (700+ items).
-            int dop = Math.Min(2, Math.Max(1, Environment.ProcessorCount / 4));
+            // On UNC / mapped network drives, force DOP=1. The SMB redirector serializes
+            // reads at the kernel level anyway, and concurrent BitmapImage decodes both
+            // hold CPU + I/O completion ports, which is what was making the user's mouse
+            // sluggish during scan. On local disk, 2 in flight is fine.
+            int dop = isNetworkSource
+                ? 1
+                : Math.Min(2, Math.Max(1, Environment.ProcessorCount / 4));
+            CrashLogger.Info($"probe:dop={dop} (network={isNetworkSource})");
 
             // Periodic status update. Only post on count change AND minimum 200ms
             // gap so we don't spam the dispatcher — each post itself contends with
@@ -1088,9 +1153,19 @@ public partial class MainWindow : Window
                 lastStatusValue = done;
                 int doneCap = done;
                 int totalCap = totalForStatus;
+                var dlgCap = progressDialog;
                 Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
                 {
                     StatusText.Text = $"Loading thumbnails… {doneCap:N0} of {totalCap:N0}";
+                    if (dlgCap != null)
+                    {
+                        try
+                        {
+                            dlgCap.ReportProgress(doneCap, totalCap);
+                            dlgCap.SetDetail($"Loading thumbnails… {doneCap:N0} of {totalCap:N0}");
+                        }
+                        catch { /* dialog closed */ }
+                    }
                 }));
             }
 
@@ -1120,12 +1195,17 @@ public partial class MainWindow : Window
                         PostStatus(p, force: false);
                     });
             }
-            catch (OperationCanceledException) { CrashLogger.Info("probe:cancelled"); return; }
+            catch (OperationCanceledException)
+            {
+                CrashLogger.Info("probe:cancelled");
+                CloseProgressDialog();
+                return;
+            }
 
             // Videos serially.
             foreach (var item in videos)
             {
-                if (ct.IsCancellationRequested) { CrashLogger.Info("probe:cancelled"); return; }
+                if (ct.IsCancellationRequested) { CrashLogger.Info("probe:cancelled"); CloseProgressDialog(); return; }
                 try
                 {
                     // ProbeVideo returns (gotThumb, gotDims) directly because both fields
@@ -1146,7 +1226,10 @@ public partial class MainWindow : Window
 
             CrashLogger.Info($"probe:done thumbs={thumbsAssigned} dims={dimsAssigned} failures={failures}");
 
-            if (ct.IsCancellationRequested) return;
+            if (ct.IsCancellationRequested) { CloseProgressDialog(); return; }
+
+            // Probe is fully done — close the popup (with min-visible enforcement).
+            CloseProgressDialog();
 
             // Capture for the dispatcher closure.
             int finalThumbs = thumbsAssigned;
@@ -1175,6 +1258,30 @@ public partial class MainWindow : Window
                 }));
             }
             catch (Exception ex) { CrashLogger.Log(ex, "probe:final-sort"); }
+
+            // Local helper — closes the progress dialog from a non-UI thread,
+            // honoring min-visible time so the dialog doesn't just flash.
+            async void CloseProgressDialog()
+            {
+                var dlg = progressDialog;
+                if (dlg == null) return;
+                try { probeCancelReg.Dispose(); } catch { }
+                try
+                {
+                    if (probeDialogShownAt != default)
+                    {
+                        var visibleFor = (DateTime.UtcNow - probeDialogShownAt).TotalMilliseconds;
+                        var remaining = minVisibleMs - (int)visibleFor;
+                        if (remaining > 0)
+                        {
+                            try { await Task.Delay(remaining); } catch { }
+                        }
+                    }
+                }
+                catch { }
+                try { Dispatcher.BeginInvoke(new Action(() => { try { dlg.Close(); } catch { } })); }
+                catch { }
+            }
         }, ct);
     }
 
