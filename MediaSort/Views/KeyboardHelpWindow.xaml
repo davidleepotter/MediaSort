@@ -103,14 +103,44 @@
                                 <TextBlock Grid.Row="4" Grid.Column="1" Text="Show this help"/>
                             </Grid>
 
-                            <TextBlock Text="Other" FontWeight="Bold" Margin="0,12,0,4"/>
+                            <TextBlock Text="Mouse on destination buttons" FontWeight="Bold" Margin="0,12,0,4"/>
                             <Grid Margin="12,0">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Click" FontFamily="Consolas"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Send the current selection to that destination"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+Click" FontFamily="Consolas"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Open the destination folder in File Explorer (no move)"/>
+                            </Grid>
+
+                            <TextBlock Text="Right-click menu (source list)" FontWeight="Bold" Margin="0,12,0,4"/>
+                            <Grid Margin="12,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Open in Explorer"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Reveal the file in File Explorer"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Copy full path"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Copy the file path(s) to the clipboard"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Rename..."/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="Rename file (single) or batch-rename multiple selections (also F2)"/>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Rotate ▸" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" TextWrapping="Wrap"
+                                           Text="Rotate the selected image(s) 90° clockwise, 90° counter-clockwise, or 180°. Modifies the file on disk; thumbnails refresh automatically."/>
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Send to Recycle Bin"/>
+                                <TextBlock Grid.Row="4" Grid.Column="1" Text="Move selected file(s) to the Windows Recycle Bin (also Delete key)"/>
+                            </Grid>
+
+                            <TextBlock Text="Other" FontWeight="Bold" Margin="0,12,0,4"/>
+                            <Grid Margin="12,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl+," FontFamily="Consolas"/>
                                 <TextBlock Grid.Row="0" Grid.Column="1" Text="Open Settings"/>
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="F5" FontFamily="Consolas"/>
                                 <TextBlock Grid.Row="1" Grid.Column="1" Text="Refresh source list"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Find Duplicates" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" TextWrapping="Wrap"
+                                           Text="Toolbar button — perceptual-hash scan finds visually similar images. Adjust the match threshold in Settings (strict / normal / loose / very loose)."/>
                             </Grid>
                         </StackPanel>
                     </ScrollViewer>
@@ -195,6 +225,22 @@
                             <TextBlock Text="Undo" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>
                             <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
                                 Text="Ctrl+Z reverses the last action — including a multi-file batch. Items are returned to their original folder and selection is restored."/>
+
+                            <TextBlock Text="Find Duplicates" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                                Text="The Find Duplicates toolbar button hashes every image in the current source folder using a perceptual algorithm (dHash) so visually similar shots are grouped even if filenames or sizes differ. Matches are tagged with a red DUP badge in the list and an interactive review dialog opens to keep / delete / move duplicates. Adjust the match threshold in Settings — strict (0–2) for near-identical only, loose (8+) to catch more variation."/>
+
+                            <TextBlock Text="Rotating images" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                                Text="Right-click any image → Rotate to turn it 90° clockwise, 90° counter-clockwise, or 180°. The file is rewritten in place (JPEG quality 95, lossless for PNG/BMP/GIF/TIFF) and the thumbnail/preview refreshes automatically. Multi-select first to rotate a batch — a confirmation dialog appears."/>
+
+                            <TextBlock Text="Video preview controls" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                                Text="Videos play in the preview pane with play/pause, stop, loop, mute, volume, and a scrub slider. Audio is enabled by default — press M (or click the mute button) to toggle silence. The volume slider remembers your last level across sessions."/>
+
+                            <TextBlock Text="Supported formats" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                                Text="Standard photos (JPG/PNG/BMP/GIF/TIFF/WEBP), HEIC/HEIF, and common camera RAW formats are detected and thumbnailed via the Windows Shell. Videos rely on the bundled LibVLC engine and cover essentially anything VLC can play."/>
 
                         </StackPanel>
                     </ScrollViewer>
