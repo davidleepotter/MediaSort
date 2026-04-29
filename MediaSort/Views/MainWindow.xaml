@@ -286,9 +286,8 @@
 
             <!-- LEFT: Source list -->
             <Border x:Name="SourcePane" Grid.Column="0"
-                    Background="{DynamicResource PanelBackground}"
-                    BorderBrush="{DynamicResource BorderBrushColor}"
-                    BorderThickness="0,0,1,0">
+                    Style="{StaticResource PaneFrameBorder}"
+                    Background="{DynamicResource PanelBackground}">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
                         <DockPanel LastChildFill="True">
@@ -537,7 +536,9 @@
                           DragCompleted="PanelSplitter_DragCompleted"/>
 
             <!-- CENTER: Preview -->
-            <Border x:Name="PreviewPane" Grid.Column="2" Background="{DynamicResource PreviewBackground}">
+            <Border x:Name="PreviewPane" Grid.Column="2"
+                    Style="{StaticResource PaneFrameBorder}"
+                    Background="{DynamicResource PreviewBackground}">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
                         <DockPanel LastChildFill="True">
@@ -628,9 +629,8 @@
 
             <!-- RIGHT: Destinations + EXIF -->
             <Border x:Name="DestinationsPane" Grid.Column="4"
-                    Background="{DynamicResource PanelBackground}"
-                    BorderBrush="{DynamicResource BorderBrushColor}"
-                    BorderThickness="1,0,0,0">
+                    Style="{StaticResource PaneFrameBorder}"
+                    Background="{DynamicResource PanelBackground}">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
                         <DockPanel LastChildFill="True">

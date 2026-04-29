@@ -761,6 +761,28 @@
                  ============================================================ -->
 
             <!-- ============================================================
+                 3D PaneFrameBorder: raised "card" chrome around each
+                 main pane (Source, Preview, Destinations). Outer border
+                 + corner radius + drop shadow give a distinct lifted look
+                 in the 3D theme. Theme-aware via DynamicResource so it
+                 reads correctly in both Dark and Light.
+                 ============================================================ -->
+            <Style x:Key="PaneFrameBorder" TargetType="Border">
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushColor}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="0"/>
+                <Setter Property="Margin" Value="4"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Effect">
+                    <Setter.Value>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="2"
+                                          Direction="270" Opacity="0.45"
+                                          Color="Black"/>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ============================================================
                  3D ToolButton: raised gradient + bevel highlight/shadow.
                  Hover brightens the gradient. Pressed inverts ("pushed in").
                  ============================================================ -->
