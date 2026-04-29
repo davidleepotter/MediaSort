@@ -2614,6 +2614,7 @@ public partial class MainWindow : Window
             _history.Push(batch);
             UndoButton.IsEnabled = _history.CanUndo;
             StatusText.Text = $"Deleted {batch.Count} file(s) (sent to Recycle Bin)";
+            RefreshDestinationCounts(); // bug fix: dest tile counts didn't update after delete
         }
 
         if (MediaItems.Count > 0)
@@ -3172,6 +3173,7 @@ public partial class MainWindow : Window
             _history.Push(batch);
             UndoButton.IsEnabled = _history.CanUndo;
             StatusText.Text = $"Sent {batch.Count} file(s) to Recycle Bin";
+            RefreshDestinationCounts(); // bug fix: dest tile counts didn't update after delete
         }
 
         if (MediaItems.Count > 0)
