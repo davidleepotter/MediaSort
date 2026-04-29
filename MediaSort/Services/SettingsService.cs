@@ -69,7 +69,8 @@ public static class SettingsService
         Modifiers = d.Modifiers.ToString(),
         KindFilter = d.KindFilter,
         SubfolderTemplate = d.SubfolderTemplate,
-        RenameTemplate = d.RenameTemplate
+        RenameTemplate = d.RenameTemplate,
+        ActionOverride = d.ActionOverride.HasValue ? d.ActionOverride.Value.ToString() : ""
     };
 
     public static DestinationButton FromSerializable(SerializableDestination s)
@@ -84,6 +85,9 @@ public static class SettingsService
         };
         if (Enum.TryParse<Key>(s.HotKey, out var k)) d.HotKey = k;
         if (Enum.TryParse<ModifierKeys>(s.Modifiers, out var m)) d.Modifiers = m;
+        if (!string.IsNullOrWhiteSpace(s.ActionOverride) &&
+            Enum.TryParse<FileAction>(s.ActionOverride, out var fa))
+            d.ActionOverride = fa;
         return d;
     }
 }

@@ -1599,7 +1599,9 @@ public partial class MainWindow : Window
     // hotkeys, and any future trigger so the action setting is never bypassed.
     private void DispatchAction(List<MediaItem> items, DestinationButton dest, FrameworkElement? destinationElement)
     {
-        switch (_settings.Action)
+        // (#17) Per-destination override wins over the toolbar selector when set.
+        var effective = dest.ActionOverride ?? _settings.Action;
+        switch (effective)
         {
             case FileAction.Copy:
                 CopyItemsTo(items, dest, destinationElement);
@@ -2830,8 +2832,12 @@ public partial class MainWindow : Window
         _destQueueItems = null;
 
         // Remember the user's chosen Action; we need to force Copy for all but the last
-        // entry without permanently changing the setting.
+        // entry without permanently changing the setting. We also temporarily clear each
+        // dest's per-destination ActionOverride (#17) for non-last entries so the
+        // "copy all but the last" semantics is preserved — otherwise an override would
+        // win over the forced Copy and could leave the original orphaned partway through.
         var savedAction = _settings.Action;
+        var savedOverrides = queue.Select(d => d.ActionOverride).ToList();
         try
         {
             for (int i = 0; i < queue.Count; i++)
@@ -2839,6 +2845,7 @@ public partial class MainWindow : Window
                 bool isLast = i == queue.Count - 1;
                 _settings.Action = isLast ? savedAction : FileAction.Copy;
                 var dest = queue[i];
+                if (!isLast) dest.ActionOverride = null; // force Copy via toolbar fallback
                 _lastDestination = dest;
                 DispatchAction(items, dest, FindDestinationElement(dest));
             }
@@ -2846,6 +2853,8 @@ public partial class MainWindow : Window
         finally
         {
             _settings.Action = savedAction;
+            for (int i = 0; i < queue.Count; i++)
+                queue[i].ActionOverride = savedOverrides[i];
         }
         StatusText.Text = $"Sent {items.Count} item(s) to {queue.Count} destination(s): {string.Join(", ", queue.Select(d => d.Name))}";
     }

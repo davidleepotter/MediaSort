@@ -27,6 +27,14 @@ public partial class DestinationEditor : Window
             "Video" => 2,
             _ => 0,
         };
+        // (#17) Preselect the action override; null = inherit (index 0)
+        ActionOverrideCombo.SelectedIndex = dest.ActionOverride switch
+        {
+            FileAction.Move => 1,
+            FileAction.Copy => 2,
+            FileAction.Delete => 3,
+            _ => 0,
+        };
     }
 
     private Key _pendingKey;
@@ -95,6 +103,14 @@ public partial class DestinationEditor : Window
         };
         _dest.SubfolderTemplate = SubfolderBox.Text.Trim();
         _dest.RenameTemplate = RenameBox.Text.Trim();
+        // (#17)
+        _dest.ActionOverride = ActionOverrideCombo.SelectedIndex switch
+        {
+            1 => FileAction.Move,
+            2 => FileAction.Copy,
+            3 => FileAction.Delete,
+            _ => (FileAction?)null,
+        };
         DialogResult = true;
         Close();
     }

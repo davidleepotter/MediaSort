@@ -63,6 +63,8 @@ public class SerializableDestination
     public string SubfolderTemplate { get; set; } = "";
     /// <summary>Optional rename template applied at move time.</summary>
     public string RenameTemplate { get; set; } = "";
+    /// <summary>(#17) Per-destination action override. "" = inherit toolbar, otherwise "Move"/"Copy"/"Delete".</summary>
+    public string ActionOverride { get; set; } = "";
 }
 
 public class PerFolderState

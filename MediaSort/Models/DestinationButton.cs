@@ -13,6 +13,7 @@ public class DestinationButton : INotifyPropertyChanged
     private string _kindFilter = "";
     private string _subfolderTemplate = "";
     private string _renameTemplate = "";
+    private MediaSort.Models.FileAction? _actionOverride;
     private int _itemCount;
     private string _flashBadge = "";
     private double _flashOpacity = 0;
@@ -60,6 +61,17 @@ public class DestinationButton : INotifyPropertyChanged
     {
         get => _renameTemplate;
         set { _renameTemplate = value ?? ""; OnPropertyChanged(); }
+    }
+
+    /// <summary>
+    /// (#17) Per-destination action override. When set, this destination will always
+    /// Move/Copy/Delete regardless of the toolbar Action selector. null = inherit
+    /// (the global toolbar setting wins).
+    /// </summary>
+    public MediaSort.Models.FileAction? ActionOverride
+    {
+        get => _actionOverride;
+        set { _actionOverride = value; OnPropertyChanged(); OnPropertyChanged(nameof(BadgeText)); }
     }
 
     /// <summary>Number of files currently in the destination folder. Refreshed lazily.</summary>
@@ -135,6 +147,7 @@ public class DestinationButton : INotifyPropertyChanged
             var parts = new System.Collections.Generic.List<string>();
             if (ItemCount > 0) parts.Add($"{ItemCount} file{(ItemCount == 1 ? "" : "s")}");
             if (!string.IsNullOrEmpty(KindFilter)) parts.Add($"{KindFilter} only");
+            if (ActionOverride.HasValue) parts.Add($"always {ActionOverride.Value}");
             return string.Join(" · ", parts);
         }
     }
