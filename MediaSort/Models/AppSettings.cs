@@ -114,6 +114,15 @@ public class AppSettings
     /// <summary>Full paths of items the user has starred/favorited (#11).</summary>
     public List<string> Favorites { get; set; } = new();
 
+    // ---- Find Duplicates ----
+    /// <summary>
+    /// Hamming-distance threshold for the dHash perceptual-hash comparison used
+    /// by Find Duplicates. Lower = stricter (only nearly-identical photos
+    /// match); higher = looser (more matches, more false positives). Valid
+    /// range 0–16. Default 4 is the recommended dHash threshold.
+    /// </summary>
+    public int DuplicateThreshold { get; set; } = 4;
+
     // ---- (#20) Audio preview for videos ----
     /// <summary>Video player volume 0..100. Persists across sessions.</summary>
     public int VideoVolume { get; set; } = 60;

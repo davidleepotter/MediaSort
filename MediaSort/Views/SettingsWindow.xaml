@@ -172,6 +172,29 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
+                <TextBlock Text="Find Duplicates" FontSize="16" FontWeight="Bold" Margin="0,16,0,8"
+                           Foreground="{DynamicResource PanelForeground}"/>
+                <TextBlock Text="How tolerant the duplicate detector is. Lower = stricter (only nearly-identical photos match). Higher = looser (more matches, but also more false positives)."
+                           Foreground="{DynamicResource MutedForeground}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="100"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Match threshold" VerticalAlignment="Center"
+                               Foreground="{DynamicResource PanelForeground}"
+                               ToolTip="dHash Hamming-distance threshold (0–16). Default 4."/>
+                    <Slider Grid.Column="1" x:Name="DuplicateThresholdSlider"
+                            Minimum="0" Maximum="16" SmallChange="1" LargeChange="2"
+                            TickFrequency="1" IsSnapToTickEnabled="True" TickPlacement="BottomRight"
+                            ValueChanged="DuplicateThresholdSlider_ValueChanged"
+                            ToolTip="Drag to set how aggressively to match duplicates (0 = exact, 16 = very loose)"/>
+                    <TextBlock Grid.Column="2" x:Name="DuplicateThresholdText" VerticalAlignment="Center"
+                               TextAlignment="Right" Margin="6,0,0,0"
+                               Foreground="{DynamicResource MutedForeground}"/>
+                </Grid>
+
                 <TextBlock Text="Diagnostics" FontSize="16" FontWeight="Bold" Margin="0,16,0,8"
                            Foreground="{DynamicResource PanelForeground}"/>
                 <TextBlock Text="Bundle the crash log, current state, and settings into a single text file you can share when reporting an issue."

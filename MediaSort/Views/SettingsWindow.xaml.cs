@@ -30,8 +30,10 @@ public partial class SettingsWindow : Window
         AccentBox.Text = settings.AccentColor;
         AnimationSlider.Value = Math.Max(60, Math.Min(1200, settings.AnimationDurationMs));
         ThumbSizeSlider.Value = Math.Max(60, Math.Min(240, settings.ThumbnailSize));
+        DuplicateThresholdSlider.Value = Math.Max(0, Math.Min(16, settings.DuplicateThreshold));
         UpdateAnimationText();
         UpdateThumbSizeText();
+        UpdateDuplicateThresholdText();
         UpdateAccentSwatch();
         DestinationsList.ItemsSource = destinations;
     }
@@ -54,6 +56,23 @@ public partial class SettingsWindow : Window
     private void ThumbSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (ThumbSizeValueText != null) UpdateThumbSizeText();
+    }
+
+    private void UpdateDuplicateThresholdText()
+    {
+        // Show the numeric value plus a friendly word so users understand the
+        // direction without having to read the help text.
+        int v = (int)DuplicateThresholdSlider.Value;
+        string label = v <= 1 ? "strict"
+                     : v <= 4 ? "normal"
+                     : v <= 8 ? "loose"
+                              : "very loose";
+        DuplicateThresholdText.Text = $"{v}  ({label})";
+    }
+
+    private void DuplicateThresholdSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (DuplicateThresholdText != null) UpdateDuplicateThresholdText();
     }
 
     private void AccentBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateAccentSwatch();
@@ -96,6 +115,7 @@ public partial class SettingsWindow : Window
         _settings.AccentColor = AccentBox.Text.Trim();
         _settings.AnimationDurationMs = (int)AnimationSlider.Value;
         _settings.ThumbnailSize = (int)ThumbSizeSlider.Value;
+        _settings.DuplicateThreshold = (int)DuplicateThresholdSlider.Value;
         DialogResult = true;
         Close();
     }
