@@ -440,7 +440,10 @@
                                    MouseLeftButtonUp="PreviewImage_MouseUp"
                                    MouseMove="PreviewImage_MouseMove">
                                 <Image.LayoutTransform>
-                                    <ScaleTransform x:Name="PreviewImageScale" ScaleX="1" ScaleY="1"/>
+                                    <!-- Default zoom is 90% so loaded images don't push against the
+                                         viewport edges; user can press 0 to reset (also 90%) or
+                                         scroll-wheel to zoom in/out. -->
+                                    <ScaleTransform x:Name="PreviewImageScale" ScaleX="0.9" ScaleY="0.9"/>
                                 </Image.LayoutTransform>
                             </Image>
                         </ScrollViewer>

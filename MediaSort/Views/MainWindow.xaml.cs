@@ -63,6 +63,31 @@ public partial class MainWindow : Window
     // Separate CTS so we can cancel an in-flight folder enumeration when the user
     // picks a new source folder mid-scan (huge folders / network shares).
     private CancellationTokenSource? _scanCts;
+
+    // ---- Probe batching infrastructure ----
+    // The naive approach (one Dispatcher.BeginInvoke per probed file for dimensions
+    // AND another for the thumbnail) flooded the UI dispatcher with 5,000+ posts on
+    // a 1,938-image scan. Each post triggers PropertyChanged → WPF re-measure of any
+    // realized container bound to that item, which on the non-virtualizing WrapPanel
+    // (Thumbs view) means re-measuring every realized tile. That's why the user saw
+    // mouse sluggishness despite CPU at 6%: the dispatcher was the bottleneck.
+    //
+    // Now we accumulate per-item updates in a thread-safe queue and a single timer
+    // on the UI thread drains it every 150 ms, applying all pending updates in one
+    // batch. Drops dispatcher posts from O(n_files) to O(scan_duration / 150ms).
+    private readonly System.Collections.Concurrent.ConcurrentQueue<ProbeUpdate> _probeUpdates = new();
+    private DispatcherTimer? _probeFlushTimer;
+
+    private readonly struct ProbeUpdate
+    {
+        public readonly MediaItem Item;
+        public readonly int Width;
+        public readonly int Height;
+        public readonly double DurationSeconds;
+        public readonly BitmapSource? Thumbnail;
+        public ProbeUpdate(MediaItem item, int w, int h, double dur, BitmapSource? thumb)
+        { Item = item; Width = w; Height = h; DurationSeconds = dur; Thumbnail = thumb; }
+    }
     // (#8) Last destination dispatched to, so the user can repeat-fire it with `.`
     // without lifting their hand from the keyboard.
     private DestinationButton? _lastDestination;
@@ -1044,6 +1069,69 @@ public partial class MainWindow : Window
                              minVisibleMs: MinVisibleMs);
     }
 
+    /// <summary>Queue a probe update for batched application on the UI thread.
+    /// Safe to call from any thread. Pass 0/null for fields you don't want to update.</summary>
+    private void EnqueueProbeUpdate(MediaItem item, int w, int h, double dur, BitmapSource? thumb)
+    {
+        _probeUpdates.Enqueue(new ProbeUpdate(item, w, h, dur, thumb));
+    }
+
+    /// <summary>Start the UI-thread flush timer that drains _probeUpdates every 150ms.
+    /// Idempotent — if already running, does nothing.</summary>
+    private void StartProbeFlushTimer()
+    {
+        if (_probeFlushTimer != null) return;
+        _probeFlushTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(150)
+        };
+        _probeFlushTimer.Tick += (_, _) => FlushProbeUpdates();
+        _probeFlushTimer.Start();
+    }
+
+    /// <summary>Stop the flush timer and drain any remaining updates one last time.</summary>
+    private void StopProbeFlushTimer()
+    {
+        try { _probeFlushTimer?.Stop(); } catch { }
+        _probeFlushTimer = null;
+        // Drain anything still queued so the user sees the last few thumbnails.
+        FlushProbeUpdates();
+    }
+
+    /// <summary>Apply all queued probe updates in a single UI-thread pass.
+    /// Each ProbeUpdate triggers up to 4 PropertyChanged events on its MediaItem;
+    /// applying them in a tight loop is far cheaper than crossing the dispatcher
+    /// boundary for each update.</summary>
+    private void FlushProbeUpdates()
+    {
+        // Cap drains per tick so a giant backlog doesn't freeze the UI in one go.
+        // 200 items per 150ms = 1,333 items/sec applied — enough to keep up with any
+        // realistic probe rate, while leaving the dispatcher responsive between ticks.
+        const int MaxPerTick = 200;
+        int n = 0;
+        while (n < MaxPerTick && _probeUpdates.TryDequeue(out var u))
+        {
+            try
+            {
+                if (u.Width > 0 && u.Height > 0)
+                {
+                    u.Item.PixelWidth = u.Width;
+                    u.Item.PixelHeight = u.Height;
+                }
+                if (u.DurationSeconds > 0)
+                {
+                    u.Item.DurationSeconds = u.DurationSeconds;
+                }
+                if (u.Thumbnail != null)
+                {
+                    u.Item.Thumbnail = u.Thumbnail;
+                }
+            }
+            catch (Exception ex) { CrashLogger.Log(ex, "flush-probe-update"); }
+            n++;
+        }
+    }
+
     private void StartBackgroundProbe(List<MediaItem> items, CancellationToken ct, bool reportCompletion = false,
                                       ProgressDialog? progressDialog = null,
                                       DateTime dialogShownAt = default,
@@ -1074,6 +1162,11 @@ public partial class MainWindow : Window
         }
         catch { }
         CrashLogger.Info($"probe:source-type network={isNetworkSource} sample={samplePath}");
+
+        // Start the batched UI-flush timer for the duration of this probe pass.
+        // Always start on the UI thread (we are on it here — StartBackgroundProbe is
+        // called from the dispatcher).
+        StartProbeFlushTimer();
 
         // Wire the popup's Cancel button to the probe CTS. Caller (SetSourceFolderAsync)
         // already disposed its own scan-CTS registration; this one cancels probe.
@@ -1229,6 +1322,8 @@ public partial class MainWindow : Window
             if (ct.IsCancellationRequested) { CloseProgressDialog(); return; }
 
             // Probe is fully done — close the popup (with min-visible enforcement).
+            // The flush timer is stopped inside CloseProgressDialog so the last batch
+            // of pending updates is applied before the user sees "done".
             CloseProgressDialog();
 
             // Capture for the dispatcher closure.
@@ -1261,10 +1356,10 @@ public partial class MainWindow : Window
 
             // Local helper — closes the progress dialog from a non-UI thread,
             // honoring min-visible time so the dialog doesn't just flash.
+            // ALSO stops the probe-flush timer and drains any remaining updates so
+            // the user doesn't see a tail of un-applied thumbnails after "done".
             async void CloseProgressDialog()
             {
-                var dlg = progressDialog;
-                if (dlg == null) return;
                 try { probeCancelReg.Dispose(); } catch { }
                 try
                 {
@@ -1279,7 +1374,15 @@ public partial class MainWindow : Window
                     }
                 }
                 catch { }
-                try { Dispatcher.BeginInvoke(new Action(() => { try { dlg.Close(); } catch { } })); }
+                // Stop the flush timer + drain pending updates on the UI thread.
+                try
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        try { StopProbeFlushTimer(); } catch { }
+                        try { progressDialog?.Close(); } catch { }
+                    }));
+                }
                 catch { }
             }
         }, ct);
@@ -1288,22 +1391,13 @@ public partial class MainWindow : Window
     /// <summary>Returns true if a thumbnail was successfully decoded and assigned.</summary>
     private bool ProbeImage(MediaItem item, CancellationToken ct)
     {
-        // Dimensions (cheap, metadata-only)
+        // Dimensions (cheap, metadata-only). We still read them here so they're
+        // available to fold into the same batched UI update as the thumbnail below.
+        int dimW = 0, dimH = 0;
         try
         {
             var (w, h) = ThumbnailLoader.TryReadImageDimensions(item.FullPath);
-            if (w > 0 && h > 0 && !ct.IsCancellationRequested)
-            {
-                // DispatcherPriority.Background lets user input (clicks, scrolls,
-                // keyboard) win over thumbnail metadata posts. Without this, large
-                // folder probes flood the queue at default Normal priority and
-                // make the whole app feel sluggish.
-                Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
-                {
-                    item.PixelWidth = w;
-                    item.PixelHeight = h;
-                }));
-            }
+            if (w > 0 && h > 0) { dimW = w; dimH = h; }
         }
         catch (Exception ex) { CrashLogger.Log(ex, $"dims:{item.FullPath}"); }
 
@@ -1344,36 +1438,32 @@ public partial class MainWindow : Window
 
         try
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
-            {
-                if (ct.IsCancellationRequested) return;
-                item.Thumbnail = thumb;
-            }));
+            // Single batched update: dimensions + thumbnail in one ProbeUpdate so
+            // the UI thread applies them together (one PropertyChanged burst per item).
+            EnqueueProbeUpdate(item, dimW, dimH, dur: 0, thumb: thumb);
             return true;
         }
         catch (Exception ex)
         {
-            CrashLogger.Log(ex, $"dispatch-assign:{item.FullPath}");
+            CrashLogger.Log(ex, $"enqueue-assign:{item.FullPath}");
             return false;
         }
     }
 
-    /// <summary>Returns (gotThumbnail, gotDimensions) — needed because both fields are
-    /// assigned via Dispatcher.BeginInvoke (UI thread) and the caller can't observe
-    /// them synchronously to count progress.</summary>
+    /// <summary>Returns (gotThumbnail, gotDimensions) — the caller can't observe
+    /// item.Thumbnail / item.PixelWidth synchronously because those fields are
+    /// assigned later by the batched UI flush timer.</summary>
     private (bool gotThumb, bool gotDims) ProbeVideo(MediaItem item, CancellationToken ct)
     {
         bool gotDims = false;
+        int vw = 0, vh = 0;
+        double vDur = 0;
         try
         {
             var (w, h, dur) = VideoProbe.TryReadVideoInfo(item.FullPath);
             if (ct.IsCancellationRequested) return (false, false);
-            if (w > 0 && h > 0) gotDims = true;
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
-            {
-                if (w > 0 && h > 0) { item.PixelWidth = w; item.PixelHeight = h; }
-                if (dur > 0) item.DurationSeconds = dur;
-            }));
+            if (w > 0 && h > 0) { vw = w; vh = h; gotDims = true; }
+            if (dur > 0) vDur = dur;
         }
         catch (Exception ex) { CrashLogger.Log(ex, $"video-probe:{item.FullPath}"); }
 
@@ -1400,12 +1490,15 @@ public partial class MainWindow : Window
 
             if (thumb != null && !ct.IsCancellationRequested)
             {
-                Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
-                {
-                    if (ct.IsCancellationRequested) return;
-                    item.Thumbnail = thumb;
-                }));
+                // Batched: dims + duration + thumbnail go together.
+                EnqueueProbeUpdate(item, vw, vh, vDur, thumb);
                 return (true, gotDims);
+            }
+            // Even without a thumbnail, push the dims+duration we found so the
+            // grid columns populate.
+            if (vw > 0 || vDur > 0)
+            {
+                EnqueueProbeUpdate(item, vw, vh, vDur, thumb: null);
             }
             return (false, gotDims);
         }
@@ -1633,8 +1726,9 @@ public partial class MainWindow : Window
 
                 PreviewImage.Source = bmp;
                 PreviewImage.Visibility = Visibility.Visible;
-                PreviewImageScale.ScaleX = 1.0;
-                PreviewImageScale.ScaleY = 1.0;
+                // Default zoom 0.9 so the image breathes a little within the viewport.
+                PreviewImageScale.ScaleX = DefaultPreviewZoom;
+                PreviewImageScale.ScaleY = DefaultPreviewZoom;
                 PreviewScroll.ScrollToHorizontalOffset(0);
                 PreviewScroll.ScrollToVerticalOffset(0);
                 PreviewEmpty.Visibility = Visibility.Collapsed;
@@ -1921,10 +2015,15 @@ public partial class MainWindow : Window
         PreviewScroll.ScrollToVerticalOffset(_imagePanStartV - (p.Y - _imagePanStart.Y));
     }
 
+    /// <summary>Default zoom factor applied to a freshly loaded preview image
+    /// (also the value that the 0 / NumPad0 reset hotkey returns to). 0.9 leaves
+    /// breathing room around the image instead of pushing it against the edges.</summary>
+    private const double DefaultPreviewZoom = 0.9;
+
     private void ResetImageZoom()
     {
-        PreviewImageScale.ScaleX = 1.0;
-        PreviewImageScale.ScaleY = 1.0;
+        PreviewImageScale.ScaleX = DefaultPreviewZoom;
+        PreviewImageScale.ScaleY = DefaultPreviewZoom;
         PreviewScroll.ScrollToHorizontalOffset(0);
         PreviewScroll.ScrollToVerticalOffset(0);
     }
