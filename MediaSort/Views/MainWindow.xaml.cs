@@ -3217,6 +3217,92 @@ public partial class MainWindow : Window
 
     // ----------------- CONTEXT MENU ACTIONS -----------------
 
+    /// <summary>
+    /// Rebuild the 'Send to' submenu every time the source-list context menu opens
+    /// so the destination list, hotkeys, kind filters and per-destination action
+    /// overrides are always in sync with the right panel — no need to invalidate
+    /// when destinations change.
+    /// Hides the whole submenu (and surrounding separators) when:
+    ///   * No destinations are configured, or
+    ///   * No source items are selected (nothing to send).
+    /// </summary>
+    private void MediaListContextMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ContextMenu menu) return;
+
+        // Find the 'Send to' MenuItem and its surrounding separators by Tag
+        // (using x:Name on a shared resource menu doesn't reliably resolve).
+        MenuItem? sendTo = null;
+        Separator? sepTop = null;
+        Separator? sepBottom = null;
+        foreach (var raw in menu.Items)
+        {
+            switch (raw)
+            {
+                case MenuItem mi when (mi.Tag as string) == "SendTo":     sendTo    = mi; break;
+                case Separator s when (s.Tag as string) == "SendToSep":   sepTop    = s;  break;
+                case Separator s when (s.Tag as string) == "SendToSepBottom": sepBottom = s; break;
+            }
+        }
+        if (sendTo == null) return;
+
+        var selectedCount = GetSelectedItems().Count;
+        bool show = Destinations.Count > 0 && selectedCount > 0;
+
+        var vis = show ? Visibility.Visible : Visibility.Collapsed;
+        sendTo.Visibility = vis;
+        if (sepTop != null) sepTop.Visibility = vis;
+        // sepBottom stays visible because the 'Send to Recycle Bin' line is
+        // always relevant; only the gap before it disappears when sendTo is hidden.
+
+        sendTo.Items.Clear();
+        if (!show) return;
+
+        // Surface the user's current Action mode in the submenu header so they
+        // know whether 'Send to → KEEP' will Move, Copy or Delete.
+        var effectiveLabel = _settings.Action switch
+        {
+            FileAction.Copy   => "Send to (Copy)",
+            FileAction.Delete => "Send to (Delete)",
+            _                 => "Send to (Move)",
+        };
+        sendTo.Header = effectiveLabel;
+
+        foreach (var dest in Destinations)
+        {
+            var item = new MenuItem
+            {
+                Header = string.IsNullOrEmpty(dest.Name) ? "(unnamed)" : dest.Name,
+                InputGestureText = string.IsNullOrEmpty(dest.HotKeyDisplay) ? null : dest.HotKeyDisplay,
+                Tag = dest,
+                ToolTip = BuildSendToTooltip(dest, selectedCount),
+            };
+            item.Click += SendToMenuItem_Click;
+            sendTo.Items.Add(item);
+        }
+    }
+
+    private static string BuildSendToTooltip(DestinationButton dest, int selectedCount)
+    {
+        var path = string.IsNullOrEmpty(dest.FolderPath) ? "(no folder)" : dest.FolderPath;
+        var lines = new List<string> { path };
+        if (!string.IsNullOrEmpty(dest.KindFilter))
+            lines.Add($"Filter: {dest.KindFilter} only");
+        if (dest.ActionOverride.HasValue)
+            lines.Add($"Override: {dest.ActionOverride.Value}");
+        lines.Add(selectedCount == 1 ? "Send 1 item" : $"Send {selectedCount} items");
+        return string.Join("\n", lines);
+    }
+
+    private void SendToMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem mi || mi.Tag is not DestinationButton dest) return;
+        var items = GetSelectedItems();
+        if (items.Count == 0) { StatusText.Text = "No item selected."; return; }
+        _lastDestination = dest; // (#8) so '.' repeat targets this dest
+        DispatchAction(items, dest, FindDestinationElement(dest));
+    }
+
     private void OpenInExplorer_Click(object sender, RoutedEventArgs e)
     {
         var sel = GetSelectedItems().FirstOrDefault();

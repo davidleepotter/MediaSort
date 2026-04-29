@@ -33,6 +33,28 @@
         <sys:Double x:Key="DestPathFontSize">10</sys:Double>
         <FontFamily x:Key="DestBadgeFontFamily">Segoe UI</FontFamily>
         <sys:Double x:Key="DestBadgeFontSize">10</sys:Double>
+
+        <!-- Shared context menu for all three source-list views (List/Details/Thumbnails).
+             The 'Send to' submenu is populated dynamically in MediaList_ContextMenuOpening
+             from the current Destinations collection so menu items always match the right
+             panel without us hand-syncing on add/edit/remove. -->
+        <ContextMenu x:Key="MediaListContextMenu" Opened="MediaListContextMenu_Opened">
+            <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
+            <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
+            <MenuItem Header="Rename..." InputGestureText="F2" Click="Rename_Click"/>
+            <MenuItem Header="Rotate">
+                <MenuItem Header="Rotate 90° Clockwise" Click="RotateClockwise_Click"/>
+                <MenuItem Header="Rotate 90° Counter-Clockwise" Click="RotateCounterClockwise_Click"/>
+                <MenuItem Header="Rotate 180°" Click="Rotate180_Click"/>
+            </MenuItem>
+            <Separator Tag="SendToSep"/>
+            <!-- 'Send to' children populated in code-behind on Opened.
+                 Tag=SendTo so the handler can locate the submenu without x:Name
+                 (which doesn't reliably resolve for shared resource items). -->
+            <MenuItem Header="Send to" Tag="SendTo"/>
+            <Separator Tag="SendToSepBottom"/>
+            <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
+        </ContextMenu>
     </Window.Resources>
 
     <Grid>
@@ -226,22 +248,9 @@
                                  Foreground="{DynamicResource PanelForeground}"
                                  BorderThickness="0"
                                  SelectionMode="Extended"
+                                 ContextMenu="{StaticResource MediaListContextMenu}"
                                  SelectionChanged="MediaList_SelectionChanged"
                                  KeyDown="MediaList_KeyDown">
-                            <ListBox.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
-                                    <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
-                                    <MenuItem Header="Rename..." InputGestureText="F2" Click="Rename_Click"/>
-                                    <MenuItem Header="Rotate">
-                                        <MenuItem Header="Rotate 90° Clockwise" Click="RotateClockwise_Click"/>
-                                        <MenuItem Header="Rotate 90° Counter-Clockwise" Click="RotateCounterClockwise_Click"/>
-                                        <MenuItem Header="Rotate 180°" Click="Rotate180_Click"/>
-                                    </MenuItem>
-                                    <Separator/>
-                                    <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
-                                </ContextMenu>
-                            </ListBox.ContextMenu>
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
@@ -267,22 +276,9 @@
                                   Foreground="{DynamicResource PanelForeground}"
                                   BorderThickness="0"
                                   SelectionMode="Extended"
+                                  ContextMenu="{StaticResource MediaListContextMenu}"
                                   SelectionChanged="MediaList_SelectionChanged"
                                   KeyDown="MediaList_KeyDown">
-                            <ListView.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
-                                    <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
-                                    <MenuItem Header="Rename..." InputGestureText="F2" Click="Rename_Click"/>
-                                    <MenuItem Header="Rotate">
-                                        <MenuItem Header="Rotate 90° Clockwise" Click="RotateClockwise_Click"/>
-                                        <MenuItem Header="Rotate 90° Counter-Clockwise" Click="RotateCounterClockwise_Click"/>
-                                        <MenuItem Header="Rotate 180°" Click="Rotate180_Click"/>
-                                    </MenuItem>
-                                    <Separator/>
-                                    <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
-                                </ContextMenu>
-                            </ListView.ContextMenu>
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
                                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
@@ -333,6 +329,7 @@
                                  Foreground="{DynamicResource PanelForeground}"
                                  BorderThickness="0"
                                  SelectionMode="Extended"
+                                 ContextMenu="{StaticResource MediaListContextMenu}"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  ScrollViewer.CanContentScroll="True"
                                  VirtualizingPanel.IsVirtualizing="True"
@@ -341,20 +338,7 @@
                                  VirtualizingPanel.CacheLength="50"
                                  SelectionChanged="MediaList_SelectionChanged"
                                  KeyDown="MediaList_KeyDown">
-                            <ListBox.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
-                                    <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
-                                    <MenuItem Header="Rename..." InputGestureText="F2" Click="Rename_Click"/>
-                                    <MenuItem Header="Rotate">
-                                        <MenuItem Header="Rotate 90° Clockwise" Click="RotateClockwise_Click"/>
-                                        <MenuItem Header="Rotate 90° Counter-Clockwise" Click="RotateCounterClockwise_Click"/>
-                                        <MenuItem Header="Rotate 180°" Click="Rotate180_Click"/>
-                                    </MenuItem>
-                                    <Separator/>
-                                    <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
-                                </ContextMenu>
-                            </ListBox.ContextMenu>
+
                             <!-- Use the well-tested WpfToolkit VirtualizingWrapPanel package.
                                  The stock WrapPanel doesn't virtualize; with 1,938 items every
                                  PropertyChanged fired measure on every tile and the UI felt
