@@ -1253,13 +1253,15 @@
                                         Margin="6,5,6,0"
                                         IsHitTestVisible="False"/>
 
-                                <!-- Content sits in the body row, with extra top padding
-                                     so it clears the lip line. -->
-                                <ContentPresenter Grid.Row="1"
-                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                  VerticalAlignment="Center"
-                                                  Margin="{TemplateBinding Padding}"
-                                                  RecognizesAccessKey="True"/>
+                                <!-- Content sits in the body row. We wrap the ContentPresenter
+                                     in a Border that supplies a fixed inset (4 left, 8 top) to
+                                     clear the folder lip and inner edge, then the user-tunable
+                                     Padding (Compact/Normal/Large preset) adds on top of that. -->
+                                <Border Grid.Row="1" Margin="4,8,0,0" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                      VerticalAlignment="Center"
+                                                      RecognizesAccessKey="True"/>
+                                </Border>
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
