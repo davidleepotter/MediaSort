@@ -888,8 +888,16 @@ public partial class MainWindow : Window
         // Try to set up a progress popup. We tolerate ANY failure (e.g. the main
         // window isn't shown yet during initial startup, which would make Owner=
         // this throw) by simply skipping the popup — scan continues normally.
+        //
+        // UX rules:
+        //   1. Don't show at all if the scan finishes before 250 ms (avoid noise).
+        //   2. Once shown, stay visible for at least 600 ms so the user can read
+        //      it (otherwise it just flashes when scans take ~300 ms).
         ProgressDialog? scanDialog = null;
         DispatcherTimer? revealTimer = null;
+        DateTime dialogShownAt = DateTime.MinValue;
+        const int RevealDelayMs = 250;
+        const int MinVisibleMs = 600;
         // We register a callback on the dialog's cancel token to cancel the scan.
         // The registration MUST be disposed before we Close() the dialog ourselves,
         // because ProgressDialog.OnClosed cancels its own token — without disposing,
@@ -915,12 +923,16 @@ public partial class MainWindow : Window
 
             // DispatcherTimer reveals the dialog after 250ms so quick scans don't
             // flash a popup. Cleanup is unconditional in the outer `finally`.
-            revealTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+            revealTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(RevealDelayMs) };
             revealTimer.Tick += (_, _) =>
             {
                 revealTimer!.Stop();
                 if (scanToken.IsCancellationRequested) return;
-                try { dlgRef.Show(); }
+                try
+                {
+                    dlgRef.Show();
+                    dialogShownAt = DateTime.UtcNow;
+                }
                 catch (Exception ex) { CrashLogger.Log(ex, "scan-popup-show"); }
             };
             revealTimer.Start();
@@ -985,7 +997,22 @@ public partial class MainWindow : Window
             // registered callback which cancels _scanCts, making the next
             // IsCancellationRequested check think the user cancelled the scan.
             try { scanCancelReg.Dispose(); } catch { }
-            try { scanDialog?.Close(); } catch { }
+            // If the dialog was actually shown, enforce a minimum-visible duration
+            // so it doesn't just flash when a scan crosses the reveal threshold by
+            // a few ms. If it was never shown (fast scan), close immediately.
+            if (scanDialog != null)
+            {
+                if (dialogShownAt != DateTime.MinValue)
+                {
+                    var visibleFor = (DateTime.UtcNow - dialogShownAt).TotalMilliseconds;
+                    var remaining = MinVisibleMs - (int)visibleFor;
+                    if (remaining > 0)
+                    {
+                        try { await Task.Delay(remaining); } catch { }
+                    }
+                }
+                try { scanDialog.Close(); } catch { }
+            }
         }
 
         // If we were cancelled while the result list was being materialized, bail.
