@@ -84,9 +84,6 @@
                     <Button Content="Regen Thumbnails" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="RegenThumbnails_Click"
                             ToolTip="Force-regenerate thumbnails for all items in the source list"/>
-                    <Button x:Name="UndoButton" Content="↶ Undo" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
-                            Click="Undo_Click" ToolTip="Undo last move (Ctrl+Z)" IsEnabled="False"/>
-
                     <Separator Margin="6,0"/>
 
                     <Button Content="Settings" Style="{StaticResource ToolButton}" Click="Settings_Click"
@@ -143,6 +140,8 @@
                             Click="FindDuplicates_Click" ToolTip="Highlight near-duplicate images"/>
                     <Button Content="Select All" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="SelectAll_Click" ToolTip="Select every visible item in the source list (Ctrl+A)"/>
+                    <Button x:Name="UndoButton" Content="↶ Undo" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            Click="Undo_Click" ToolTip="Undo last move or batch (Ctrl+Z)" IsEnabled="False"/>
                     <Button Content="Skip (N)" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="Skip_Click" ToolTip="Advance to next without moving"/>
                     <Button Content="🗑 Trash" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
