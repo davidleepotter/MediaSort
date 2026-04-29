@@ -23,7 +23,7 @@ public static class ThemeManager
     private const string PersonalizeKey = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
     private const string AppsUseLightTheme = "AppsUseLightTheme";
 
-    public static AppTheme Current { get; private set; } = AppTheme.Light;
+    public static AppTheme Current { get; private set; } = AppTheme.Dark;
     public static event EventHandler? ThemeChanged;
 
     public static AppTheme DetectSystemTheme()
@@ -41,10 +41,15 @@ public static class ThemeManager
 
     public static void Initialize()
     {
-        Current = DetectSystemTheme();
+        // Default to Dark so the very first paint of the app is dark, regardless of
+        // the system theme. The user's saved ThemeOverride is applied later (in
+        // MainWindow_Loaded via ApplyOverride), which can switch to Light or System
+        // if they explicitly chose that.
+        Current = AppTheme.Dark;
         ApplyTheme(Current);
 
-        // Listen for theme changes via system events
+        // Listen for theme changes via system events (only relevant when the user
+        // has chosen ThemeOverride.System).
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
     }
 

@@ -21,6 +21,7 @@ public class MediaItem : INotifyPropertyChanged
     private double _durationSeconds;
     private string _perceptualHash = "";
     private bool _isDuplicate;
+    private bool _isSelected;
 
     public string FullPath { get; }
     public string FileName { get; }
@@ -113,6 +114,17 @@ public class MediaItem : INotifyPropertyChanged
     {
         get => _isDuplicate;
         set { _isDuplicate = value; OnPropertyChanged(); }
+    }
+
+    /// <summary>
+    /// Whether this item is currently selected in the source list. Bound two-way to the
+    /// container's IsSelected via ItemContainerStyle, so selection survives container
+    /// recycling (virtualization, thumbnail-loaded re-layout, sort updates, etc.).
+    /// </summary>
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set { if (_isSelected == value) return; _isSelected = value; OnPropertyChanged(); }
     }
 
     public MediaItem(string fullPath)

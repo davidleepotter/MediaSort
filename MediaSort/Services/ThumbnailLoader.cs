@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using System.Windows.Media.Imaging;
 using MediaSort.Models;
+using SDImage = System.Drawing.Image;
+using SDBitmap = System.Drawing.Bitmap;
+using SDImageFormat = System.Drawing.Imaging.ImageFormat;
 
 namespace MediaSort.Services;
 
@@ -87,6 +90,52 @@ public static class ThumbnailLoader
             CrashLogger.Info($"thumb-strategy2-fail {ex.GetType().Name}: {ex.Message}");
         }
 
+        // Strategy 3: GDI+ (System.Drawing) decode → re-encode as plain PNG via WIC.
+        // GDI+ uses a completely different codec stack from WPF/WIC and handles many
+        // AI-generated PNGs (e.g. VeniceAI, Midjourney) whose unusual iCCP / iTXt /
+        // pHYs chunks cause WIC to throw NotSupportedException → ArgumentNullException(key).
+        try
+        {
+            using var inMs = new MemoryStream(bytes);
+            using var gdiImg = SDImage.FromStream(inMs, useEmbeddedColorManagement: false, validateImageData: false);
+            int srcW = gdiImg.Width;
+            int srcH = gdiImg.Height;
+            if (srcW <= 0 || srcH <= 0)
+            {
+                CrashLogger.Info("thumb-strategy3: zero dims from gdi");
+                return null;
+            }
+
+            int targetW = decodePixelWidth > 0 && srcW > decodePixelWidth ? decodePixelWidth : srcW;
+            int targetH = (int)Math.Max(1, Math.Round(srcH * (double)targetW / srcW));
+
+            using var resized = new SDBitmap(targetW, targetH);
+            using (var g = System.Drawing.Graphics.FromImage(resized))
+            {
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                g.DrawImage(gdiImg, 0, 0, targetW, targetH);
+            }
+
+            using var outMs = new MemoryStream();
+            resized.Save(outMs, SDImageFormat.Png);
+            outMs.Position = 0;
+
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.CreateOptions = BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.IgnoreColorProfile;
+            bmp.StreamSource = outMs;
+            bmp.EndInit();
+            bmp.Freeze();
+            if (bmp.PixelWidth > 0) return bmp;
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Info($"thumb-strategy3-fail {ex.GetType().Name}: {ex.Message}");
+        }
+
         return null;
     }
 
@@ -96,6 +145,7 @@ public static class ThumbnailLoader
     /// </summary>
     public static (int width, int height) TryReadImageDimensions(string path)
     {
+        // First try WIC (cheap, metadata-only, no full pixel read).
         try
         {
             using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -103,9 +153,21 @@ public static class ThumbnailLoader
                 fs,
                 BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.PreservePixelFormat,
                 BitmapCacheOption.None);
-            if (decoder.Frames.Count == 0) return (0, 0);
-            var frame = decoder.Frames[0];
-            return (frame.PixelWidth, frame.PixelHeight);
+            if (decoder.Frames.Count > 0)
+            {
+                var frame = decoder.Frames[0];
+                if (frame.PixelWidth > 0 && frame.PixelHeight > 0)
+                    return (frame.PixelWidth, frame.PixelHeight);
+            }
+        }
+        catch { /* fall through to GDI+ */ }
+
+        // Fall back to GDI+ which handles AI-generated PNGs WIC chokes on.
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var img = SDImage.FromStream(fs, useEmbeddedColorManagement: false, validateImageData: false);
+            return (img.Width, img.Height);
         }
         catch
         {

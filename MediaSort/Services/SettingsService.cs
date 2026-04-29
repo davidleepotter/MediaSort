@@ -25,6 +25,17 @@ public static class SettingsService
             }
             var json = File.ReadAllText(SettingsPath);
             var s = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+
+            // One-time migration: prior versions defaulted ThemeOverride to System,
+            // which produced a white client area on Windows installs in Light mode.
+            // The app now defaults to Dark; flip any never-explicitly-set System value
+            // forward so existing users see the new dark theme immediately.
+            if (s.ThemeOverride == ThemeOverride.System)
+            {
+                s.ThemeOverride = ThemeOverride.Dark;
+                CrashLogger.Info("settings:migrate ThemeOverride System -> Dark");
+            }
+
             CrashLogger.Info($"settings:load ok dests={s.Destinations.Count} path={SettingsPath}");
             return s;
         }

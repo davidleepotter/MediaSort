@@ -224,11 +224,16 @@
                                     <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
                                 </ContextMenu>
                             </ListBox.ContextMenu>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal">
                                         <CheckBox VerticalAlignment="Center" Margin="0,0,6,0"
-                                                  IsChecked="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Mode=TwoWay}"
+                                                  IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                   ToolTip="Select this item"/>
                                         <TextBlock Text="{Binding FileName}" VerticalAlignment="Center"/>
                                     </StackPanel>
@@ -254,6 +259,11 @@
                                     <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
                                 </ContextMenu>
                             </ListView.ContextMenu>
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+                                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                                </Style>
+                            </ListView.ItemContainerStyle>
                             <ListView.View>
                                 <GridView>
                                     <GridViewColumn Width="32">
@@ -261,7 +271,7 @@
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
                                                 <CheckBox HorizontalAlignment="Center"
-                                                          IsChecked="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Mode=TwoWay}"
+                                                          IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                           ToolTip="Select this item"/>
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
@@ -312,6 +322,7 @@
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                                     <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
                                 </Style>
                             </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
@@ -340,7 +351,7 @@
                                                 </Border>
                                                 <CheckBox HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4"
                                                           Background="#CC000000"
-                                                          IsChecked="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Mode=TwoWay}"
+                                                          IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                           ToolTip="Select this item"/>
                                             </Grid>
                                         </DockPanel>
