@@ -643,6 +643,55 @@ public partial class MainWindow : Window
         UpdateStats();
     }
 
+    // ----------------- (UX R3) ACTIVE-PANE INDICATOR -----------------
+    // Brightens the top accent stripe of whichever pane currently owns keyboard
+    // focus (or was last clicked into) so it's always obvious where keystrokes
+    // and hotkeys will land. Idle stripe = 3px tinted; active stripe = 5px and
+    // recolored to ActivePaneIndicator.
+
+    private string _activePaneName = "";
+
+    private void Pane_GotKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is FrameworkElement pane) SetActivePane(pane.Name);
+    }
+
+    private void Pane_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement pane) SetActivePane(pane.Name);
+    }
+
+    private void SetActivePane(string paneName)
+    {
+        if (_activePaneName == paneName) return;
+        _activePaneName = paneName;
+
+        var idleThickness = new System.Windows.Thickness(0, 3, 0, 0);
+        var activeThickness = new System.Windows.Thickness(0, 5, 0, 0);
+        var activeBrush = (System.Windows.Media.Brush?)TryFindResource("ActivePaneIndicator");
+
+        void Apply(System.Windows.Controls.Border? header, string idleBrushKey)
+        {
+            if (header == null) return;
+            bool isActive = (header.Name == paneName + "Header");
+            if (isActive)
+            {
+                header.BorderThickness = activeThickness;
+                if (activeBrush != null) header.BorderBrush = activeBrush;
+            }
+            else
+            {
+                header.BorderThickness = idleThickness;
+                var idleBrush = (System.Windows.Media.Brush?)TryFindResource(idleBrushKey);
+                if (idleBrush != null) header.BorderBrush = idleBrush;
+            }
+        }
+
+        Apply(SourcePaneHeader, "SourceAccentStripe");
+        Apply(PreviewPaneHeader, "PreviewAccentStripe");
+        Apply(DestinationsPaneHeader, "DestinationAccentStripe");
+    }
+
     // ----------------- FILTERING / SEARCH -----------------
 
     // (UX) Debounce text-driven filters so each keystroke doesn't re-run the

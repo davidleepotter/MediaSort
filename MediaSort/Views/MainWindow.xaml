@@ -246,20 +246,32 @@
                 Background="{DynamicResource PanelHeader}"
                 BorderBrush="{DynamicResource BorderBrushColor}"
                 BorderThickness="0,1,0,0">
-            <Grid Margin="6,3">
+            <Grid Margin="8,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" x:Name="StatusText" Text="Ready" Foreground="{DynamicResource MutedForeground}"/>
+                <TextBlock Grid.Column="0" x:Name="StatusText" Text="Ready"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource MutedForeground}"/>
+                <!-- (UX R3) Subtle vertical separator between status and session totals. -->
+                <Rectangle Grid.Column="1" Width="1" Margin="10,2"
+                           Fill="{DynamicResource BorderBrushColor}" Opacity="0.6"/>
                 <!-- (#11) Session statistics. Click for breakdown / reset. -->
-                <TextBlock Grid.Column="1" x:Name="SessionStatsText" Text="Session: 0 files"
+                <TextBlock Grid.Column="2" x:Name="SessionStatsText" Text="Session: 0 files"
+                           VerticalAlignment="Center"
                            Foreground="{DynamicResource MutedForeground}"
-                           Margin="12,0,12,0" Cursor="Hand"
+                           Cursor="Hand"
                            ToolTip="Session totals (moved · copied · deleted · bytes). Click for breakdown."
                            MouseLeftButtonUp="SessionStatsText_MouseLeftButtonUp"/>
-                <TextBlock Grid.Column="2" x:Name="StatsText" Text="" Foreground="{DynamicResource MutedForeground}"/>
+                <Rectangle Grid.Column="3" Width="1" Margin="10,2"
+                           Fill="{DynamicResource BorderBrushColor}" Opacity="0.6"/>
+                <TextBlock Grid.Column="4" x:Name="StatsText" Text=""
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource PanelForeground}"/>
             </Grid>
         </Border>
 
@@ -275,9 +287,11 @@
             <!-- LEFT: Source list -->
             <Border x:Name="SourcePane" Grid.Column="0"
                     Style="{StaticResource PaneFrameBorder}"
-                    Background="{DynamicResource PanelBackground}">
+                    Background="{DynamicResource PanelBackground}"
+                    GotKeyboardFocus="Pane_GotKeyboardFocus"
+                    PreviewMouseDown="Pane_PreviewMouseDown">
                 <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4"
+                    <Border x:Name="SourcePaneHeader" DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4"
                             BorderBrush="{DynamicResource SourceAccentStripe}" BorderThickness="0,3,0,0">
                         <DockPanel LastChildFill="True">
                             <TextBlock DockPanel.Dock="Left" Text="Source" FontWeight="Bold"
@@ -376,6 +390,7 @@
                                  Background="{DynamicResource PanelBackground}"
                                  Foreground="{DynamicResource PanelForeground}"
                                  BorderThickness="0"
+                                 AlternationCount="2"
                                  SelectionMode="Extended"
                                  ContextMenu="{StaticResource MediaListContextMenu}"
                                  SelectionChanged="MediaList_SelectionChanged"
@@ -408,6 +423,7 @@
                                   Background="{DynamicResource PanelBackground}"
                                   Foreground="{DynamicResource PanelForeground}"
                                   BorderThickness="0"
+                                  AlternationCount="2"
                                   SelectionMode="Extended"
                                   ContextMenu="{StaticResource MediaListContextMenu}"
                                   SelectionChanged="MediaList_SelectionChanged"
@@ -560,9 +576,11 @@
             <!-- CENTER: Preview -->
             <Border x:Name="PreviewPane" Grid.Column="2"
                     Style="{StaticResource PaneFrameBorder}"
-                    Background="{DynamicResource PreviewBackground}">
+                    Background="{DynamicResource PreviewBackground}"
+                    GotKeyboardFocus="Pane_GotKeyboardFocus"
+                    PreviewMouseDown="Pane_PreviewMouseDown">
                 <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4"
+                    <Border x:Name="PreviewPaneHeader" DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4"
                             BorderBrush="{DynamicResource PreviewAccentStripe}" BorderThickness="0,3,0,0">
                         <DockPanel LastChildFill="True">
                             <TextBlock DockPanel.Dock="Left" x:Name="PreviewTitle" Text="Preview" FontWeight="Bold"
@@ -653,9 +671,11 @@
             <!-- RIGHT: Destinations + EXIF -->
             <Border x:Name="DestinationsPane" Grid.Column="4"
                     Style="{StaticResource PaneFrameBorder}"
-                    Background="{DynamicResource PanelBackground}">
+                    Background="{DynamicResource PanelBackground}"
+                    GotKeyboardFocus="Pane_GotKeyboardFocus"
+                    PreviewMouseDown="Pane_PreviewMouseDown">
                 <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4"
+                    <Border x:Name="DestinationsPaneHeader" DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4"
                             BorderBrush="{DynamicResource DestinationAccentStripe}" BorderThickness="0,3,0,0">
                         <DockPanel LastChildFill="True">
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"

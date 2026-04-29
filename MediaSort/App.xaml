@@ -29,6 +29,14 @@
             <SolidColorBrush x:Key="PreviewAccentStripe"     Color="#5599A3"/>
             <SolidColorBrush x:Key="DestinationAccentStripe" Color="#5588C8"/>
 
+            <!-- (UX R3) Zebra row tint: subtle alternate-row background applied to
+                 ListBoxItem/ListViewItem when AlternationIndex is 1. Just enough
+                 contrast against PanelBackground to scan rows quickly. -->
+            <SolidColorBrush x:Key="ZebraRowBackground" Color="#222222"/>
+            <!-- (UX R3) Active-pane indicator brush — stripe that lights up on the
+                 pane that currently owns keyboard focus. -->
+            <SolidColorBrush x:Key="ActivePaneIndicator" Color="#3FA9FF"/>
+
             <!-- ============================================================
                  Implicit (un-keyed) styles must be declared BEFORE keyed
                  styles that reference them via BasedOn={StaticResource ...}.
@@ -214,20 +222,39 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ListBoxItem">
+                            <!-- (UX R3) Bd = row background (zebra); Stripe = 3px accent on the left
+                                 that appears only when the row is selected. -->
                             <Border x:Name="Bd"
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="Transparent" BorderThickness="1"
                                     Padding="{TemplateBinding Padding}"
                                     SnapsToDevicePixels="True">
-                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="3"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Rectangle x:Name="Stripe" Grid.Column="0"
+                                               Fill="{DynamicResource AccentBrush}"
+                                               Visibility="Collapsed"
+                                               IsHitTestVisible="False"/>
+                                    <ContentPresenter Grid.Column="1"
+                                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                </Grid>
                             </Border>
                             <ControlTemplate.Triggers>
+                                <!-- (UX R3) Zebra: alternate rows get a slightly lighter background.
+                                     Requires AlternationCount="2" on the parent ItemsControl. -->
+                                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ZebraRowBackground}"/>
+                                </Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ItemBackground}"/>
                                 </Trigger>
                                 <Trigger Property="IsSelected" Value="True">
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter TargetName="Stripe" Property="Visibility" Value="Visible"/>
                                     <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
@@ -252,18 +279,32 @@
                                     BorderBrush="Transparent" BorderThickness="0"
                                     Padding="{TemplateBinding Padding}"
                                     SnapsToDevicePixels="True">
-                                <GridViewRowPresenter
-                                    Columns="{TemplateBinding GridView.ColumnCollection}"
-                                    Content="{TemplateBinding Content}"
-                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                    VerticalAlignment="Center"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="3"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Rectangle x:Name="Stripe" Grid.Column="0"
+                                               Fill="{DynamicResource AccentBrush}"
+                                               Visibility="Collapsed"
+                                               IsHitTestVisible="False"/>
+                                    <GridViewRowPresenter Grid.Column="1"
+                                        Columns="{TemplateBinding GridView.ColumnCollection}"
+                                        Content="{TemplateBinding Content}"
+                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                        VerticalAlignment="Center"/>
+                                </Grid>
                             </Border>
                             <ControlTemplate.Triggers>
+                                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ZebraRowBackground}"/>
+                                </Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ItemBackground}"/>
                                 </Trigger>
                                 <Trigger Property="IsSelected" Value="True">
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter TargetName="Stripe" Property="Visibility" Value="Visible"/>
                                     <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
