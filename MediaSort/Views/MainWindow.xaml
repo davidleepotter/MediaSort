@@ -138,6 +138,24 @@
 
                     <Button Content="Settings" Style="{StaticResource ToolButton}" Click="Settings_Click"
                             ToolTip="Open the Settings dialog (Ctrl+,)"/>
+                    <!-- Panes▾ — toggle visibility / restore-default-layout for the three main panes. -->
+                    <Button x:Name="PanesMenuButton" Content="Panes ▾" Style="{StaticResource ToolButton}"
+                            Margin="6,0,0,0" Click="PanesMenu_Click"
+                            ToolTip="Show/hide Source, Preview, or Destinations panes; reset layout">
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="PanesContextMenu">
+                                <MenuItem x:Name="ToggleSourceMenuItem" Header="Source" IsCheckable="True"
+                                          Click="TogglePaneVisibility_Click" Tag="Source"/>
+                                <MenuItem x:Name="TogglePreviewMenuItem" Header="Preview" IsCheckable="True"
+                                          Click="TogglePaneVisibility_Click" Tag="Preview"/>
+                                <MenuItem x:Name="ToggleDestinationsMenuItem" Header="Destinations" IsCheckable="True"
+                                          Click="TogglePaneVisibility_Click" Tag="Destinations"/>
+                                <Separator/>
+                                <MenuItem Header="Reset to default layout" Click="ResetPaneLayout_Click"
+                                          ToolTip="Restore order Source / Preview / Destinations and show all panes"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <Button Content="?" Style="{StaticResource ToolButton}" Width="28" ToolTip="Keyboard shortcuts"
                             Click="Help_Click" Margin="6,0,0,0"/>
                     <Button Content="About" Style="{StaticResource ToolButton}" Click="About_Click"
@@ -267,7 +285,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- LEFT: Source list -->
-            <Border Grid.Column="0"
+            <Border x:Name="SourcePane" Grid.Column="0"
                     Background="{DynamicResource PanelBackground}"
                     BorderBrush="{DynamicResource BorderBrushColor}"
                     BorderThickness="0,0,1,0">
@@ -277,7 +295,7 @@
                             <TextBlock DockPanel.Dock="Left" Text="Source" FontWeight="Bold"
                                        VerticalAlignment="Center"
                                        Foreground="{DynamicResource PanelForeground}"/>
-                            <!-- Right-justified jump-to-top / jump-to-bottom for the source list. -->
+                            <!-- Right-justified pane controls + jump-to-top / jump-to-bottom. -->
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                                         VerticalAlignment="Center">
                                 <Button Content="Top" Style="{StaticResource ToolButton}"
@@ -288,6 +306,20 @@
                                         Click="SourceBottom_Click"
                                         MinWidth="66" Padding="10,2"
                                         ToolTip="Jump to the last item in the source list (End)"/>
+                                <!-- Pane swap/hide toolbar (UX: dockable panes). -->
+                                <Separator Margin="6,0,4,0"/>
+                                <Button Content="◀" Style="{StaticResource ToolButton}"
+                                        Tag="Source" Click="PaneMoveLeft_Click"
+                                        MinWidth="24" Padding="6,2" Margin="0,0,2,0"
+                                        ToolTip="Move this pane one slot to the left"/>
+                                <Button Content="▶" Style="{StaticResource ToolButton}"
+                                        Tag="Source" Click="PaneMoveRight_Click"
+                                        MinWidth="24" Padding="6,2" Margin="0,0,2,0"
+                                        ToolTip="Move this pane one slot to the right"/>
+                                <Button Content="✕" Style="{StaticResource ToolButton}"
+                                        Tag="Source" Click="PaneHide_Click"
+                                        MinWidth="24" Padding="6,2"
+                                        ToolTip="Hide this pane (use Panes▾ in toolbar to restore)"/>
                             </StackPanel>
                             <!-- Current source folder name (e.g. 'Master'). Hidden when no folder picked. -->
                             <TextBlock x:Name="SourceFolderNameText"
@@ -500,16 +532,34 @@
                 </DockPanel>
             </Border>
 
-            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
+            <GridSplitter x:Name="Splitter01" Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
                           Background="{DynamicResource SplitterBrush}"
                           DragCompleted="PanelSplitter_DragCompleted"/>
 
             <!-- CENTER: Preview -->
-            <Border Grid.Column="2" Background="{DynamicResource PreviewBackground}">
+            <Border x:Name="PreviewPane" Grid.Column="2" Background="{DynamicResource PreviewBackground}">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
-                        <TextBlock x:Name="PreviewTitle" Text="Preview" FontWeight="Bold"
-                                   Foreground="{DynamicResource PanelForeground}"/>
+                        <DockPanel LastChildFill="True">
+                            <TextBlock DockPanel.Dock="Left" x:Name="PreviewTitle" Text="Preview" FontWeight="Bold"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource PanelForeground}"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <Button Content="◀" Style="{StaticResource ToolButton}"
+                                        Tag="Preview" Click="PaneMoveLeft_Click"
+                                        MinWidth="24" Padding="6,2" Margin="0,0,2,0"
+                                        ToolTip="Move this pane one slot to the left"/>
+                                <Button Content="▶" Style="{StaticResource ToolButton}"
+                                        Tag="Preview" Click="PaneMoveRight_Click"
+                                        MinWidth="24" Padding="6,2" Margin="0,0,2,0"
+                                        ToolTip="Move this pane one slot to the right"/>
+                                <Button Content="✕" Style="{StaticResource ToolButton}"
+                                        Tag="Preview" Click="PaneHide_Click"
+                                        MinWidth="24" Padding="6,2"
+                                        ToolTip="Hide this pane (use Panes▾ in toolbar to restore)"/>
+                            </StackPanel>
+                        </DockPanel>
                     </Border>
 
                     <Border DockPanel.Dock="Bottom" x:Name="VideoControls"
@@ -572,20 +622,36 @@
                 </DockPanel>
             </Border>
 
-            <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
+            <GridSplitter x:Name="Splitter12" Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
                           Background="{DynamicResource SplitterBrush}"
                           DragCompleted="PanelSplitter_DragCompleted"/>
 
             <!-- RIGHT: Destinations + EXIF -->
-            <Border Grid.Column="4"
+            <Border x:Name="DestinationsPane" Grid.Column="4"
                     Background="{DynamicResource PanelBackground}"
                     BorderBrush="{DynamicResource BorderBrushColor}"
                     BorderThickness="1,0,0,0">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
-                        <DockPanel>
-                            <Button DockPanel.Dock="Right" Content="+ Add" Style="{StaticResource ToolButton}" Click="AddDestination_Click"
-                                    ToolTip="Add a new destination button (folder + hotkey)"/>
+                        <DockPanel LastChildFill="True">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <Button Content="+ Add" Style="{StaticResource ToolButton}" Click="AddDestination_Click"
+                                        ToolTip="Add a new destination button (folder + hotkey)" Margin="0,0,4,0"/>
+                                <Separator Margin="2,0,4,0"/>
+                                <Button Content="◀" Style="{StaticResource ToolButton}"
+                                        Tag="Destinations" Click="PaneMoveLeft_Click"
+                                        MinWidth="24" Padding="6,2" Margin="0,0,2,0"
+                                        ToolTip="Move this pane one slot to the left"/>
+                                <Button Content="▶" Style="{StaticResource ToolButton}"
+                                        Tag="Destinations" Click="PaneMoveRight_Click"
+                                        MinWidth="24" Padding="6,2" Margin="0,0,2,0"
+                                        ToolTip="Move this pane one slot to the right"/>
+                                <Button Content="✕" Style="{StaticResource ToolButton}"
+                                        Tag="Destinations" Click="PaneHide_Click"
+                                        MinWidth="24" Padding="6,2"
+                                        ToolTip="Hide this pane (use Panes▾ in toolbar to restore)"/>
+                            </StackPanel>
                             <TextBlock Text="Destinations" FontWeight="Bold"
                                        Foreground="{DynamicResource PanelForeground}" VerticalAlignment="Center"/>
                         </DockPanel>

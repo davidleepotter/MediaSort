@@ -254,18 +254,10 @@ public partial class MainWindow : Window
         Title = $"MediaSort v{VersionInfo.GetDisplayVersion()}";
         StatusText.Text = "Ready";
 
-        // Restore persisted splitter widths. 0 = use the default from XAML.
-        // Clamp to MinWidth so a previously narrow window can't lock us out.
-        if (_settings.LeftPanelWidth > 0 && LeftPanelColumn != null)
-        {
-            var w = Math.Max(_settings.LeftPanelWidth, LeftPanelColumn.MinWidth);
-            LeftPanelColumn.Width = new GridLength(w, GridUnitType.Pixel);
-        }
-        if (_settings.RightPanelWidth > 0 && RightPanelColumn != null)
-        {
-            var w = Math.Max(_settings.RightPanelWidth, RightPanelColumn.MinWidth);
-            RightPanelColumn.Width = new GridLength(w, GridUnitType.Pixel);
-        }
+        // Restore persisted pane layout (order + visibility + splitter widths).
+        // ApplyPaneLayout consults LeftPanelWidth/RightPanelWidth and PaneOrder/Visibility
+        // from settings. save:false because we're still in _initializing.
+        ApplyPaneLayout(save: false);
 
         // Done with initial UI population — allow SaveSettings to run again.
         _initializing = false;
@@ -4561,6 +4553,246 @@ public partial class MainWindow : Window
             SaveSettings();
         }
         catch (Exception ex) { CrashLogger.Log(ex, "splitter-save"); }
+    }
+
+    // ----------------- DOCKABLE PANES (show/hide + swap-position) -----------------
+    // The three main panes (Source / Preview / Destinations) live in a 5-column Grid:
+    //   [Pane@0] [Splitter01] [Pane@2] [Splitter12] [Pane@4]
+    // Layout state is two pieces of data:
+    //   1) PaneOrder — which pane goes in slot 0 / 2 / 4 ("Source,Preview,Destinations" by default)
+    //   2) Visibility — a hidden pane gets its column collapsed to 0 and the splitter
+    //      next to it is hidden too. Splitters between two visible panes stay 5px wide.
+    // Splitter widths persist via LeftPanelColumn/RightPanelColumn (slot 0 / slot 4); the
+    // center slot always stretches ("*"). Order/visibility persist via AppSettings.
+
+    /// <summary>Default pane order, used when settings are missing/invalid or when the user
+    /// picks "Reset to default layout".</summary>
+    private static readonly string[] DefaultPaneOrder = { "Source", "Preview", "Destinations" };
+
+    /// <summary>Read the pane order from settings, falling back to default and de-duping if
+    /// the persisted value is malformed. Always returns exactly 3 known tokens.</summary>
+    private string[] GetPaneOrder()
+    {
+        var raw = _settings?.PaneOrder ?? "";
+        var tokens = raw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim())
+            .Where(t => t == "Source" || t == "Preview" || t == "Destinations")
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        // Append any missing panes in default order so the result has all three.
+        foreach (var d in DefaultPaneOrder)
+            if (!tokens.Contains(d)) tokens.Add(d);
+        return tokens.Take(3).ToArray();
+    }
+
+    /// <summary>Map a pane token ("Source"/"Preview"/"Destinations") to its Border element.</summary>
+    private System.Windows.Controls.Border? PaneByToken(string token) => token switch
+    {
+        "Source" => SourcePane,
+        "Preview" => PreviewPane,
+        "Destinations" => DestinationsPane,
+        _ => null
+    };
+
+    /// <summary>True if the pane with this token is currently set visible in settings.</summary>
+    private bool IsPaneVisible(string token) => token switch
+    {
+        "Source" => _settings?.SourcePaneVisible ?? true,
+        "Preview" => _settings?.PreviewPaneVisible ?? true,
+        "Destinations" => _settings?.DestinationsPaneVisible ?? true,
+        _ => true
+    };
+
+    /// <summary>Toggle visibility flag in settings for a single pane token.</summary>
+    private void SetPaneVisible(string token, bool visible)
+    {
+        if (_settings == null) return;
+        switch (token)
+        {
+            case "Source": _settings.SourcePaneVisible = visible; break;
+            case "Preview": _settings.PreviewPaneVisible = visible; break;
+            case "Destinations": _settings.DestinationsPaneVisible = visible; break;
+        }
+    }
+
+    /// <summary>Apply the current pane order + visibility to the layout. Called at startup
+    /// and whenever the user moves/hides/shows a pane. Persists when not initializing.</summary>
+    private void ApplyPaneLayout(bool save = true)
+    {
+        try
+        {
+            var order = GetPaneOrder();
+            // Slot index in the Grid for each ordinal position (0,1,2 -> column 0,2,4).
+            int[] slotCols = { 0, 2, 4 };
+
+            // Reassign Grid.Column on each pane Border in the new order.
+            for (int i = 0; i < order.Length; i++)
+            {
+                var border = PaneByToken(order[i]);
+                if (border != null) System.Windows.Controls.Grid.SetColumn(border, slotCols[i]);
+            }
+
+            // Determine per-slot visibility from the order mapping.
+            bool[] slotVisible = new bool[3];
+            for (int i = 0; i < 3; i++) slotVisible[i] = IsPaneVisible(order[i]);
+
+            // Per-pane Visibility on the Border: Collapsed when hidden so it renders nothing.
+            for (int i = 0; i < order.Length; i++)
+            {
+                var border = PaneByToken(order[i]);
+                if (border != null)
+                    border.Visibility = slotVisible[i] ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            // Column widths:
+            //   - Hidden slot:      Width=0,  MinWidth=0    (collapses fully)
+            //   - Visible slot 0/4: Width=persisted px,  MinWidth=220/240
+            //   - Visible slot 2:   Width=*,             MinWidth=300
+            // Persisted widths live in LeftPanelWidth / RightPanelWidth and apply to slots 0/4
+            // (the outer columns) regardless of which logical pane is currently in them.
+            var leftCol = LeftPanelColumn;
+            var midCol = (System.Windows.Controls.ColumnDefinition?)null;
+            // The middle column has no x:Name; fetch by index.
+            var ownerGrid = SourcePane?.Parent as System.Windows.Controls.Grid;
+            if (ownerGrid != null && ownerGrid.ColumnDefinitions.Count >= 5)
+                midCol = ownerGrid.ColumnDefinitions[2];
+            var rightCol = RightPanelColumn;
+
+            void Configure(System.Windows.Controls.ColumnDefinition? col, int slotIdx,
+                           double defaultPx, double minPx, bool isStar)
+            {
+                if (col == null) return;
+                if (!slotVisible[slotIdx])
+                {
+                    col.MinWidth = 0;
+                    col.Width = new GridLength(0);
+                    return;
+                }
+                if (isStar)
+                {
+                    col.MinWidth = minPx;
+                    col.Width = new GridLength(1, GridUnitType.Star);
+                }
+                else
+                {
+                    col.MinWidth = minPx;
+                    col.Width = new GridLength(Math.Max(defaultPx, minPx), GridUnitType.Pixel);
+                }
+            }
+
+            double leftPx = (_settings != null && _settings.LeftPanelWidth > 0) ? _settings.LeftPanelWidth : 380;
+            double rightPx = (_settings != null && _settings.RightPanelWidth > 0) ? _settings.RightPanelWidth : 340;
+            Configure(leftCol, 0, leftPx, 220, isStar: false);
+            Configure(midCol, 1, 0, 300, isStar: true);
+            Configure(rightCol, 2, rightPx, 240, isStar: false);
+
+            // Splitter visibility: only show a splitter if BOTH adjacent slots are visible.
+            if (Splitter01 != null)
+                Splitter01.Visibility = (slotVisible[0] && slotVisible[1]) ? Visibility.Visible : Visibility.Collapsed;
+            if (Splitter12 != null)
+                Splitter12.Visibility = (slotVisible[1] && slotVisible[2]) ? Visibility.Visible : Visibility.Collapsed;
+
+            // Sync the toggle menu's check state.
+            if (ToggleSourceMenuItem != null) ToggleSourceMenuItem.IsChecked = IsPaneVisible("Source");
+            if (TogglePreviewMenuItem != null) TogglePreviewMenuItem.IsChecked = IsPaneVisible("Preview");
+            if (ToggleDestinationsMenuItem != null) ToggleDestinationsMenuItem.IsChecked = IsPaneVisible("Destinations");
+
+            if (save && !_initializing) SaveSettings();
+        }
+        catch (Exception ex) { CrashLogger.Log(ex, "apply-pane-layout"); }
+    }
+
+    /// <summary>Header ◀ button: swap the pane carrying the sender's Tag with the
+    /// one to its left in the current order. No-op for the leftmost pane.</summary>
+    private void PaneMoveLeft_Click(object sender, RoutedEventArgs e)
+        => MovePaneByDelta(sender, -1);
+
+    /// <summary>Header ▶ button: swap with the pane to the right.</summary>
+    private void PaneMoveRight_Click(object sender, RoutedEventArgs e)
+        => MovePaneByDelta(sender, +1);
+
+    private void MovePaneByDelta(object sender, int delta)
+    {
+        var token = (sender as System.Windows.Controls.Button)?.Tag as string;
+        if (string.IsNullOrEmpty(token) || _settings == null) return;
+        var order = GetPaneOrder().ToList();
+        int idx = order.IndexOf(token);
+        int target = idx + delta;
+        if (idx < 0 || target < 0 || target >= order.Count) return;
+        (order[idx], order[target]) = (order[target], order[idx]);
+        _settings.PaneOrder = string.Join(",", order);
+        ApplyPaneLayout();
+    }
+
+    /// <summary>Header ✕ button: hide this pane. Last-visible-pane guard prevents
+    /// hiding all three (would leave the user with no UI).</summary>
+    private void PaneHide_Click(object sender, RoutedEventArgs e)
+    {
+        var token = (sender as System.Windows.Controls.Button)?.Tag as string;
+        if (string.IsNullOrEmpty(token) || _settings == null) return;
+        // Don't allow hiding the last visible pane.
+        int visibleCount = (IsPaneVisible("Source") ? 1 : 0)
+                         + (IsPaneVisible("Preview") ? 1 : 0)
+                         + (IsPaneVisible("Destinations") ? 1 : 0);
+        if (IsPaneVisible(token) && visibleCount <= 1)
+        {
+            StatusText.Text = "At least one pane must stay visible.";
+            return;
+        }
+        SetPaneVisible(token, false);
+        ApplyPaneLayout();
+    }
+
+    /// <summary>Toolbar "Panes ▾" button — opens the context menu attached to the button.</summary>
+    private void PanesMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button b && b.ContextMenu != null)
+        {
+            b.ContextMenu.PlacementTarget = b;
+            b.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            b.ContextMenu.IsOpen = true;
+        }
+    }
+
+    /// <summary>Panes▾ menu item — toggle a single pane's visibility. The MenuItem's
+    /// IsChecked has already flipped by the time this fires; we read it back to
+    /// determine the new state.</summary>
+    private void TogglePaneVisibility_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem mi) return;
+        var token = mi.Tag as string;
+        if (string.IsNullOrEmpty(token) || _settings == null) return;
+        bool desired = mi.IsChecked;
+        // Last-visible-pane guard: revert the check if user is trying to hide the only one.
+        if (!desired)
+        {
+            int visibleCount = (IsPaneVisible("Source") ? 1 : 0)
+                             + (IsPaneVisible("Preview") ? 1 : 0)
+                             + (IsPaneVisible("Destinations") ? 1 : 0);
+            if (IsPaneVisible(token) && visibleCount <= 1)
+            {
+                mi.IsChecked = true;
+                StatusText.Text = "At least one pane must stay visible.";
+                return;
+            }
+        }
+        SetPaneVisible(token, desired);
+        ApplyPaneLayout();
+    }
+
+    /// <summary>Panes▾ menu — reset to the original layout.</summary>
+    private void ResetPaneLayout_Click(object sender, RoutedEventArgs e)
+    {
+        if (_settings == null) return;
+        _settings.PaneOrder = string.Join(",", DefaultPaneOrder);
+        _settings.SourcePaneVisible = true;
+        _settings.PreviewPaneVisible = true;
+        _settings.DestinationsPaneVisible = true;
+        // Also reset persisted widths to the XAML defaults so the user sees a clean state.
+        _settings.LeftPanelWidth = 0;
+        _settings.RightPanelWidth = 0;
+        ApplyPaneLayout();
+        StatusText.Text = "Pane layout reset.";
     }
 
     private void About_Click(object sender, RoutedEventArgs e)

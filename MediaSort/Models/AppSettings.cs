@@ -144,6 +144,18 @@ public class AppSettings
     /// <summary>Width in pixels of the right destinations panel. 0 = use default.</summary>
     public double RightPanelWidth { get; set; } = 0;
 
+    // ---- Layout: pane order + visibility (Show/Hide + swap-position toggles) ----
+    /// <summary>Comma-separated order of the three main panes from left to right.
+    /// Tokens: "Source", "Preview", "Destinations". Default = "Source,Preview,Destinations".
+    /// Invalid values fall back to the default at load time.</summary>
+    public string PaneOrder { get; set; } = "Source,Preview,Destinations";
+    /// <summary>If false, the source pane is collapsed (column width = 0, splitter hidden).</summary>
+    public bool SourcePaneVisible { get; set; } = true;
+    /// <summary>If false, the preview pane is collapsed.</summary>
+    public bool PreviewPaneVisible { get; set; } = true;
+    /// <summary>If false, the destinations pane is collapsed.</summary>
+    public bool DestinationsPaneVisible { get; set; } = true;
+
     // ---- Destination button text styling ----
     // Each of the four lines on a destination button (folder name, key/hotkey,
     // folder path, file count badge) has its own font family + size so users can
