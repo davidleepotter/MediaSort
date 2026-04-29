@@ -229,6 +229,7 @@ public partial class MainWindow : Window
         RefreshDestinationCounts();
 
         ApplyThumbnailSize();
+        ApplyDestButtonFonts();
         ApplyViewMode();
         Title = $"MediaSort v{VersionInfo.GetDisplayVersion()}";
         StatusText.Text = "Ready";
@@ -2356,6 +2357,13 @@ public partial class MainWindow : Window
             }
         }
 
+        // Animation — same fly-to-destination ghost as Move. Capture source
+        // positions/visuals BEFORE doing any I/O so containers still exist.
+        // For Copy the originals stay put, but the ghost still gives the user
+        // visual confirmation the file landed on the destination button.
+        var destElForAnim = destinationElement ?? FindDestinationElement(dest);
+        TryPlayMoveAnimationsForBatch(items, destElForAnim);
+
         // Reset per-batch conflict prefs
         _conflictPolicyForBatch = SettingPolicyToConflict(_settings.ConflictPolicy);
         _applyToAllForBatch = _conflictPolicyForBatch != ConflictPolicy.Prompt;
@@ -2370,6 +2378,7 @@ public partial class MainWindow : Window
         if (copied > 0)
         {
             StatusText.Text = $"Copied {copied} file(s) to {dest.Name}";
+            FlashDestinationBadge(dest, copied);
             RefreshDestinationCounts();
         }
         UpdateStats();
@@ -3867,6 +3876,7 @@ public partial class MainWindow : Window
         {
             ThemeManager.ApplyOverride(_settings.ThemeOverride, _settings.AccentColor);
             ApplyThumbnailSize();
+            ApplyDestButtonFonts();
             if (!string.IsNullOrWhiteSpace(_settings.SourceFolder)
                 && _settings.SourceFolder != SourcePathText.Text)
             {
@@ -3886,6 +3896,43 @@ public partial class MainWindow : Window
         var size = Math.Max(60, Math.Min(240, _settings.ThumbnailSize));
         Resources["ThumbTileSize"] = (double)size;
         Resources["ThumbTileHeight"] = (double)(size + 20);
+    }
+
+    /// <summary>
+    /// Push the current per-line font family + size settings for the destination
+    /// buttons (folder name, hotkey, folder path, file-count badge) into Window
+    /// resources so all destination tiles refresh live without rebuilding the list.
+    /// Empty / invalid font families fall back to Segoe UI.
+    /// </summary>
+    private void ApplyDestButtonFonts()
+    {
+        if (_settings == null) return;
+        Resources["DestNameFontFamily"]  = ResolveFontFamily(_settings.DestNameFontFamily);
+        Resources["DestNameFontSize"]    = ClampFontSize(_settings.DestNameFontSize, 12);
+        Resources["DestKeyFontFamily"]   = ResolveFontFamily(_settings.DestKeyFontFamily);
+        Resources["DestKeyFontSize"]     = ClampFontSize(_settings.DestKeyFontSize, 10);
+        Resources["DestPathFontFamily"]  = ResolveFontFamily(_settings.DestPathFontFamily);
+        Resources["DestPathFontSize"]    = ClampFontSize(_settings.DestPathFontSize, 10);
+        Resources["DestBadgeFontFamily"] = ResolveFontFamily(_settings.DestBadgeFontFamily);
+        Resources["DestBadgeFontSize"]   = ClampFontSize(_settings.DestBadgeFontSize, 10);
+    }
+
+    private static System.Windows.Media.FontFamily ResolveFontFamily(string? name)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(name))
+                return new System.Windows.Media.FontFamily(name!.Trim());
+        }
+        catch { /* fall through */ }
+        return new System.Windows.Media.FontFamily("Segoe UI");
+    }
+
+    private static double ClampFontSize(double value, double fallback)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0)
+            return fallback;
+        return Math.Max(6.0, Math.Min(48.0, value));
     }
 
     /// <summary>

@@ -151,6 +151,82 @@
                                Foreground="{DynamicResource MutedForeground}"/>
                 </Grid>
 
+                <TextBlock Text="Destination button text" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"
+                           Foreground="{DynamicResource PanelForeground}"/>
+                <TextBlock Text="Pick a font and size for each line shown on every destination button. Leave the family blank to use the system default (Segoe UI). Sizes are in pixels (6–48)."
+                           Foreground="{DynamicResource MutedForeground}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="90"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header row -->
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Line" FontWeight="Bold" Margin="0,0,0,4"
+                               Foreground="{DynamicResource MutedForeground}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Font family" FontWeight="Bold" Margin="6,0,6,4"
+                               Foreground="{DynamicResource MutedForeground}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Size (px)" FontWeight="Bold" Margin="0,0,0,4"
+                               Foreground="{DynamicResource MutedForeground}"/>
+
+                    <!-- Folder name -->
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Folder name" VerticalAlignment="Center" Margin="0,2"
+                               Foreground="{DynamicResource PanelForeground}"
+                               ToolTip="The bold top line of each destination button (the destination's display name)."/>
+                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="DestNameFontCombo" IsEditable="True" Margin="6,2"
+                              ToolTip="Type or pick any installed font. Empty = Segoe UI."/>
+                    <TextBox  Grid.Row="1" Grid.Column="2" x:Name="DestNameSizeBox" Padding="4" Margin="0,2"
+                              Background="{DynamicResource InputBackground}"
+                              Foreground="{DynamicResource PanelForeground}"
+                              BorderBrush="{DynamicResource ButtonBorder}"
+                              ToolTip="Font size in pixels (6–48)."/>
+
+                    <!-- Hotkey -->
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Key / shortcut" VerticalAlignment="Center" Margin="0,2"
+                               Foreground="{DynamicResource PanelForeground}"
+                               ToolTip="The hotkey line, e.g. '1', 'Ctrl+2'."/>
+                    <ComboBox Grid.Row="2" Grid.Column="1" x:Name="DestKeyFontCombo" IsEditable="True" Margin="6,2"
+                              ToolTip="Type or pick any installed font. Empty = Segoe UI."/>
+                    <TextBox  Grid.Row="2" Grid.Column="2" x:Name="DestKeySizeBox" Padding="4" Margin="0,2"
+                              Background="{DynamicResource InputBackground}"
+                              Foreground="{DynamicResource PanelForeground}"
+                              BorderBrush="{DynamicResource ButtonBorder}"
+                              ToolTip="Font size in pixels (6–48)."/>
+
+                    <!-- Folder path -->
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Folder path" VerticalAlignment="Center" Margin="0,2"
+                               Foreground="{DynamicResource PanelForeground}"
+                               ToolTip="The full destination path line (truncated with … if too long)."/>
+                    <ComboBox Grid.Row="3" Grid.Column="1" x:Name="DestPathFontCombo" IsEditable="True" Margin="6,2"
+                              ToolTip="Type or pick any installed font. Empty = Segoe UI."/>
+                    <TextBox  Grid.Row="3" Grid.Column="2" x:Name="DestPathSizeBox" Padding="4" Margin="0,2"
+                              Background="{DynamicResource InputBackground}"
+                              Foreground="{DynamicResource PanelForeground}"
+                              BorderBrush="{DynamicResource ButtonBorder}"
+                              ToolTip="Font size in pixels (6–48)."/>
+
+                    <!-- File count badge -->
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="File count" VerticalAlignment="Center" Margin="0,2"
+                               Foreground="{DynamicResource PanelForeground}"
+                               ToolTip="The italic last line showing the number of files in the destination folder."/>
+                    <ComboBox Grid.Row="4" Grid.Column="1" x:Name="DestBadgeFontCombo" IsEditable="True" Margin="6,2"
+                              ToolTip="Type or pick any installed font. Empty = Segoe UI."/>
+                    <TextBox  Grid.Row="4" Grid.Column="2" x:Name="DestBadgeSizeBox" Padding="4" Margin="0,2"
+                              Background="{DynamicResource InputBackground}"
+                              Foreground="{DynamicResource PanelForeground}"
+                              BorderBrush="{DynamicResource ButtonBorder}"
+                              ToolTip="Font size in pixels (6–48)."/>
+                </Grid>
+
                 <TextBlock Text="Destinations" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"
                            Foreground="{DynamicResource PanelForeground}"/>
                 <TextBlock Text="Use the + Add and ✎ Edit buttons in the main window. Listed here for reference."

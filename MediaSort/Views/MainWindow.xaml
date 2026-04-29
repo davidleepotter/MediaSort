@@ -23,6 +23,16 @@
         <!-- Thumbnail tile dimensions — updated at runtime from settings -->
         <sys:Double x:Key="ThumbTileSize">120</sys:Double>
         <sys:Double x:Key="ThumbTileHeight">140</sys:Double>
+        <!-- Destination button text fonts/sizes — updated at runtime from settings.
+             Per-line: folder name, hotkey, folder path, file-count badge. -->
+        <FontFamily x:Key="DestNameFontFamily">Segoe UI</FontFamily>
+        <sys:Double x:Key="DestNameFontSize">12</sys:Double>
+        <FontFamily x:Key="DestKeyFontFamily">Segoe UI</FontFamily>
+        <sys:Double x:Key="DestKeyFontSize">10</sys:Double>
+        <FontFamily x:Key="DestPathFontFamily">Segoe UI</FontFamily>
+        <sys:Double x:Key="DestPathFontSize">10</sys:Double>
+        <FontFamily x:Key="DestBadgeFontFamily">Segoe UI</FontFamily>
+        <sys:Double x:Key="DestBadgeFontSize">10</sys:Double>
     </Window.Resources>
 
     <Grid>
@@ -587,10 +597,18 @@
                                                         </ContextMenu>
                                                     </Button.ContextMenu>
                                                     <StackPanel>
-                                                        <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
-                                                        <TextBlock Text="{Binding HotKeyDisplay}" FontSize="10" Opacity="0.8"/>
-                                                        <TextBlock Text="{Binding FolderPath}" FontSize="10" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
-                                                        <TextBlock Text="{Binding BadgeText}" FontSize="10" Opacity="0.65" FontStyle="Italic"/>
+                                                        <TextBlock Text="{Binding Name}" FontWeight="Bold"
+                                                                   FontFamily="{DynamicResource DestNameFontFamily}"
+                                                                   FontSize="{DynamicResource DestNameFontSize}"/>
+                                                        <TextBlock Text="{Binding HotKeyDisplay}" Opacity="0.8"
+                                                                   FontFamily="{DynamicResource DestKeyFontFamily}"
+                                                                   FontSize="{DynamicResource DestKeyFontSize}"/>
+                                                        <TextBlock Text="{Binding FolderPath}" Opacity="0.7" TextTrimming="CharacterEllipsis"
+                                                                   FontFamily="{DynamicResource DestPathFontFamily}"
+                                                                   FontSize="{DynamicResource DestPathFontSize}"/>
+                                                        <TextBlock Text="{Binding BadgeText}" Opacity="0.65" FontStyle="Italic"
+                                                                   FontFamily="{DynamicResource DestBadgeFontFamily}"
+                                                                   FontSize="{DynamicResource DestBadgeFontSize}"/>
                                                         <TextBlock Text="{Binding StatusGlyph}" ToolTip="{Binding StatusGlyphTooltip}"
                                                                    FontSize="10" FontWeight="Bold" Foreground="#E07A28"/>
                                                     </StackPanel>

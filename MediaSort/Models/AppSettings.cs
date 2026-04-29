@@ -134,6 +134,30 @@ public class AppSettings
     public double LeftPanelWidth { get; set; } = 0;
     /// <summary>Width in pixels of the right destinations panel. 0 = use default.</summary>
     public double RightPanelWidth { get; set; } = 0;
+
+    // ---- Destination button text styling ----
+    // Each of the four lines on a destination button (folder name, key/hotkey,
+    // folder path, file count badge) has its own font family + size so users can
+    // tune readability. Empty family => system default (Segoe UI on Windows).
+    /// <summary>Font family for the destination's folder/name (top, bold) line.</summary>
+    public string DestNameFontFamily { get; set; } = "";
+    /// <summary>Font size in pixels for the destination's folder/name line.</summary>
+    public double DestNameFontSize { get; set; } = 12;
+
+    /// <summary>Font family for the destination's hotkey/shortcut line.</summary>
+    public string DestKeyFontFamily { get; set; } = "";
+    /// <summary>Font size in pixels for the destination's hotkey line.</summary>
+    public double DestKeyFontSize { get; set; } = 10;
+
+    /// <summary>Font family for the destination's folder-path line.</summary>
+    public string DestPathFontFamily { get; set; } = "";
+    /// <summary>Font size in pixels for the destination's folder-path line.</summary>
+    public double DestPathFontSize { get; set; } = 10;
+
+    /// <summary>Font family for the destination's file-count badge line.</summary>
+    public string DestBadgeFontFamily { get; set; } = "";
+    /// <summary>Font size in pixels for the destination's file-count badge line.</summary>
+    public double DestBadgeFontSize { get; set; } = 10;
 }
 
 public enum ConflictPolicySetting

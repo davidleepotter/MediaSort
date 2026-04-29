@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -35,7 +38,74 @@ public partial class SettingsWindow : Window
         UpdateThumbSizeText();
         UpdateDuplicateThresholdText();
         UpdateAccentSwatch();
+        InitDestFontControls();
         DestinationsList.ItemsSource = destinations;
+    }
+
+    /// <summary>
+    /// Populate the four font-family combos with installed fonts and seed each
+    /// row's family + size from current settings.
+    /// </summary>
+    private void InitDestFontControls()
+    {
+        // Build a sorted, de-duplicated list of installed font family display names.
+        // Using en-US for predictable ordering; user-typed values override on save.
+        List<string> familyNames;
+        try
+        {
+            var en = CultureInfo.GetCultureInfo("en-US");
+            familyNames = Fonts.SystemFontFamilies
+                .Select(ff =>
+                {
+                    if (ff.FamilyNames.TryGetValue(System.Windows.Markup.XmlLanguage.GetLanguage("en-US"), out var n))
+                        return n;
+                    return ff.Source;
+                })
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch
+        {
+            familyNames = new List<string> { "Segoe UI", "Arial", "Consolas", "Tahoma", "Verdana" };
+        }
+
+        foreach (var combo in new[] { DestNameFontCombo, DestKeyFontCombo, DestPathFontCombo, DestBadgeFontCombo })
+        {
+            combo.ItemsSource = familyNames;
+        }
+
+        DestNameFontCombo.Text  = _settings.DestNameFontFamily  ?? "";
+        DestKeyFontCombo.Text   = _settings.DestKeyFontFamily   ?? "";
+        DestPathFontCombo.Text  = _settings.DestPathFontFamily  ?? "";
+        DestBadgeFontCombo.Text = _settings.DestBadgeFontFamily ?? "";
+
+        DestNameSizeBox.Text  = FormatSize(_settings.DestNameFontSize,  12);
+        DestKeySizeBox.Text   = FormatSize(_settings.DestKeyFontSize,   10);
+        DestPathSizeBox.Text  = FormatSize(_settings.DestPathFontSize,  10);
+        DestBadgeSizeBox.Text = FormatSize(_settings.DestBadgeFontSize, 10);
+    }
+
+    private static string FormatSize(double value, double fallback)
+    {
+        var v = (value <= 0 || double.IsNaN(value) || double.IsInfinity(value)) ? fallback : value;
+        // Show as integer when whole, otherwise one decimal.
+        return Math.Abs(v - Math.Round(v)) < 0.01
+            ? ((int)Math.Round(v)).ToString(CultureInfo.InvariantCulture)
+            : v.ToString("0.0", CultureInfo.InvariantCulture);
+    }
+
+    private static double ParseSize(string text, double fallback)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return fallback;
+        if (double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var v)
+            || double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.CurrentCulture, out v))
+        {
+            if (double.IsNaN(v) || double.IsInfinity(v) || v <= 0) return fallback;
+            return Math.Max(6.0, Math.Min(48.0, v));
+        }
+        return fallback;
     }
 
     private void UpdateAnimationText()
@@ -116,6 +186,17 @@ public partial class SettingsWindow : Window
         _settings.AnimationDurationMs = (int)AnimationSlider.Value;
         _settings.ThumbnailSize = (int)ThumbSizeSlider.Value;
         _settings.DuplicateThreshold = (int)DuplicateThresholdSlider.Value;
+
+        // Destination button text styling (per-line family + size).
+        _settings.DestNameFontFamily  = (DestNameFontCombo.Text  ?? "").Trim();
+        _settings.DestKeyFontFamily   = (DestKeyFontCombo.Text   ?? "").Trim();
+        _settings.DestPathFontFamily  = (DestPathFontCombo.Text  ?? "").Trim();
+        _settings.DestBadgeFontFamily = (DestBadgeFontCombo.Text ?? "").Trim();
+        _settings.DestNameFontSize  = ParseSize(DestNameSizeBox.Text,  12);
+        _settings.DestKeyFontSize   = ParseSize(DestKeySizeBox.Text,   10);
+        _settings.DestPathFontSize  = ParseSize(DestPathSizeBox.Text,  10);
+        _settings.DestBadgeFontSize = ParseSize(DestBadgeSizeBox.Text, 10);
+
         DialogResult = true;
         Close();
     }
