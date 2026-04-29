@@ -1119,7 +1119,26 @@ public partial class MainWindow : Window
 
         StatusText.Text = $"{_allItems.Count} media file(s) found";
 
-        if (MediaItems.Count > 0) SelectIndex(0); else ClearPreview();
+        if (MediaItems.Count > 0)
+        {
+            SelectIndex(0);
+            // Containers aren't realized yet during initial source load, so
+            // ScrollIntoView inside SelectIndex is a no-op. Defer the scroll
+            // until WPF has built the visual tree so the list visibly starts
+            // at the top.
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    if (MediaItems.Count == 0) return;
+                    var first = MediaItems[0];
+                    // ListView derives from ListBox so a single case covers both.
+                    if (ActiveSelector is ListBox lb) lb.ScrollIntoView(first);
+                }
+                catch { /* layout race — non-critical */ }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+        else ClearPreview();
 
         // Hand the popup to the probe phase. It will switch the bar to determinate
         // (X of Y), update detail text per file, and close the dialog when probe
