@@ -10,9 +10,9 @@
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <RootNamespace>MediaSort</RootNamespace>
     <AssemblyName>MediaSort</AssemblyName>
-    <Version>1.0.140</Version>
-    <FileVersion>1.0.140.0</FileVersion>
-    <AssemblyVersion>1.0.140.0</AssemblyVersion>
+    <Version>1.0.141</Version>
+    <FileVersion>1.0.141.0</FileVersion>
+    <AssemblyVersion>1.0.141.0</AssemblyVersion>
     <Company>Delos Technologies</Company>
     <Copyright>Copyright © Delos Technologies</Copyright>
     <Product>MediaSort</Product>
