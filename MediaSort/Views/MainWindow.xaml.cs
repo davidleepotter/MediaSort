@@ -885,36 +885,45 @@ public partial class MainWindow : Window
         bool recursive = RecursiveCheck.IsChecked == true;
         bool includeHidden = _settings.IncludeHiddenFiles;
 
-        // Create a non-modal progress dialog up-front on the UI thread but keep it
-        // hidden. A DispatcherTimer reveals it 250ms later — small folders that
-        // finish before then never flash a popup. The scan thread updates its
-        // detail text via Dispatcher.BeginInvoke; cleanup happens in `finally`.
-        var scanDialog = new ProgressDialog("Scanning folder…", folder)
+        // Try to set up a progress popup. We tolerate ANY failure (e.g. the main
+        // window isn't shown yet during initial startup, which would make Owner=
+        // this throw) by simply skipping the popup — scan continues normally.
+        ProgressDialog? scanDialog = null;
+        DispatcherTimer? revealTimer = null;
+        try
         {
-            Owner = this,
-            ShowInTaskbar = false,
-            Visibility = Visibility.Hidden,
-        };
-        scanDialog.ReportProgress(0, 0); // indeterminate bar
-        scanDialog.Token.Register(() =>
-        {
-            // Dialog Cancel button → cancel scan.
-            try { _scanCts?.Cancel(); } catch { }
-        });
-        // Show the (hidden) window so we can flip Visibility later without
-        // hitting WPF's "window has been closed" rules. Show then hide.
-        scanDialog.Show();
-        scanDialog.Hide();
+            // Owner is only safe to set if the main window has actually been shown.
+            bool canOwn = this.IsVisible;
+            scanDialog = new ProgressDialog("Scanning folder…", folder)
+            {
+                ShowInTaskbar = false,
+            };
+            if (canOwn) scanDialog.Owner = this;
+            scanDialog.ReportProgress(0, 0); // indeterminate bar
+            var dlgRef = scanDialog;
+            scanDialog.Token.Register(() =>
+            {
+                try { _scanCts?.Cancel(); } catch { }
+            });
 
-        var revealTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-        revealTimer.Tick += (_, _) =>
+            // DispatcherTimer reveals the dialog after 250ms so quick scans don't
+            // flash a popup. Cleanup is unconditional in the outer `finally`.
+            revealTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+            revealTimer.Tick += (_, _) =>
+            {
+                revealTimer!.Stop();
+                if (scanToken.IsCancellationRequested) return;
+                try { dlgRef.Show(); }
+                catch (Exception ex) { CrashLogger.Log(ex, "scan-popup-show"); }
+            };
+            revealTimer.Start();
+        }
+        catch (Exception ex)
         {
-            revealTimer.Stop();
-            if (scanToken.IsCancellationRequested) return;
-            try { scanDialog.Show(); }
-            catch (Exception ex) { CrashLogger.Log(ex, "scan-popup-show"); }
-        };
-        revealTimer.Start();
+            CrashLogger.Log(ex, "scan-popup-init");
+            scanDialog = null;
+            revealTimer = null;
+        }
 
         // Heavy folder enumeration on a background thread — huge folders can take seconds
         // and would otherwise freeze the UI right after launch. Now cancellation-aware (#23),
@@ -935,10 +944,15 @@ public partial class MainWindow : Window
                     {
                         nextTick = Environment.TickCount + 100;
                         var imgN = images; var vidN = videos;
-                        Dispatcher.BeginInvoke(new Action(() =>
+                        var dlgCap = scanDialog;
+                        if (dlgCap != null)
                         {
-                            scanDialog.SetDetail($"Found {imgN:N0} image(s), {vidN:N0} video(s)…");
-                        }));
+                            Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                try { dlgCap.SetDetail($"Found {imgN:N0} image(s), {vidN:N0} video(s)…"); }
+                                catch { /* dialog closed */ }
+                            }));
+                        }
                     }
                 }
                 return list;
@@ -958,8 +972,8 @@ public partial class MainWindow : Window
         }
         finally
         {
-            revealTimer.Stop();
-            try { scanDialog.Close(); } catch { }
+            try { revealTimer?.Stop(); } catch { }
+            try { scanDialog?.Close(); } catch { }
         }
 
         // If we were cancelled while the result list was being materialized, bail.
