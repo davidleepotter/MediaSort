@@ -9,7 +9,7 @@ public partial class AboutWindow : Window
     {
         InitializeComponent();
         SourceInitialized += (_, _) => WindowChrome.ApplyCurrentTheme(this);
-        VersionText.Text = $"Version {VersionInfo.GetVersion()}";
+        VersionText.Text = $"Version {VersionInfo.GetDisplayVersion()}";
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
