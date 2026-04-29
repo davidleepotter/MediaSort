@@ -1129,15 +1129,19 @@
             </Style>
 
             <!-- ============================================================
-                 3D DestButton: accent-tinted gradient + drop shadow for a
-                 raised, glossy look. Pressed removes shadow + inverts gradient.
+                 Folder-shaped DestButton: a manila-folder silhouette with
+                 a tab on top-left and a body below. Body uses AccentBrush
+                 (so per-destination tinting still works); tab uses a slightly
+                 darker variant. Drop shadow + bevel give a raised look;
+                 pressed flattens the shadow and pushes down 2px.
                  ============================================================ -->
             <Style TargetType="Button" x:Key="DestButton" BasedOn="{StaticResource {x:Type Button}}">
                 <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                 <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                 <!-- Padding + MinHeight are DynamicResources so the Settings 'Destination
-                     button size' preset (Compact/Normal/Large) can swap them at runtime. -->
+                     button size' preset (Compact/Normal/Large) can swap them at runtime.
+                     Top padding gets an extra ~10px bump in the template to clear the tab. -->
                 <Setter Property="Padding" Value="{DynamicResource DestButtonPadding}"/>
                 <Setter Property="Margin" Value="4"/>
                 <Setter Property="MinHeight" Value="{DynamicResource DestButtonMinHeight}"/>
@@ -1148,11 +1152,65 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
                             <Grid>
-                                <!-- Drop shadow halo (raised effect) -->
-                                <Border x:Name="ShadowHalo"
+                                <!-- Two rows: tab (top, 14px) + body (rest). Tab row is
+                                     left-aligned with a fixed-width inner Border so it looks
+                                     like a folder index tab, not a full banner. -->
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="14"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- ===== TAB (top-left index tab) ===== -->
+                                <!-- Shadow under the tab so it sits above the body lip. -->
+                                <Border x:Name="TabShadow"
+                                        Grid.Row="0"
                                         Background="{TemplateBinding Background}"
-                                        CornerRadius="5"
-                                        Margin="0,1,0,3">
+                                        CornerRadius="5,5,0,0"
+                                        Width="96" HorizontalAlignment="Left"
+                                        Margin="2,1,0,0">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Black"
+                                                          Direction="270"
+                                                          ShadowDepth="1"
+                                                          BlurRadius="3"
+                                                          Opacity="0.35"/>
+                                    </Border.Effect>
+                                </Border>
+                                <!-- Tab fill: darker variant of the accent for visual
+                                     hierarchy (uses a black overlay so it works for any
+                                     AccentBrush color). -->
+                                <Border x:Name="Tab"
+                                        Grid.Row="0"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="1,1,1,0"
+                                        CornerRadius="5,5,0,0"
+                                        Width="96" HorizontalAlignment="Left"
+                                        Margin="2,1,0,0"
+                                        SnapsToDevicePixels="True">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#33000000" Offset="0"/>
+                                            <GradientStop Color="#55000000" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <!-- Tab top-edge highlight bevel -->
+                                <Border x:Name="TabHighlight"
+                                        Grid.Row="0"
+                                        BorderThickness="1,1,0,0"
+                                        BorderBrush="#55FFFFFF"
+                                        CornerRadius="5,5,0,0"
+                                        Width="94" HorizontalAlignment="Left"
+                                        Margin="3,2,0,0"
+                                        IsHitTestVisible="False"/>
+
+                                <!-- ===== BODY (the folder) ===== -->
+                                <!-- Drop shadow halo for the raised look. -->
+                                <Border x:Name="BodyShadow"
+                                        Grid.Row="1"
+                                        Background="{TemplateBinding Background}"
+                                        CornerRadius="3,5,5,5"
+                                        Margin="0,0,0,3">
                                     <Border.Effect>
                                         <DropShadowEffect Color="Black"
                                                           Direction="270"
@@ -1161,12 +1219,13 @@
                                                           Opacity="0.45"/>
                                     </Border.Effect>
                                 </Border>
-                                <!-- Glossy accent gradient -->
-                                <Border x:Name="Outer"
+                                <!-- Body fill with glossy gradient overlay -->
+                                <Border x:Name="Body"
+                                        Grid.Row="1"
                                         BorderBrush="{TemplateBinding BorderBrush}"
                                         BorderThickness="{TemplateBinding BorderThickness}"
-                                        CornerRadius="5"
-                                        Margin="0,1,0,3"
+                                        CornerRadius="3,5,5,5"
+                                        Margin="0,0,0,3"
                                         SnapsToDevicePixels="True">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -1176,42 +1235,35 @@
                                         </LinearGradientBrush>
                                     </Border.Background>
                                 </Border>
-                                <!-- Top-left highlight bevel -->
-                                <Border x:Name="Highlight"
+                                <!-- Body top-left highlight bevel -->
+                                <Border x:Name="BodyHighlight"
+                                        Grid.Row="1"
                                         BorderThickness="1,1,0,0"
                                         BorderBrush="#66FFFFFF"
-                                        CornerRadius="5"
-                                        Margin="1,2,1,4"
+                                        CornerRadius="3,5,5,5"
+                                        Margin="1,1,1,4"
                                         IsHitTestVisible="False"/>
-                                <!-- Folder watermark: low-opacity vector folder icon
-                                     sitting in the bottom-right corner of each dest
-                                     button. Pure vector so it stays crisp at any DPI
-                                     and tints automatically against any AccentBrush. -->
-                                <Viewbox x:Name="FolderWatermark"
-                                         Width="40" Height="40"
-                                         HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                         Margin="0,0,8,6"
-                                         IsHitTestVisible="False"
-                                         Opacity="0.18">
-                                    <Canvas Width="24" Height="24">
-                                        <!-- Back tab -->
-                                        <Path Data="M 2,5 L 9,5 L 11,7 L 22,7 L 22,9 L 2,9 Z"
-                                              Fill="White"/>
-                                        <!-- Body -->
-                                        <Path Data="M 2,8 L 22,8 L 21,20 L 3,20 Z"
-                                              Fill="White"/>
-                                        <!-- Top edge highlight -->
-                                        <Path Data="M 2,8 L 22,8" Stroke="White" StrokeThickness="0.6" Opacity="0.6"/>
-                                    </Canvas>
-                                </Viewbox>
-                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                <!-- Folder lip line: thin horizontal hairline ~5px below
+                                     the top of the body, suggesting the folder's front edge. -->
+                                <Border x:Name="BodyLip"
+                                        Grid.Row="1"
+                                        Height="1"
+                                        Background="#33000000"
+                                        VerticalAlignment="Top"
+                                        Margin="6,5,6,0"
+                                        IsHitTestVisible="False"/>
+
+                                <!-- Content sits in the body row, with extra top padding
+                                     so it clears the lip line. -->
+                                <ContentPresenter Grid.Row="1"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                                   VerticalAlignment="Center"
                                                   Margin="{TemplateBinding Padding}"
                                                   RecognizesAccessKey="True"/>
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Outer" Property="Background">
+                                    <Setter TargetName="Body" Property="Background">
                                         <Setter.Value>
                                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                                 <GradientStop Color="#80FFFFFF" Offset="0"/>
@@ -1220,16 +1272,28 @@
                                             </LinearGradientBrush>
                                         </Setter.Value>
                                     </Setter>
-                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#99FFFFFF"/>
-                                    <Setter TargetName="FolderWatermark" Property="Opacity" Value="0.30"/>
+                                    <Setter TargetName="Tab" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#22000000" Offset="0"/>
+                                                <GradientStop Color="#44000000" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter TargetName="BodyHighlight" Property="BorderBrush" Value="#99FFFFFF"/>
+                                    <Setter TargetName="TabHighlight" Property="BorderBrush" Value="#88FFFFFF"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <!-- Remove drop shadow + push down 2px -->
-                                    <Setter TargetName="ShadowHalo" Property="Effect" Value="{x:Null}"/>
-                                    <Setter TargetName="ShadowHalo" Property="Margin" Value="0,3,0,1"/>
-                                    <Setter TargetName="Outer" Property="Margin" Value="0,3,0,1"/>
-                                    <Setter TargetName="Highlight" Property="Margin" Value="1,4,1,2"/>
-                                    <Setter TargetName="Outer" Property="Background">
+                                    <Setter TargetName="BodyShadow" Property="Effect" Value="{x:Null}"/>
+                                    <Setter TargetName="BodyShadow" Property="Margin" Value="0,2,0,1"/>
+                                    <Setter TargetName="Body" Property="Margin" Value="0,2,0,1"/>
+                                    <Setter TargetName="BodyHighlight" Property="Margin" Value="1,3,1,2"/>
+                                    <Setter TargetName="TabShadow" Property="Effect" Value="{x:Null}"/>
+                                    <Setter TargetName="TabShadow" Property="Margin" Value="2,3,0,0"/>
+                                    <Setter TargetName="Tab" Property="Margin" Value="2,3,0,0"/>
+                                    <Setter TargetName="TabHighlight" Property="Margin" Value="3,4,0,0"/>
+                                    <Setter TargetName="Body" Property="Background">
                                         <Setter.Value>
                                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                                 <GradientStop Color="#44000000" Offset="0"/>
@@ -1238,8 +1302,8 @@
                                             </LinearGradientBrush>
                                         </Setter.Value>
                                     </Setter>
-                                    <Setter TargetName="Highlight" Property="BorderThickness" Value="0,0,1,1"/>
-                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#55FFFFFF"/>
+                                    <Setter TargetName="BodyHighlight" Property="BorderThickness" Value="0,0,1,1"/>
+                                    <Setter TargetName="BodyHighlight" Property="BorderBrush" Value="#55FFFFFF"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.5"/>
