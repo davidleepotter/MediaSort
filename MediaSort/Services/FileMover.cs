@@ -238,6 +238,11 @@ public static class FileMover
         }
     }
 
+    /// <summary>Internal-but-accessible wrapper for cross-class reuse.</summary>
+    internal static string MakeUniquePathPublic(string fullPath) => MakeUniquePath(fullPath);
+    /// <summary>Internal-but-accessible wrapper for cross-class reuse.</summary>
+    internal static string ApplyRenameTemplatePublic(string sourceFile, string? template) => ApplyRenameTemplate(sourceFile, template);
+
     private static string MakeUniquePath(string fullPath)
     {
         var dir = Path.GetDirectoryName(fullPath) ?? "";
