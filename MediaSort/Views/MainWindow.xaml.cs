@@ -1429,6 +1429,90 @@ public partial class MainWindow : Window
         }
     }
 
+    // ===================== (#10) DRAG-HANDLE REORDER =====================
+    // Click-and-hold reorder per the user's standing rule (NO native drag-and-drop).
+    // The handle captures the mouse on press; while held, MouseMove hit-tests the
+    // destinations panel and swaps the held row with whichever row's vertical midpoint
+    // the cursor crosses. Release ends the gesture and persists the new order.
+
+    private DestinationButton? _dragHandleItem;
+    private System.Windows.UIElement? _dragHandleSource;
+    private bool _dragHandleReordering;
+
+    private void DragHandle_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement fe || fe.Tag is not DestinationButton dest) return;
+        _dragHandleItem = dest;
+        _dragHandleSource = fe;
+        _dragHandleReordering = true;
+        try { fe.CaptureMouse(); } catch { }
+        fe.MouseMove += DragHandle_MouseMove;
+        fe.PreviewMouseLeftButtonUp += DragHandle_PreviewMouseLeftButtonUp;
+        fe.LostMouseCapture += DragHandle_LostMouseCapture;
+        e.Handled = true;
+    }
+
+    private void DragHandle_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_dragHandleReordering || _dragHandleItem == null) return;
+        if (DestinationsPanel == null) return;
+
+        // Convert cursor to DestinationsPanel coordinate space.
+        var pos = e.GetPosition(DestinationsPanel);
+
+        // Walk every materialized row container and find the one whose vertical midpoint
+        // the cursor has crossed. This works whether the panel virtualizes or not because
+        // we only care about currently-visible containers.
+        for (int i = 0; i < Destinations.Count; i++)
+        {
+            if (DestinationsPanel.ItemContainerGenerator.ContainerFromIndex(i)
+                is not FrameworkElement container) continue;
+            try
+            {
+                var topLeft = container.TranslatePoint(new System.Windows.Point(0, 0), DestinationsPanel);
+                var midY = topLeft.Y + (container.ActualHeight / 2.0);
+                if (pos.Y < midY)
+                {
+                    int currentIdx = Destinations.IndexOf(_dragHandleItem);
+                    if (currentIdx >= 0 && currentIdx != i)
+                    {
+                        Destinations.Move(currentIdx, i);
+                    }
+                    return;
+                }
+            }
+            catch { /* container may not be laid out yet */ }
+        }
+
+        // Past the last midpoint — drop at the bottom.
+        int lastIdx = Destinations.Count - 1;
+        int curIdx = Destinations.IndexOf(_dragHandleItem);
+        if (curIdx >= 0 && curIdx != lastIdx)
+            Destinations.Move(curIdx, lastIdx);
+    }
+
+    private void DragHandle_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        => EndDragHandleReorder();
+
+    private void DragHandle_LostMouseCapture(object sender, MouseEventArgs e)
+        => EndDragHandleReorder();
+
+    private void EndDragHandleReorder()
+    {
+        if (!_dragHandleReordering) return;
+        _dragHandleReordering = false;
+        if (_dragHandleSource is FrameworkElement fe)
+        {
+            fe.MouseMove -= DragHandle_MouseMove;
+            fe.PreviewMouseLeftButtonUp -= DragHandle_PreviewMouseLeftButtonUp;
+            fe.LostMouseCapture -= DragHandle_LostMouseCapture;
+            try { fe.ReleaseMouseCapture(); } catch { }
+        }
+        _dragHandleSource = null;
+        _dragHandleItem = null;
+        SaveSettings();
+    }
+
     private void OpenDestFolder_Click(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement fe && fe.Tag is DestinationButton dest)
