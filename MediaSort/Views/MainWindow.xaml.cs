@@ -1747,9 +1747,10 @@ public partial class MainWindow : Window
         {
             var folder = System.IO.Path.GetDirectoryName(filePath);
             if (string.IsNullOrEmpty(folder)) return null;
-            var dest = _settings.Destinations.FirstOrDefault(d =>
+            var dest = Destinations.FirstOrDefault(d =>
+                !string.IsNullOrEmpty(d.FolderPath) &&
                 string.Equals(
-                    System.IO.Path.GetFullPath(d.FolderPath ?? "").TrimEnd('\\', '/'),
+                    System.IO.Path.GetFullPath(d.FolderPath).TrimEnd('\\', '/'),
                     System.IO.Path.GetFullPath(folder).TrimEnd('\\', '/'),
                     StringComparison.OrdinalIgnoreCase));
             return dest != null ? FindDestinationElement(dest) : null;
