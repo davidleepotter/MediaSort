@@ -15,6 +15,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" x:Name="HeadingText"
@@ -28,7 +29,13 @@
                    Margin="0,0,0,16"
                    MaxWidth="480"/>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+        <CheckBox Grid.Row="2" x:Name="DontAskAgainCheck"
+                  Visibility="Collapsed"
+                  Content="Don't ask again"
+                  Foreground="{DynamicResource PanelForeground}"
+                  Margin="0,0,0,12"/>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button x:Name="CancelButton" Content="Cancel" MinWidth="90" Padding="14,4" Margin="4,0"
                     IsCancel="True" Click="Cancel_Click"/>
             <Button x:Name="OkButton" Content="OK" MinWidth="90" Padding="14,4" Margin="4,0"

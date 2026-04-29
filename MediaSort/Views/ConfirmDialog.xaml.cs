@@ -43,4 +43,19 @@ public partial class ConfirmDialog : Window
         var dlg = new ConfirmDialog(heading, message, okText, cancelText) { Owner = owner };
         return dlg.ShowDialog() == true;
     }
+
+    /// <summary>
+    /// Variant with a "Don't ask again" checkbox. Returns (ok, dontAskAgain).
+    /// dontAskAgain is only meaningful when ok==true.
+    /// </summary>
+    public static (bool ok, bool dontAskAgain) ShowWithSuppress(
+        Window owner, string heading, string message,
+        string okText = "OK", string cancelText = "Cancel")
+    {
+        var dlg = new ConfirmDialog(heading, message, okText, cancelText) { Owner = owner };
+        dlg.DontAskAgainCheck.Visibility = Visibility.Visible;
+        bool ok = dlg.ShowDialog() == true;
+        bool dontAsk = dlg.DontAskAgainCheck.IsChecked == true;
+        return (ok, dontAsk);
+    }
 }

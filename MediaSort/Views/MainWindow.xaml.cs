@@ -2545,6 +2545,31 @@ public partial class MainWindow : Window
             var items = GetSelectedItems();
             if (items.Count == 0) { StatusText.Text = "No item selected."; return; }
             _lastDestination = dest; // (#8) remember for `.` repeat
+
+            // Confirm on left-click only — hotkey moves and "." repeat skip this.
+            if (_settings.ConfirmDestinationClick)
+            {
+                var effective = dest.ActionOverride ?? _settings.Action;
+                string verb = effective switch
+                {
+                    FileAction.Copy => "Copy",
+                    FileAction.Delete => "Delete",
+                    _ => "Move",
+                };
+                string heading = $"{verb} to '{dest.Name}'?";
+                string body = items.Count == 1
+                    ? $"{verb} \"{items[0].FileName}\" to {dest.FolderPath}."
+                    : $"{verb} {items.Count} item(s) to {dest.FolderPath}.";
+                var (ok, dontAskAgain) = Views.ConfirmDialog.ShowWithSuppress(
+                    this, heading, body, okText: verb, cancelText: "Cancel");
+                if (!ok) { StatusText.Text = "Cancelled."; return; }
+                if (dontAskAgain)
+                {
+                    _settings.ConfirmDestinationClick = false;
+                    SaveSettings();
+                }
+            }
+
             DispatchAction(items, dest, fe);
         }
     }

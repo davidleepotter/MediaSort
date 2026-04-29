@@ -23,6 +23,8 @@ public class MediaItem : INotifyPropertyChanged
     private bool _isDuplicate;
     private bool _isSelected;
     private bool _isFavorite;
+    private int _rating; // 0..5
+    private System.Collections.Generic.List<string> _tags = new();
     private string _fullPath = "";
     private string _fileName = "";
     private string _extension = "";
@@ -200,6 +202,52 @@ public class MediaItem : INotifyPropertyChanged
 
     /// <summary>Star glyph for binding (★ when favorited, empty otherwise).</summary>
     public string StarGlyph => IsFavorite ? "★" : "";
+
+    /// <summary>
+    /// 0..5 star rating, persisted in TagStore (per full path). 0 means unrated.
+    /// Use SetRating from MainWindow so the store gets saved; this setter is
+    /// only for hydration from disk and does NOT persist.
+    /// </summary>
+    public int Rating
+    {
+        get => _rating;
+        set
+        {
+            int clamped = System.Math.Max(0, System.Math.Min(5, value));
+            if (_rating == clamped) return;
+            _rating = clamped;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(RatingGlyph));
+        }
+    }
+
+    /// <summary>Five-position star glyph for binding, e.g. "★★★☆☆".</summary>
+    public string RatingGlyph => Rating == 0
+        ? ""
+        : new string('★', Rating) + new string('☆', 5 - Rating);
+
+    /// <summary>
+    /// User tags, persisted in TagStore (per full path). Caller must clone
+    /// before mutating if they don't want to affect the live binding.
+    /// </summary>
+    public System.Collections.Generic.List<string> Tags
+    {
+        get => _tags;
+        set
+        {
+            _tags = value ?? new System.Collections.Generic.List<string>();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(TagsDisplay));
+            OnPropertyChanged(nameof(HasTags));
+        }
+    }
+
+    /// <summary>Comma-joined tag list for binding into list rows.</summary>
+    public string TagsDisplay => Tags == null || Tags.Count == 0
+        ? ""
+        : string.Join(", ", Tags);
+
+    public bool HasTags => Tags != null && Tags.Count > 0;
 
     public MediaItem(string fullPath)
     {

@@ -103,6 +103,11 @@ public class AppSettings
     public ConflictPolicySetting ConflictPolicy { get; set; } = ConflictPolicySetting.Prompt;
     public bool AutoAdvanceAfterMove { get; set; } = true;
 
+    /// <summary>When true, left-clicking a destination button asks for confirmation
+    /// before running its action. Bound-key moves and "." repeat are NOT affected.
+    /// User can opt out via the dialog's "Don't ask again" checkbox.</summary>
+    public bool ConfirmDestinationClick { get; set; } = true;
+
     /// <summary>What action to perform when sending selected items to a destination.</summary>
     public FileAction Action { get; set; } = FileAction.Move;
 
