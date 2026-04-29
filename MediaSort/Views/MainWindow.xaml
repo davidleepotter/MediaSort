@@ -177,6 +177,29 @@
                         <ComboBoxItem Content="Square"/>
                     </ComboBox>
 
+                    <TextBlock Text="Min ★:" VerticalAlignment="Center" Margin="14,0,4,0"
+                               Foreground="{DynamicResource PanelForeground}"/>
+                    <ComboBox x:Name="MinRatingCombo" Width="70" VerticalAlignment="Center"
+                              SelectionChanged="MinRatingCombo_SelectionChanged"
+                              ToolTip="Show only items rated at least this many stars">
+                        <ComboBoxItem Content="Any" IsSelected="True"/>
+                        <ComboBoxItem Content="≥1"/>
+                        <ComboBoxItem Content="≥2"/>
+                        <ComboBoxItem Content="≥3"/>
+                        <ComboBoxItem Content="≥4"/>
+                        <ComboBoxItem Content="5"/>
+                    </ComboBox>
+
+                    <TextBlock Text="Tag:" VerticalAlignment="Center" Margin="14,0,4,0"
+                               Foreground="{DynamicResource PanelForeground}"/>
+                    <TextBox x:Name="TagFilterBox" Width="120" VerticalAlignment="Center"
+                             Background="{DynamicResource InputBackground}"
+                             Foreground="{DynamicResource PanelForeground}"
+                             BorderBrush="{DynamicResource BorderBrushColor}"
+                             Padding="4,2"
+                             TextChanged="TagFilterBox_TextChanged"
+                             ToolTip="Show only items containing this tag (substring, case-insensitive)"/>
+
                     <TextBlock Text="Action:" VerticalAlignment="Center" Margin="14,0,4,0"
                                Foreground="{DynamicResource PanelForeground}"/>
                     <ComboBox x:Name="ActionCombo" Width="100" VerticalAlignment="Center"
@@ -205,6 +228,9 @@
                             Click="Rename_Click" ToolTip="Rename selected file (F2). Multi-select opens batch rename."/>
                     <Button Content="🗑 Trash" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="Trash_Click" ToolTip="Send selected to Recycle Bin (Del)"/>
+                    <Button Content="Tags…" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            Click="Tags_Click"
+                            ToolTip="Edit ratings and tags for the selected items (Ctrl+T)"/>
                 </StackPanel>
             </StackPanel>
         </Border>

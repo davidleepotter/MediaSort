@@ -60,6 +60,8 @@ public partial class MainWindow : Window
     private DispatcherTimer? _previewDebounceTimer;
     private MediaItem? _pendingPreviewItem;
     private readonly MoveHistoryService _history = new();
+    private readonly TagStore _tags = new();
+    public TagStore TagStoreRef => _tags; // BatchTagDialog handle
     // (#11) Session-scoped statistics for the status-bar widget.
     private readonly SessionStats _sessionStats = new();
     private CancellationTokenSource? _probeCts;
@@ -390,6 +392,7 @@ public partial class MainWindow : Window
         try { _mediaPlayer?.Dispose(); } catch { }
         try { _libVlc?.Dispose(); } catch { }
 
+        try { _tags.SaveIfDirty(); } catch { }
         SaveSettings();
     }
 
@@ -723,6 +726,21 @@ public partial class MainWindow : Window
                 case AspectGroup.Portrait when m.AspectBucket != "Portrait": return false;
                 case AspectGroup.Landscape when m.AspectBucket != "Landscape": return false;
                 case AspectGroup.Square when m.AspectBucket != "Square": return false;
+            }
+            // (#14) Min ★ filter: 0=Any, otherwise require Rating >= threshold
+            if (_minRatingFilter > 0 && m.Rating < _minRatingFilter) return false;
+            // (#14) Tag substring filter (case-insensitive). Item must have at least
+            // one tag containing the filter text.
+            if (!string.IsNullOrEmpty(_tagFilter))
+            {
+                if (m.Tags == null || m.Tags.Count == 0) return false;
+                bool hit = false;
+                for (int i = 0; i < m.Tags.Count; i++)
+                {
+                    if (m.Tags[i] != null && m.Tags[i].IndexOf(_tagFilter, StringComparison.OrdinalIgnoreCase) >= 0)
+                    { hit = true; break; }
+                }
+                if (!hit) return false;
             }
             return true;
         }).ToList();
@@ -1113,6 +1131,9 @@ public partial class MainWindow : Window
                 if (favSet.Contains(it.FullPath)) it.IsFavorite = true;
             }
         }
+
+        // UX #14: hydrate persisted ratings + tags onto freshly-scanned items.
+        _tags.HydrateAll(items);
 
         _allItems.AddRange(items);
         ApplyFilter(); // also applies sort
@@ -1870,6 +1891,8 @@ public partial class MainWindow : Window
             }
         }
 
+        _tags.HydrateAll(newItems);
+
         _allItems.AddRange(newItems);
         ApplyFilter(); // re-sort + rebuild MediaItems
 
@@ -1893,6 +1916,52 @@ public partial class MainWindow : Window
         win.ShowDialog();
         UndoButton.IsEnabled = _history.CanUndo;
         RefreshDestinationCounts();
+    }
+
+    // ----------------- (#14) BATCH TAG EDITOR + RATING/TAG FILTERS -----------------
+
+    /// <summary>Min ★ filter (0=Any, 1..4=at least N stars, 5=exactly 5).</summary>
+    private int _minRatingFilter = 0;
+    /// <summary>Tag substring filter (case-insensitive). Empty = no filter.</summary>
+    private string _tagFilter = "";
+
+    /// <summary>Toolbar "Tags…" button (Ctrl+T). Opens BatchTagDialog on the current
+    /// selection so the user can set a rating and/or add/remove/replace tags. After the
+    /// dialog closes we re-run ApplyFilter so any active rating/tag filter re-evaluates.</summary>
+    private void Tags_Click(object sender, RoutedEventArgs e)
+    {
+        var items = GetSelectedItems();
+        if (items == null || items.Count == 0)
+        {
+            StatusText.Text = "Select one or more items first to edit tags.";
+            return;
+        }
+        var dlg = new MediaSort.Views.BatchTagDialog(items, _tags) { Owner = this };
+        if (dlg.ShowDialog() == true)
+        {
+            ApplyFilter();
+            UpdateStats();
+        }
+    }
+
+    /// <summary>Min ★ ComboBox: index 0=Any, 1..4=≥N, 5=exactly 5. We treat the index
+    /// as the minimum rating threshold (so index 5 means rating >= 5, which is exactly 5
+    /// since ratings cap at 5).</summary>
+    private void MinRatingCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_initializing) return;
+        _minRatingFilter = MinRatingCombo?.SelectedIndex ?? 0;
+        if (_minRatingFilter < 0) _minRatingFilter = 0;
+        ApplyFilter();
+    }
+
+    /// <summary>Tag filter textbox: case-insensitive substring match against any tag
+    /// on the item. Empty string = no filter.</summary>
+    private void TagFilterBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_initializing) return;
+        _tagFilter = (TagFilterBox?.Text ?? "").Trim();
+        ApplyFilter();
     }
 
     /// <summary>Source-header "Top" button — jump to first item.</summary>
@@ -3125,6 +3194,8 @@ public partial class MainWindow : Window
 
         if (r.Outcome == MoveOutcome.Moved)
         {
+            // Tags and rating travel with the file across moves.
+            _tags.RenamePath(sourcePath, r.FinalPath);
             return new MoveHistoryService.MoveRecord
             {
                 OriginalPath = sourcePath,
@@ -3840,6 +3911,7 @@ public partial class MainWindow : Window
         {
             File.Move(oldPath, newPath);
             item.UpdateAfterRename(newPath);
+            _tags.RenamePath(oldPath, newPath); // tags + rating follow the rename
 
             PreviewTitle.Text = $"Preview — {item.FileName}";
             StatusText.Text = $"Renamed to {item.FileName}";
@@ -3882,6 +3954,7 @@ public partial class MainWindow : Window
                 bool wasFav = item.IsFavorite;
                 File.Move(oldPath, newPath);
                 item.UpdateAfterRename(newPath);
+                _tags.RenamePath(oldPath, newPath);
                 if (wasFav)
                 {
                     _settings.Favorites.RemoveAll(p => string.Equals(p, oldPath, StringComparison.OrdinalIgnoreCase));
@@ -4156,6 +4229,7 @@ public partial class MainWindow : Window
             if (e.Key == Key.F) { SearchBox.Focus(); SearchBox.SelectAll(); e.Handled = true; return; }
             if (e.Key == Key.Z) { Undo_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
             if (e.Key == Key.H) { History_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
+            if (e.Key == Key.T) { Tags_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
             if (e.Key == Key.A)
             {
                 ActiveSelector?.Items?.OfType<object>().ToList(); // ensure containers

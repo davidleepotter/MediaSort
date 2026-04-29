@@ -1,0 +1,125 @@
+<Window x:Class="MediaSort.Views.BatchTagDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Batch tag editor"
+        Icon="pack://application:,,,/Assets/AppIcon.ico"
+        Height="540" Width="640"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource PanelForeground}"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False">
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Edit ratings + tags" FontSize="16" FontWeight="Bold"
+                   Foreground="{DynamicResource PanelForeground}" Margin="0,0,0,4"/>
+        <TextBlock Grid.Row="1" x:Name="HeaderSubtitle"
+                   Foreground="{DynamicResource MutedForeground}"
+                   FontSize="11" Margin="0,0,0,12"/>
+
+        <!-- Rating row -->
+        <DockPanel Grid.Row="2" LastChildFill="True" Margin="0,0,0,12">
+            <TextBlock DockPanel.Dock="Left" Text="Rating:" Width="80" VerticalAlignment="Center"
+                       Foreground="{DynamicResource PanelForeground}"/>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <RadioButton x:Name="RatingLeaveRadio" GroupName="Rating" Content="Leave unchanged"
+                             IsChecked="True" Margin="0,0,12,0"
+                             Foreground="{DynamicResource PanelForeground}"/>
+                <RadioButton x:Name="RatingClearRadio" GroupName="Rating" Content="Clear (no rating)"
+                             Margin="0,0,12,0"
+                             Foreground="{DynamicResource PanelForeground}"/>
+                <RadioButton x:Name="Rating1" GroupName="Rating" Content="★" Margin="0,0,4,0"
+                             Foreground="{DynamicResource PanelForeground}"/>
+                <RadioButton x:Name="Rating2" GroupName="Rating" Content="★★" Margin="0,0,4,0"
+                             Foreground="{DynamicResource PanelForeground}"/>
+                <RadioButton x:Name="Rating3" GroupName="Rating" Content="★★★" Margin="0,0,4,0"
+                             Foreground="{DynamicResource PanelForeground}"/>
+                <RadioButton x:Name="Rating4" GroupName="Rating" Content="★★★★" Margin="0,0,4,0"
+                             Foreground="{DynamicResource PanelForeground}"/>
+                <RadioButton x:Name="Rating5" GroupName="Rating" Content="★★★★★" Margin="0,0,4,0"
+                             Foreground="{DynamicResource PanelForeground}"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Tag mode row -->
+        <DockPanel Grid.Row="3" LastChildFill="True" Margin="0,0,0,8">
+            <TextBlock DockPanel.Dock="Left" Text="Tag mode:" Width="80" VerticalAlignment="Center"
+                       Foreground="{DynamicResource PanelForeground}"/>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <RadioButton x:Name="TagAddRadio" GroupName="TagMode" Content="Add (union)"
+                             IsChecked="True" Margin="0,0,12,0"
+                             ToolTip="Add the tags below to each item without removing existing tags."
+                             Foreground="{DynamicResource PanelForeground}"/>
+                <RadioButton x:Name="TagRemoveRadio" GroupName="TagMode" Content="Remove"
+                             Margin="0,0,12,0"
+                             ToolTip="Strip the tags below from each item."
+                             Foreground="{DynamicResource PanelForeground}"/>
+                <RadioButton x:Name="TagReplaceRadio" GroupName="TagMode" Content="Replace all"
+                             Margin="0,0,12,0"
+                             ToolTip="Overwrite each item's tag list with exactly the tags below."
+                             Foreground="{DynamicResource PanelForeground}"/>
+                <RadioButton x:Name="TagLeaveRadio" GroupName="TagMode" Content="Leave unchanged"
+                             Foreground="{DynamicResource PanelForeground}"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Tag input row -->
+        <DockPanel Grid.Row="4" LastChildFill="True" Margin="0,0,0,8">
+            <TextBlock DockPanel.Dock="Left" Text="Tags:" Width="80" VerticalAlignment="Center"
+                       Foreground="{DynamicResource PanelForeground}"/>
+            <TextBox x:Name="TagsInput"
+                     Background="{DynamicResource InputBackground}"
+                     Foreground="{DynamicResource PanelForeground}"
+                     BorderBrush="{DynamicResource BorderBrushColor}"
+                     Padding="6,4"
+                     ToolTip="Comma- or space-separated tags. Examples: portrait, hero, keep"/>
+        </DockPanel>
+
+        <!-- Existing tags list -->
+        <Border Grid.Row="5"
+                BorderBrush="{DynamicResource BorderBrushColor}" BorderThickness="1"
+                Background="{DynamicResource PanelBackground}" Margin="0,8,0,0">
+            <DockPanel LastChildFill="True">
+                <TextBlock DockPanel.Dock="Top" Text="Existing tags across selection (click to add)"
+                           Foreground="{DynamicResource MutedForeground}" FontSize="11"
+                           Margin="6,4,6,4"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="ExistingTagsList" Margin="6">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding}" Style="{StaticResource ToolButton}"
+                                        Margin="0,0,6,6" Padding="10,2"
+                                        Click="ExistingTag_Click"
+                                        ToolTip="Click to append this tag to the input above"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- Buttons -->
+        <DockPanel Grid.Row="6" Margin="0,12,0,0" LastChildFill="False">
+            <Button DockPanel.Dock="Right" Content="Cancel" IsCancel="True"
+                    MinWidth="90" Padding="14,4" Margin="6,0,0,0"
+                    Click="Cancel_Click"/>
+            <Button DockPanel.Dock="Right" Content="Apply" IsDefault="True"
+                    MinWidth="90" Padding="14,4"
+                    Click="Apply_Click"/>
+        </DockPanel>
+    </Grid>
+</Window>
