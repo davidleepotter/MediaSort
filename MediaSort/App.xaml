@@ -854,9 +854,11 @@
                 <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                 <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                <Setter Property="Padding" Value="8,6"/>
+                <!-- Padding + MinHeight are DynamicResources so the Settings 'Destination
+                     button size' preset (Compact/Normal/Large) can swap them at runtime. -->
+                <Setter Property="Padding" Value="{DynamicResource DestButtonPadding}"/>
                 <Setter Property="Margin" Value="4"/>
-                <Setter Property="MinHeight" Value="42"/>
+                <Setter Property="MinHeight" Value="{DynamicResource DestButtonMinHeight}"/>
                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="SnapsToDevicePixels" Value="True"/>

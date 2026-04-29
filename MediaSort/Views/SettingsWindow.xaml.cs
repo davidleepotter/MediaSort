@@ -87,6 +87,10 @@ public partial class SettingsWindow : Window
         DestKeySizeBox.Text   = FormatSize(_settings.DestKeyFontSize,   10);
         DestPathSizeBox.Text  = FormatSize(_settings.DestPathFontSize,  10);
         DestBadgeSizeBox.Text = FormatSize(_settings.DestBadgeFontSize, 10);
+
+        // Destination button overall size preset (Compact / Normal / Large).
+        // Items are 0=Compact, 1=Normal, 2=Large — matches DestButtonSizeMode order.
+        DestButtonSizeCombo.SelectedIndex = (int)_settings.DestButtonSize;
     }
 
     private static string DisplayFontName(string? stored)
@@ -204,6 +208,11 @@ public partial class SettingsWindow : Window
         _settings.DestKeyFontSize   = ParseSize(DestKeySizeBox.Text,   10);
         _settings.DestPathFontSize  = ParseSize(DestPathSizeBox.Text,  10);
         _settings.DestBadgeFontSize = ParseSize(DestBadgeSizeBox.Text, 10);
+
+        // Destination button size preset.
+        var sizeIdx = DestButtonSizeCombo.SelectedIndex;
+        if (sizeIdx < 0 || sizeIdx > 2) sizeIdx = (int)DestButtonSizeMode.Normal;
+        _settings.DestButtonSize = (DestButtonSizeMode)sizeIdx;
 
         DialogResult = true;
         Close();

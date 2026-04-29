@@ -158,6 +158,17 @@ public class AppSettings
     public string DestBadgeFontFamily { get; set; } = "";
     /// <summary>Font size in pixels for the destination's file-count badge line.</summary>
     public double DestBadgeFontSize { get; set; } = 10;
+
+    /// <summary>Overall size of destination buttons (Compact / Normal / Large).
+    /// Drives MinHeight and inner Padding via DynamicResources.</summary>
+    public DestButtonSizeMode DestButtonSize { get; set; } = DestButtonSizeMode.Normal;
+}
+
+public enum DestButtonSizeMode
+{
+    Compact,
+    Normal,
+    Large
 }
 
 public enum ConflictPolicySetting

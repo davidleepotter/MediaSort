@@ -227,6 +227,22 @@
                               ToolTip="Font size in pixels (6–48)."/>
                 </Grid>
 
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Button size" VerticalAlignment="Center"
+                               Foreground="{DynamicResource PanelForeground}"
+                               ToolTip="Overall size of each destination button. Compact saves vertical space; Large makes them easier to hit."/>
+                    <ComboBox Grid.Column="1" x:Name="DestButtonSizeCombo" Margin="6,2"
+                              ToolTip="Compact, Normal, or Large.">
+                        <ComboBoxItem Content="Compact"/>
+                        <ComboBoxItem Content="Normal"/>
+                        <ComboBoxItem Content="Large"/>
+                    </ComboBox>
+                </Grid>
+
                 <TextBlock Text="Destinations" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"
                            Foreground="{DynamicResource PanelForeground}"/>
                 <TextBlock Text="Use the + Add and ✎ Edit buttons in the main window. Listed here for reference."
