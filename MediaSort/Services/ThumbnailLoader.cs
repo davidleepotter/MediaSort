@@ -74,8 +74,10 @@ public static class ThumbnailLoader
 
     /// <summary>
     /// Read the bytes of a file on a background thread (cheap), so the caller can
-    /// then build the BitmapImage on the UI thread. This avoids cross-thread
-    /// freeze/dispatcher quirks that have been observed producing blank thumbnails.
+    /// then build the BitmapImage on the UI thread. Kept for legacy callers — the
+    /// scan probe path no longer goes through this. Most images on network shares
+    /// are large (5–50 MB) and reading them all into byte arrays caused a 60+ GB
+    /// working set on a 1938-image share scan.
     /// </summary>
     public static byte[]? TryReadAllBytes(string path)
     {
@@ -84,29 +86,48 @@ public static class ThumbnailLoader
     }
 
     /// <summary>
-    /// Build a thumbnail BitmapSource from in-memory bytes. Safe to call from a
-    /// background thread — we Freeze the result. Returns BitmapSource (not BitmapImage)
-    /// because BitmapFrame freezes cross-thread cleanly while BitmapImage often does not.
+    /// Decode an image thumbnail directly from disk via FileStream, decoding to the
+    /// requested width (BitmapImage.DecodePixelWidth). This avoids ever materializing
+    /// the full file bytes, which was causing tens of GB of RAM use on large
+    /// network-share scans.
     /// </summary>
-    public static BitmapSource? BitmapFromBytes(byte[] bytes, int decodePixelWidth)
+    public static BitmapSource? LoadImageThumbnailFromFile(string path, int decodePixelWidth)
     {
-        // Strategy 1: BitmapDecoder → BitmapFrame → optional scale via TransformedBitmap.
-        // BitmapFrame is the most permissive cross-thread image source in WPF.
+        // Strategy A: BitmapImage.UriSource with DecodePixelWidth set BEFORE EndInit.
+        // This is the WPF-blessed cheap thumbnail path — WIC reads only the bytes it
+        // needs to produce the requested decode width, then closes the file.
         try
         {
-            var ms = new MemoryStream(bytes);
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad; // load and close stream
+            bmp.CreateOptions = BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.IgnoreColorProfile;
+            if (decodePixelWidth > 0) bmp.DecodePixelWidth = decodePixelWidth;
+            bmp.UriSource = new Uri(path, UriKind.Absolute);
+            bmp.EndInit();
+            bmp.Freeze();
+            if (bmp.PixelWidth > 0) return bmp;
+        }
+        catch (Exception ex)
+        {
+            // Some PNGs (AI-generated, weird iCCP chunks) blow up the WIC path.
+            // Fall through to strategy B.
+            CrashLogger.Info($"thumb-fileA-fail {ex.GetType().Name}: {ex.Message}");
+        }
+
+        // Strategy B: BitmapDecoder over a streaming FileStream. Same cross-thread
+        // friendliness as the old in-memory path but without the giant byte buffer.
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
+                bufferSize: 64 * 1024, useAsync: false);
             var decoder = BitmapDecoder.Create(
-                ms,
+                fs,
                 BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.PreservePixelFormat,
                 BitmapCacheOption.OnLoad);
-            if (decoder.Frames.Count == 0)
-            {
-                CrashLogger.Info($"thumb-strategy1: no frames");
-                return null;
-            }
+            if (decoder.Frames.Count == 0) return null;
             var frame = decoder.Frames[0];
             BitmapSource result = frame;
-
             if (decodePixelWidth > 0 && frame.PixelWidth > decodePixelWidth)
             {
                 var scale = (double)decodePixelWidth / frame.PixelWidth;
@@ -114,53 +135,27 @@ public static class ThumbnailLoader
                 tb.Freeze();
                 result = tb;
             }
-            else
+            else if (result.CanFreeze)
             {
-                if (result.CanFreeze) result.Freeze();
+                result.Freeze();
             }
-
             if (result.PixelWidth > 0) return result;
-            CrashLogger.Info($"thumb-strategy1: zero dims after decode");
         }
         catch (Exception ex)
         {
-            CrashLogger.Info($"thumb-strategy1-fail {ex.GetType().Name}: {ex.Message}");
+            CrashLogger.Info($"thumb-fileB-fail {ex.GetType().Name}: {ex.Message}");
         }
 
-        // Strategy 2: BitmapImage with full options. May fail on PNGs with weird
-        // color profile chunks; we skip DecodePixelWidth to avoid the black-image bug.
+        // Strategy C: GDI+ fallback for AI-generated PNGs whose unusual chunks
+        // crash WIC. We DO need to read the whole file here, but only as a last
+        // resort — most files succeed via A or B.
         try
         {
-            var ms = new MemoryStream(bytes);
-            var bmp = new BitmapImage();
-            bmp.BeginInit();
-            bmp.CacheOption = BitmapCacheOption.OnLoad;
-            bmp.CreateOptions = BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.IgnoreColorProfile;
-            bmp.StreamSource = ms;
-            bmp.EndInit();
-            bmp.Freeze();
-            if (bmp.PixelWidth > 0) return bmp;
-        }
-        catch (Exception ex)
-        {
-            CrashLogger.Info($"thumb-strategy2-fail {ex.GetType().Name}: {ex.Message}");
-        }
-
-        // Strategy 3: GDI+ (System.Drawing) decode → re-encode as plain PNG via WIC.
-        // GDI+ uses a completely different codec stack from WPF/WIC and handles many
-        // AI-generated PNGs (e.g. VeniceAI, Midjourney) whose unusual iCCP / iTXt /
-        // pHYs chunks cause WIC to throw NotSupportedException → ArgumentNullException(key).
-        try
-        {
-            using var inMs = new MemoryStream(bytes);
-            using var gdiImg = SDImage.FromStream(inMs, useEmbeddedColorManagement: false, validateImageData: false);
+            using var inFs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var gdiImg = SDImage.FromStream(inFs, useEmbeddedColorManagement: false, validateImageData: false);
             int srcW = gdiImg.Width;
             int srcH = gdiImg.Height;
-            if (srcW <= 0 || srcH <= 0)
-            {
-                CrashLogger.Info("thumb-strategy3: zero dims from gdi");
-                return null;
-            }
+            if (srcW <= 0 || srcH <= 0) return null;
 
             int targetW = decodePixelWidth > 0 && srcW > decodePixelWidth ? decodePixelWidth : srcW;
             int targetH = (int)Math.Max(1, Math.Round(srcH * (double)targetW / srcW));
@@ -189,9 +184,42 @@ public static class ThumbnailLoader
         }
         catch (Exception ex)
         {
-            CrashLogger.Info($"thumb-strategy3-fail {ex.GetType().Name}: {ex.Message}");
+            CrashLogger.Info($"thumb-fileC-fail {ex.GetType().Name}: {ex.Message}");
         }
 
+        return null;
+    }
+
+    /// <summary>
+    /// Build a thumbnail BitmapSource from in-memory bytes. Kept for legacy callers.
+    /// Prefer LoadImageThumbnailFromFile which streams from disk.
+    /// </summary>
+    public static BitmapSource? BitmapFromBytes(byte[] bytes, int decodePixelWidth)
+    {
+        try
+        {
+            var ms = new MemoryStream(bytes);
+            var decoder = BitmapDecoder.Create(
+                ms,
+                BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.PreservePixelFormat,
+                BitmapCacheOption.OnLoad);
+            if (decoder.Frames.Count == 0) return null;
+            var frame = decoder.Frames[0];
+            BitmapSource result = frame;
+            if (decodePixelWidth > 0 && frame.PixelWidth > decodePixelWidth)
+            {
+                var scale = (double)decodePixelWidth / frame.PixelWidth;
+                var tb = new TransformedBitmap(frame, new System.Windows.Media.ScaleTransform(scale, scale));
+                tb.Freeze();
+                result = tb;
+            }
+            else if (result.CanFreeze)
+            {
+                result.Freeze();
+            }
+            if (result.PixelWidth > 0) return result;
+        }
+        catch { }
         return null;
     }
 

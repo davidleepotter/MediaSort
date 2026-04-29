@@ -1168,20 +1168,16 @@ public partial class MainWindow : Window
 
         if (thumb == null)
         {
-            // Thumbnail: read bytes + decode on the background thread. BitmapFromBytes
-            // returns a frozen BitmapSource that's safe to hand to the UI thread.
+            // (memory fix) Stream from disk and decode straight to the requested width.
+            // The previous path read the entire file into a byte[] then decoded it,
+            // which on a 1938-image network share caused tens of GB of RAM use because
+            // every 5–50 MB raw byte buffer stayed pinned until decode finished.
             try
             {
-                var bytes = ThumbnailLoader.TryReadAllBytes(item.FullPath);
-                if (bytes == null)
-                {
-                    CrashLogger.Info($"probe:read-null {item.FileName}");
-                    return false;
-                }
-                thumb = ThumbnailLoader.BitmapFromBytes(bytes, ThumbDecodeWidth);
+                thumb = ThumbnailLoader.LoadImageThumbnailFromFile(item.FullPath, ThumbDecodeWidth);
                 if (thumb == null)
                 {
-                    CrashLogger.Info($"probe:decode-null {item.FileName} bytes={bytes.Length}");
+                    CrashLogger.Info($"probe:decode-null {item.FileName}");
                     return false;
                 }
                 // Persist for next time.
