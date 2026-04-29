@@ -355,6 +355,8 @@
                                               Focusable="False"
                                               IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                                               ClickMode="Press"/>
+                                <!-- Read-only display: shown when IsEditable=False (the trigger below
+                                     hides this and shows PART_EditableTextBox instead when editable). -->
                                 <ContentPresenter x:Name="ContentSite"
                                                   IsHitTestVisible="False"
                                                   Content="{TemplateBinding SelectionBoxItem}"
@@ -363,6 +365,24 @@
                                                   Margin="{TemplateBinding Padding}"
                                                   HorizontalAlignment="Left" VerticalAlignment="Center"
                                                   TextElement.Foreground="{DynamicResource PanelForeground}"/>
+                                <!-- Editable mode: WPF requires a TextBox named PART_EditableTextBox.
+                                     Without this, IsEditable=True ComboBoxes (e.g. the font-family
+                                     pickers in Settings) render with no visible text. The TextBox's
+                                     foreground/background here override the OS defaults so typed
+                                     text is readable in dark mode. -->
+                                <TextBox x:Name="PART_EditableTextBox"
+                                         Visibility="Collapsed"
+                                         Margin="{TemplateBinding Padding}"
+                                         Padding="0"
+                                         BorderThickness="0"
+                                         Background="Transparent"
+                                         Foreground="{DynamicResource PanelForeground}"
+                                         CaretBrush="{DynamicResource PanelForeground}"
+                                         SelectionBrush="{DynamicResource AccentBrush}"
+                                         VerticalAlignment="Center"
+                                         HorizontalAlignment="Stretch"
+                                         IsReadOnly="{TemplateBinding IsReadOnly}"
+                                         Focusable="True"/>
                                 <Popup x:Name="PART_Popup"
                                        AllowsTransparency="True"
                                        Placement="Bottom"
@@ -379,6 +399,14 @@
                                     </Border>
                                 </Popup>
                             </Grid>
+                            <ControlTemplate.Triggers>
+                                <!-- Swap display ContentPresenter for the editable TextBox when
+                                     IsEditable=True so user-typed text actually appears. -->
+                                <Trigger Property="IsEditable" Value="True">
+                                    <Setter TargetName="ContentSite" Property="Visibility" Value="Collapsed"/>
+                                    <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
