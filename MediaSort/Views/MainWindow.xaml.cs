@@ -645,10 +645,34 @@ public partial class MainWindow : Window
 
     // ----------------- FILTERING / SEARCH -----------------
 
+    // (UX) Debounce text-driven filters so each keystroke doesn't re-run the
+    // full filter pass on a large source list. Filter only runs ~250ms after
+    // the user stops typing.
+    private System.Windows.Threading.DispatcherTimer? _filterDebounceTimer;
+    private const int FilterDebounceMs = 250;
+
+    private void DebounceApplyFilter()
+    {
+        if (_filterDebounceTimer == null)
+        {
+            _filterDebounceTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = System.TimeSpan.FromMilliseconds(FilterDebounceMs)
+            };
+            _filterDebounceTimer.Tick += (s, _) =>
+            {
+                _filterDebounceTimer!.Stop();
+                ApplyFilter();
+            };
+        }
+        _filterDebounceTimer.Stop();
+        _filterDebounceTimer.Start();
+    }
+
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (!IsLoaded) return;
-        ApplyFilter();
+        DebounceApplyFilter();
     }
 
     private void ClearSearch_Click(object sender, RoutedEventArgs e)
@@ -677,7 +701,10 @@ public partial class MainWindow : Window
         }
         else if (e.Key == Key.Enter)
         {
-            // Enter — commit and jump to the list, leaving the filter active.
+            // Enter — commit and jump to the list immediately (cancel any
+            // pending debounce so the filter applies right now).
+            _filterDebounceTimer?.Stop();
+            ApplyFilter();
             ActiveSelector?.Focus();
             e.Handled = true;
         }
@@ -769,6 +796,101 @@ public partial class MainWindow : Window
                 ? "Clear the current selection (Ctrl+A)"
                 : "Select every visible item in the source list (Ctrl+A)";
         }
+
+        RebuildFilterChips();
+    }
+
+    /// <summary>
+    /// (UX Polish R2 #2) Rebuilds the row of removable filter chips in the Source pane.
+    /// One chip per active filter (Search, Date, Aspect, Min★, Tag); clicking the chip
+    /// clears that single filter and re-applies. The whole container is collapsed when
+    /// no filters are active so it takes zero vertical space.
+    /// </summary>
+    private void RebuildFilterChips()
+    {
+        if (FilterChipsPanel == null || FilterChipsContainer == null) return;
+        FilterChipsPanel.Children.Clear();
+
+        var chipStyle = (System.Windows.Style?)TryFindResource("FilterChipButton");
+
+        void AddChip(string label, System.Action onClear)
+        {
+            var btn = new System.Windows.Controls.Button
+            {
+                Content = label + "  ✕",
+                Style = chipStyle,
+            };
+            btn.Click += (_, __) => onClear();
+            FilterChipsPanel.Children.Add(btn);
+        }
+
+        // Search query chip
+        var query = SearchBox?.Text?.Trim() ?? "";
+        if (!string.IsNullOrEmpty(query))
+        {
+            AddChip($"Search: \"{query}\"", () =>
+            {
+                if (SearchBox != null) SearchBox.Text = "";
+                ApplyFilter();
+            });
+        }
+
+        // Date filter chip
+        if (_settings.DateFilter != DateFilterMode.All)
+        {
+            string dateLabel = _settings.DateFilter switch
+            {
+                DateFilterMode.Last7Days => "Last 7 days",
+                DateFilterMode.Last30Days => "Last 30 days",
+                DateFilterMode.ThisYear => "This year",
+                _ => _settings.DateFilter.ToString()
+            };
+            AddChip($"Date: {dateLabel}", () =>
+            {
+                _settings.DateFilter = DateFilterMode.All;
+                if (DateFilterCombo != null) DateFilterCombo.SelectedIndex = (int)DateFilterMode.All;
+                ApplyFilter();
+                SaveSettings();
+            });
+        }
+
+        // Aspect filter chip
+        if (_settings.AspectGroupFilter != AspectGroup.All)
+        {
+            AddChip($"Aspect: {_settings.AspectGroupFilter}", () =>
+            {
+                _settings.AspectGroupFilter = AspectGroup.All;
+                if (AspectFilterCombo != null) AspectFilterCombo.SelectedIndex = (int)AspectGroup.All;
+                ApplyFilter();
+                SaveSettings();
+            });
+        }
+
+        // Min rating chip (0 = Any, otherwise N stars)
+        if (_minRatingFilter > 0)
+        {
+            AddChip($"Min: {new string('★', _minRatingFilter)}", () =>
+            {
+                _minRatingFilter = 0;
+                if (MinRatingCombo != null) MinRatingCombo.SelectedIndex = 0;
+                ApplyFilter();
+            });
+        }
+
+        // Tag substring chip
+        if (!string.IsNullOrEmpty(_tagFilter))
+        {
+            AddChip($"Tag: {_tagFilter}", () =>
+            {
+                _tagFilter = "";
+                if (TagFilterBox != null) TagFilterBox.Text = "";
+                ApplyFilter();
+            });
+        }
+
+        FilterChipsContainer.Visibility = FilterChipsPanel.Children.Count > 0
+            ? System.Windows.Visibility.Visible
+            : System.Windows.Visibility.Collapsed;
     }
 
     /// <summary>(#11) Click handler for the session-stats text in the status bar.
@@ -1956,7 +2078,7 @@ public partial class MainWindow : Window
     {
         if (_initializing) return;
         _tagFilter = (TagFilterBox?.Text ?? "").Trim();
-        ApplyFilter();
+        DebounceApplyFilter();
     }
 
     /// <summary>Source-header "Top" button — jump to first item.</summary>
