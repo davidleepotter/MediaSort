@@ -80,10 +80,10 @@
                  Background="{DynamicResource InputBackground}"
                  Foreground="{DynamicResource PanelForeground}"
                  BorderBrush="{DynamicResource ButtonBorder}"
-                 ToolTip="Optional subfolder pattern under the destination folder. Tokens: {date:yyyy-MM}, {kind}, {ext}"/>
+                 ToolTip="Optional subfolder pattern. Tokens: {date:fmt}, {exif:fmt} (EXIF DateTaken), {kind}, {ext}, {camera}, {iso}"/>
         <TextBlock Grid.Row="6" Grid.ColumnSpan="3" FontSize="11"
                    Foreground="{DynamicResource MutedForeground}"
-                   Text="Optional. Tokens: {date:yyyy-MM}, {kind}, {ext}. Example: Photos/{date:yyyy-MM}"
+                   Text="Tokens: {date:fmt}, {exif:fmt} (EXIF DateTaken — falls back to file date), {kind}, {ext}, {camera}, {iso}. Example: Photos/{exif:yyyy/MM}"
                    TextWrapping="Wrap" Margin="0,0,0,8"/>
 
         <TextBlock Grid.Row="7" Grid.Column="0" Text="Rename" VerticalAlignment="Center"

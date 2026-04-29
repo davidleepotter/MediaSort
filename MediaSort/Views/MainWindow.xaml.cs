@@ -1651,6 +1651,79 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Resolve a subfolder template to a relative path. Supports tokens (#14):
+    ///   {date[:fmt]}   — file last-write date (default yyyy-MM)
+    ///   {exif[:fmt]}   — EXIF DateTaken, falls back to {date} (default yyyy-MM)
+    ///   {kind}         — "Images" / "Videos" / "Other"
+    ///   {ext}          — file extension without the dot, lowercased
+    ///   {camera}       — EXIF camera manufacturer + model (sanitized)
+    ///   {iso}          — EXIF ISO speed
+    /// Tokens that can't be resolved fall back to a sensible default rather than
+    /// leaving the literal {token} in the path. Invalid filename chars are stripped
+    /// from the final result.
+    /// </summary>
+    private static string ResolveSubfolder(string template, string sourcePath)
+    {
+        if (string.IsNullOrEmpty(template)) return string.Empty;
+
+        var fi = new FileInfo(sourcePath);
+        var fileDate = fi.Exists ? fi.LastWriteTime : DateTime.Now;
+        var ext = Path.GetExtension(sourcePath).TrimStart('.').ToLowerInvariant();
+        string kind = "Other";
+        if (Models.MediaFormats.ImageExtensions.Contains("." + ext)) kind = "Images";
+        else if (Models.MediaFormats.VideoExtensions.Contains("." + ext)) kind = "Videos";
+
+        // EXIF data is read lazily — only when an exif/camera/iso token is referenced.
+        DateTime? exifDate = null; bool exifDateChecked = false;
+        string? camera = null; bool cameraChecked = false;
+        string? iso = null; bool isoChecked = false;
+
+        DateTime ExifDate()
+        {
+            if (!exifDateChecked) { exifDate = MediaSort.Services.ExifReader.TryGetDateTaken(sourcePath); exifDateChecked = true; }
+            return exifDate ?? fileDate;
+        }
+        string Camera()
+        {
+            if (!cameraChecked) { camera = MediaSort.Services.ExifReader.TryGetTag(sourcePath, "camera"); cameraChecked = true; }
+            return string.IsNullOrWhiteSpace(camera) ? "UnknownCamera" : camera!;
+        }
+        string Iso()
+        {
+            if (!isoChecked) { iso = MediaSort.Services.ExifReader.TryGetTag(sourcePath, "iso"); isoChecked = true; }
+            return string.IsNullOrWhiteSpace(iso) ? "ISO0" : "ISO" + iso;
+        }
+
+        var resolved = System.Text.RegularExpressions.Regex.Replace(template,
+            @"\{(\w+)(?::([^}]+))?\}", m =>
+            {
+                var token = m.Groups[1].Value.ToLowerInvariant();
+                var fmt = m.Groups[2].Success ? m.Groups[2].Value : null;
+                return token switch
+                {
+                    "date" => fileDate.ToString(string.IsNullOrEmpty(fmt) ? "yyyy-MM" : fmt),
+                    "exif" => ExifDate().ToString(string.IsNullOrEmpty(fmt) ? "yyyy-MM" : fmt),
+                    "kind" => kind,
+                    "ext" => ext,
+                    "camera" => Camera(),
+                    "iso" => Iso(),
+                    _ => m.Value
+                };
+            });
+
+        // Strip invalid filename chars from each segment so users can write "Photos/{exif:yyyy/MM}"
+        // — keep '/' and '\' as separators.
+        var invalid = Path.GetInvalidFileNameChars();
+        var sb = new System.Text.StringBuilder(resolved.Length);
+        foreach (var c in resolved)
+        {
+            if (c == '/' || c == '\\') sb.Append(c);
+            else if (Array.IndexOf(invalid, c) < 0) sb.Append(c);
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
     /// Copy variant of MoveWithPolicy — evaluates subfolder template, respects
     /// the per-batch conflict policy, and calls FileMover.CopyToFolder.
     /// </summary>
@@ -1660,24 +1733,9 @@ public partial class MainWindow : Window
                                                           ref bool applyAll)
     {
         var targetFolder = dest.FolderPath;
-        if (!string.IsNullOrEmpty(dest.SubfolderTemplate))
-        {
-            var fi = new FileInfo(sourcePath);
-            var date = fi.Exists ? fi.LastWriteTime : DateTime.Now;
-            var sub = System.Text.RegularExpressions.Regex.Replace(dest.SubfolderTemplate,
-                @"\{(\w+)(?::([^}]+))?\}", m =>
-                {
-                    var token = m.Groups[1].Value.ToLowerInvariant();
-                    var fmt = m.Groups[2].Success ? m.Groups[2].Value : null;
-                    return token switch
-                    {
-                        "date" => date.ToString(string.IsNullOrEmpty(fmt) ? "yyyy-MM" : fmt),
-                        _ => m.Value
-                    };
-                });
-            foreach (var c in Path.GetInvalidFileNameChars()) sub = sub.Replace(c.ToString(), "");
+        var sub = ResolveSubfolder(dest.SubfolderTemplate, sourcePath);
+        if (!string.IsNullOrEmpty(sub))
             targetFolder = Path.Combine(targetFolder, sub);
-        }
 
         var probable = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
         if (File.Exists(probable) && policy == ConflictPolicy.Prompt && !applyAll)
@@ -1830,24 +1888,9 @@ public partial class MainWindow : Window
                                                           ref bool applyAll)
     {
         var targetFolder = dest.FolderPath;
-        if (!string.IsNullOrEmpty(dest.SubfolderTemplate))
-        {
-            var fi = new FileInfo(sourcePath);
-            var date = fi.Exists ? fi.LastWriteTime : DateTime.Now;
-            var sub = System.Text.RegularExpressions.Regex.Replace(dest.SubfolderTemplate,
-                @"\{(\w+)(?::([^}]+))?\}", m =>
-                {
-                    var token = m.Groups[1].Value.ToLowerInvariant();
-                    var fmt = m.Groups[2].Success ? m.Groups[2].Value : null;
-                    return token switch
-                    {
-                        "date" => date.ToString(string.IsNullOrEmpty(fmt) ? "yyyy-MM" : fmt),
-                        _ => m.Value
-                    };
-                });
-            foreach (var c in Path.GetInvalidFileNameChars()) sub = sub.Replace(c.ToString(), "");
+        var sub = ResolveSubfolder(dest.SubfolderTemplate, sourcePath);
+        if (!string.IsNullOrEmpty(sub))
             targetFolder = Path.Combine(targetFolder, sub);
-        }
 
         // Decide policy: if Prompt and a conflict will occur, ask once (then maybe apply to all)
         var fileNamePreview = string.IsNullOrEmpty(dest.RenameTemplate)
