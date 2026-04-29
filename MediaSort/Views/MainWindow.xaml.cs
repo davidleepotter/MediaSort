@@ -3066,7 +3066,18 @@ public partial class MainWindow : Window
             catch (OperationCanceledException) { /* user hit Cancel */ }
         }, ct);
 
-        progress.ShowDialog();    // blocks until dialog closes (Cancel) or we close it below
+        // Auto-close the modal dialog when hashing completes. Without this,
+        // ShowDialog() keeps blocking after the last item finishes and the user
+        // has to manually click the X to dismiss it. ContinueWith hops back to
+        // the UI thread because Close() must run on the dispatcher.
+        _ = hashTask.ContinueWith(_ =>
+        {
+            if (progress.IsVisible) progress.Close();
+        }, System.Threading.CancellationToken.None,
+           TaskContinuationOptions.None,
+           TaskScheduler.FromCurrentSynchronizationContext());
+
+        progress.ShowDialog();    // blocks until dialog closes (Cancel, X, or auto-close above)
         try { await hashTask; } catch { }
         // If the user cancelled, the dialog's Closed handler already cancelled the token.
         if (progress.Token.IsCancellationRequested && hashTask.Status != TaskStatus.RanToCompletion)
