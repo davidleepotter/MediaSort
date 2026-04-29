@@ -2713,6 +2713,22 @@ public partial class MainWindow : Window
             RefreshDestinationCounts();
         }
 
+        // Sanity sweep: prune any items whose underlying file is gone. Catches
+        // the edge case where SendToRecycleBin/DeletePermanently returned false
+        // (e.g. file already removed by another process) but the row stayed in
+        // the list. Without this the user sees a blank tile after a delete-all.
+        var stale = _allItems.Where(m => !File.Exists(m.FullPath)).ToList();
+        foreach (var s in stale)
+        {
+            _allItems.Remove(s);
+            MediaItems.Remove(s);
+        }
+
+        // Force-rebuild the bound list so virtualized containers fully recycle
+        // (defensive — ObservableCollection.Remove should be sufficient, but in
+        // practice a stale empty tile occasionally lingers after delete-all).
+        ApplyFilter();
+
         if (MediaItems.Count > 0)
             SelectIndex(Math.Min(firstIdx, MediaItems.Count - 1));
         else { ClearPreview(); UpdatePositionDisplay(); }
