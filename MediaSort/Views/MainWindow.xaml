@@ -460,7 +460,8 @@
                                                     <Button Content="✎" Width="28" Margin="2,0" Click="EditDestination_Click" Tag="{Binding}" ToolTip="Edit"/>
                                                     <Button Content="✕" Width="28" Margin="2,0" Click="RemoveDestination_Click" Tag="{Binding}" ToolTip="Remove"/>
                                                 </StackPanel>
-                                                <Button Style="{StaticResource DestButton}" Click="SendToDestination_Click" Tag="{Binding}">
+                                                <Button Style="{StaticResource DestButton}" Click="SendToDestination_Click" Tag="{Binding}"
+                                                        ToolTip="Click: send selected items here&#x0A;Ctrl+Click: open this folder in Explorer">
                                                     <StackPanel>
                                                         <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
                                                         <TextBlock Text="{Binding HotKeyDisplay}" FontSize="10" Opacity="0.8"/>

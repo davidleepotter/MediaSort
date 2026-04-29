@@ -1422,6 +1422,29 @@ public partial class MainWindow : Window
     {
         if (sender is FrameworkElement fe && fe.Tag is DestinationButton dest)
         {
+            // (#21) Ctrl+Click on a destination opens its folder in Explorer instead
+            // of dispatching a Move/Copy. Saves a trip to the tiny 📂 button.
+            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                if (Directory.Exists(dest.FolderPath))
+                {
+                    try
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", $"\"{dest.FolderPath}\"");
+                        StatusText.Text = $"Opened '{dest.Name}' in Explorer";
+                    }
+                    catch (Exception ex)
+                    {
+                        StatusText.Text = $"Could not open folder: {ex.Message}";
+                    }
+                }
+                else
+                {
+                    StatusText.Text = $"Folder does not exist: {dest.FolderPath}";
+                }
+                return;
+            }
+
             var items = GetSelectedItems();
             if (items.Count == 0) { StatusText.Text = "No item selected."; return; }
             DispatchAction(items, dest, fe);
