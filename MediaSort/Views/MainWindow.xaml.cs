@@ -53,6 +53,11 @@ public partial class MainWindow : Window
     private LibVLC? _libVlc;
     private MediaPlayer? _mediaPlayer;
     private DispatcherTimer? _videoTimer;
+    // Debounces UpdatePreview during fast arrow-key scrolling so we don't decode
+    // a full image/video for every intermediate selection. ~75 ms feels instant
+    // when releasing the key but skips work while the key is held down.
+    private DispatcherTimer? _previewDebounceTimer;
+    private MediaItem? _pendingPreviewItem;
     private readonly MoveHistoryService _history = new();
     private CancellationTokenSource? _probeCts;
 
@@ -840,7 +845,7 @@ public partial class MainWindow : Window
         }
 
         UpdatePositionDisplay();
-        UpdatePreview(MediaItems[index]);
+        SchedulePreview(MediaItems[index]);
         UpdateStats();
     }
 
@@ -856,15 +861,45 @@ public partial class MainWindow : Window
             {
                 CrashLogger.Info($"select idx={idx} file={MediaItems[idx].FileName}");
                 UpdatePositionDisplay();
-                UpdatePreview(MediaItems[idx]);
+                SchedulePreview(MediaItems[idx]);
                 UpdateStats();
             }
             else
             {
+                _pendingPreviewItem = null;
+                _previewDebounceTimer?.Stop();
                 ClearPreview();
                 UpdateStats();
             }
         }
+    }
+
+    /// <summary>
+    /// Coalesce rapid selection changes (e.g. holding the arrow key) into a single
+    /// preview render. The first selection of a burst still feels instant because
+    /// the timer only starts on the second hit — we render immediately if no
+    /// debounce window is active.
+    /// </summary>
+    private void SchedulePreview(MediaItem item)
+    {
+        _pendingPreviewItem = item;
+        if (_previewDebounceTimer == null)
+        {
+            _previewDebounceTimer = new DispatcherTimer(DispatcherPriority.Input, Dispatcher)
+            {
+                Interval = TimeSpan.FromMilliseconds(75)
+            };
+            _previewDebounceTimer.Tick += (_, _) =>
+            {
+                _previewDebounceTimer?.Stop();
+                if (_pendingPreviewItem != null) UpdatePreview(_pendingPreviewItem);
+            };
+        }
+
+        // Restart the window: every fast key-press resets the 75 ms countdown.
+        // Only the final settled selection actually triggers UpdatePreview.
+        _previewDebounceTimer.Stop();
+        _previewDebounceTimer.Start();
     }
 
     private void MediaList_KeyDown(object sender, KeyEventArgs e)
