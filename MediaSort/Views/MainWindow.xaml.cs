@@ -1840,6 +1840,34 @@ public partial class MainWindow : Window
         StatusText.Text = $"Undone — restored {restored} file(s)";
         RefreshDestinationCounts();
 
+        // (#18) Restore selection to the items we just brought back so the user can
+        // immediately re-act on them (e.g. to send them somewhere else). Defer to
+        // Loaded so item containers exist before we touch SelectedItems.
+        var restoredItems = restoredPairs.Select(p => p.item).ToList();
+        if (restoredItems.Count > 0)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var sel = ActiveSelector;
+                if (sel == null) return;
+                try
+                {
+                    sel.SelectedItems.Clear();
+                    foreach (var it in restoredItems)
+                    {
+                        if (MediaItems.Contains(it)) sel.SelectedItems.Add(it);
+                    }
+                    if (sel.SelectedItems.Count > 0)
+                    {
+                        var first = sel.SelectedItems[0];
+                        sel.ScrollIntoView(first);
+                        UpdateStats();
+                    }
+                }
+                catch { /* layout race — non-critical */ }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
         // Fire the reverse-flight animation after layout has rebuilt — otherwise the
         // item containers don't exist yet and TranslatePoint returns the wrong rect.
         if (restoredPairs.Count > 0)
