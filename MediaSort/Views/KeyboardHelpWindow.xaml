@@ -166,30 +166,24 @@
                             <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
                                 Text="A destination is a saved target folder shown as a button in the right-hand panel. Each destination has a name, a folder path, an optional hotkey, and an optional kind filter (Image-only or Video-only). Add as many as you need — common patterns are 'Keep', 'Archive', 'Edit later', 'Family', 'Trash to review'."/>
 
-                            <TextBlock Text="Each destination row has these buttons" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>
+                            <TextBlock Text="Destination row controls" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>
                             <Grid Margin="12,0,0,10">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="60"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition/><RowDefinition/><RowDefinition/>
-                                    <RowDefinition/><RowDefinition/><RowDefinition/>
+                                    <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="↑ / ↓" FontFamily="Consolas" VerticalAlignment="Top"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" TextWrapping="Wrap" Text="Reorder this destination in the list (also changes its position-based hotkey)."/>
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="📂"  VerticalAlignment="Top" Margin="0,4,0,0"/>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Click button" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" TextWrapping="Wrap"
+                                           Text="Send the currently-selected item(s) to this destination. Same as pressing the hotkey."/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+Click" FontWeight="SemiBold" VerticalAlignment="Top" Margin="0,4,0,0"/>
                                 <TextBlock Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" Margin="0,4,0,0"
-                                           Text="Open the destination folder in File Explorer."/>
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="➜"  VerticalAlignment="Top" Margin="0,4,0,0"/>
+                                           Text="Open this destination folder in File Explorer (no move)."/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Right-click" FontWeight="SemiBold" VerticalAlignment="Top" Margin="0,4,0,0"/>
                                 <TextBlock Grid.Row="2" Grid.Column="1" TextWrapping="Wrap" Margin="0,4,0,0"
-                                           Text="Use this destination as the new source folder — handy for drilling into a folder you just sorted into."/>
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="✎"  VerticalAlignment="Top" Margin="0,4,0,0"/>
+                                           Text="Open the destination menu: Open folder in Explorer, Use as source folder, Move up / Move down (also changes the position-based hotkey), Edit destination, Remove destination."/>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="⋮⋮ handle" FontWeight="SemiBold" VerticalAlignment="Top" Margin="0,4,0,0"/>
                                 <TextBlock Grid.Row="3" Grid.Column="1" TextWrapping="Wrap" Margin="0,4,0,0"
-                                           Text="Edit this destination — name, folder, hotkey, kind filter."/>
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="✕"  VerticalAlignment="Top" Margin="0,4,0,0"/>
-                                <TextBlock Grid.Row="4" Grid.Column="1" TextWrapping="Wrap" Margin="0,4,0,0"
-                                           Text="Remove this destination (does not delete the folder on disk)."/>
-                                <TextBlock Grid.Row="5" Grid.Column="0" Text="(body)"  VerticalAlignment="Top" Margin="0,4,0,0" Opacity="0.7"/>
-                                <TextBlock Grid.Row="5" Grid.Column="1" TextWrapping="Wrap" Margin="0,4,0,0"
-                                           Text="Click the main button face to send the currently-selected item(s) here. Same as pressing the hotkey."/>
+                                           Text="Click and hold the dotted handle on the left, then drag up or down to reorder."/>
                             </Grid>
 
                             <TextBlock Text="Hotkeys for destinations" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>

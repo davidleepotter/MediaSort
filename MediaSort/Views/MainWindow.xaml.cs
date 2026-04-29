@@ -2076,8 +2076,12 @@ public partial class MainWindow : Window
     {
         if (sender is FrameworkElement fe && fe.Tag is DestinationButton dest)
         {
-            if (MessageBox.Show($"Remove destination '{dest.Name}'?", "Remove",
-                    MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            if (ConfirmDialog.Show(
+                    this,
+                    "Remove destination",
+                    $"Remove destination '{dest.Name}'?\n\nThe folder on disk is not affected.",
+                    okText: "Remove",
+                    cancelText: "Cancel"))
             {
                 Destinations.Remove(dest);
                 RefreshVolumeWatchList(); // (#16)

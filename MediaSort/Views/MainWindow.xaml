@@ -571,17 +571,21 @@
                                                                Foreground="{DynamicResource MutedForeground}"
                                                                IsHitTestVisible="False"/>
                                                 </Border>
-                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                                    <Button Content="↑" Width="22" Margin="1,0" Click="MoveDestUp_Click" Tag="{Binding}" ToolTip="Move up"/>
-                                                    <Button Content="↓" Width="22" Margin="1,0" Click="MoveDestDown_Click" Tag="{Binding}" ToolTip="Move down"/>
-                                                    <Button Content="📂" Width="28" Margin="2,0" Click="OpenDestFolder_Click" Tag="{Binding}" ToolTip="Open folder in Explorer"/>
-                                                    <Button Content="➜" Width="28" Margin="2,0" Click="UseDestAsSource_Click" Tag="{Binding}" ToolTip="Open this destination as the source folder"/>
-                                                    <Button Content="✎" Width="28" Margin="2,0" Click="EditDestination_Click" Tag="{Binding}" ToolTip="Edit"/>
-                                                    <Button Content="✕" Width="28" Margin="2,0" Click="RemoveDestination_Click" Tag="{Binding}" ToolTip="Remove"/>
-                                                </StackPanel>
                                                 <Button Style="{StaticResource DestButton}" Click="SendToDestination_Click" Tag="{Binding}"
                                                         Opacity="{Binding BadgeOpacity}"
-                                                        ToolTip="Click: send selected items here&#x0A;Ctrl+Click: open this folder in Explorer">
+                                                        ToolTip="Click: send selected items here&#x0A;Ctrl+Click: open this folder in Explorer&#x0A;Right-click: more actions">
+                                                    <Button.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="Open folder in Explorer" Tag="{Binding}" Click="OpenDestFolder_Click"/>
+                                                            <MenuItem Header="Use as source folder" Tag="{Binding}" Click="UseDestAsSource_Click"/>
+                                                            <Separator/>
+                                                            <MenuItem Header="Move up" Tag="{Binding}" Click="MoveDestUp_Click"/>
+                                                            <MenuItem Header="Move down" Tag="{Binding}" Click="MoveDestDown_Click"/>
+                                                            <Separator/>
+                                                            <MenuItem Header="Edit destination..." Tag="{Binding}" Click="EditDestination_Click"/>
+                                                            <MenuItem Header="Remove destination" Tag="{Binding}" Click="RemoveDestination_Click"/>
+                                                        </ContextMenu>
+                                                    </Button.ContextMenu>
                                                     <StackPanel>
                                                         <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
                                                         <TextBlock Text="{Binding HotKeyDisplay}" FontSize="10" Opacity="0.8"/>

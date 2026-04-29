@@ -76,10 +76,70 @@
                 <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
             </Style>
 
-            <!-- CheckBox -->
+            <!-- CheckBox: default Aero template renders the glyph in white on white
+                 in dark mode (the system always uses the user's OS theme for the
+                 glyph, ignoring our Foreground brush). Provide a full template that
+                 uses our theme brushes so checkmarks are visible in both themes. -->
             <Style TargetType="CheckBox">
                 <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorder}"/>
+                <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <StackPanel Orientation="Horizontal" Background="Transparent">
+                                <Grid Width="15" Height="15" VerticalAlignment="Center">
+                                    <Border x:Name="Box"
+                                            Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="2"
+                                            SnapsToDevicePixels="True"/>
+                                    <!-- Theme-foreground check glyph (PanelForeground) so it
+                                         contrasts on InputBackground in either theme. -->
+                                    <Path x:Name="Check"
+                                          Stroke="{DynamicResource PanelForeground}"
+                                          StrokeThickness="2"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          StrokeLineJoin="Round"
+                                          Data="M 2 7 L 6 11 L 12 4"
+                                          Visibility="Collapsed"
+                                          SnapsToDevicePixels="True"/>
+                                    <Rectangle x:Name="Indeterminate"
+                                               Fill="{DynamicResource PanelForeground}"
+                                               Width="8" Height="2"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Visibility="Collapsed"/>
+                                </Grid>
+                                <ContentPresenter Margin="6,0,0,0"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  RecognizesAccessKey="True"/>
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="Box" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter TargetName="Check" Property="Stroke" Value="{DynamicResource AccentForeground}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="{x:Null}">
+                                    <Setter TargetName="Indeterminate" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <!-- ThumbTileCheckBox: high-contrast checkbox for the thumbnail tiles.
