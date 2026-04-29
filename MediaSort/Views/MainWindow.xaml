@@ -139,7 +139,7 @@
                     <Button Content="Settings" Style="{StaticResource ToolButton}" Click="Settings_Click"
                             ToolTip="Open the Settings dialog (Ctrl+,)"/>
                     <!-- Panes▾ — toggle visibility / restore-default-layout for the three main panes. -->
-                    <Button x:Name="PanesMenuButton" Content="Panes ▾" Style="{StaticResource ToolButton}"
+                    <Button x:Name="PanesMenuButton" Content="Panes ▾" Style="{StaticResource PaneToolButton}"
                             Margin="6,0,0,0" Click="PanesMenu_Click"
                             ToolTip="Show/hide Source, Preview, or Destinations panes; reset layout">
                         <Button.ContextMenu>
@@ -170,7 +170,7 @@
                              TextChanged="SearchBox_TextChanged"
                              PreviewKeyDown="SearchBox_PreviewKeyDown"
                              ToolTip="Filter the source list by file name (Ctrl+F to focus, Esc to clear)"/>
-                    <Button Content="✕" Width="24" Margin="2,0,0,0" Style="{StaticResource ToolButton}"
+                    <Button Content="✕" Width="24" Margin="2,0,0,0" Style="{StaticResource DangerToolButton}"
                             Click="ClearSearch_Click" ToolTip="Clear"/>
 
                     <TextBlock Text="Date:" VerticalAlignment="Center" Margin="14,0,4,0"
@@ -228,13 +228,13 @@
                         <ComboBoxItem Content="Delete"/>
                     </ComboBox>
 
-                    <Button Content="Find duplicates" Style="{StaticResource ToolButton}" Margin="14,0,0,0"
+                    <Button Content="Find duplicates" Style="{StaticResource PrimaryToolButton}" Margin="14,0,0,0"
                             Click="FindDuplicates_Click" ToolTip="Highlight near-duplicate images"/>
-                    <Button x:Name="SelectAllButton" Content="Select All" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                    <Button x:Name="SelectAllButton" Content="Select All" Style="{StaticResource ActionToolButton}" Margin="6,0,0,0"
                             Click="SelectAll_Click" ToolTip="Select every visible item in the source list (Ctrl+A)"/>
-                    <Button x:Name="UndoButton" Content="↶ Undo" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                    <Button x:Name="UndoButton" Content="↶ Undo" Style="{StaticResource PrimaryToolButton}" Margin="6,0,0,0"
                             Click="Undo_Click" ToolTip="Undo last move or batch (Ctrl+Z)" IsEnabled="False"/>
-                    <Button Content="History…" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                    <Button Content="History…" Style="{StaticResource PrimaryToolButton}" Margin="6,0,0,0"
                             Click="History_Click" ToolTip="Browse all undo batches and undo any one of them (Ctrl+H)"/>
                 </StackPanel>
 
@@ -285,25 +285,25 @@
                             <!-- Right-justified pane controls + jump-to-top / jump-to-bottom. -->
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                                         VerticalAlignment="Center">
-                                <Button Content="Top" Style="{StaticResource ToolButton}"
+                                <Button Content="Top" Style="{StaticResource NavToolButton}"
                                         Click="SourceTop_Click"
                                         MinWidth="54" Padding="10,2" Margin="0,0,4,0"
                                         ToolTip="Jump to the first item in the source list (Home)"/>
-                                <Button Content="Bottom" Style="{StaticResource ToolButton}"
+                                <Button Content="Bottom" Style="{StaticResource NavToolButton}"
                                         Click="SourceBottom_Click"
                                         MinWidth="66" Padding="10,2"
                                         ToolTip="Jump to the last item in the source list (End)"/>
                                 <!-- Pane swap/hide toolbar (UX: dockable panes). -->
                                 <Separator Margin="6,0,4,0"/>
-                                <Button Content="◀" Style="{StaticResource ToolButton}"
+                                <Button Content="◀" Style="{StaticResource PaneToolButton}"
                                         Tag="Source" Click="PaneMoveLeft_Click"
                                         MinWidth="24" Padding="6,2" Margin="0,0,2,0"
                                         ToolTip="Move this pane one slot to the left"/>
-                                <Button Content="▶" Style="{StaticResource ToolButton}"
+                                <Button Content="▶" Style="{StaticResource PaneToolButton}"
                                         Tag="Source" Click="PaneMoveRight_Click"
                                         MinWidth="24" Padding="6,2" Margin="0,0,2,0"
                                         ToolTip="Move this pane one slot to the right"/>
-                                <Button Content="✕" Style="{StaticResource ToolButton}"
+                                <Button Content="✕" Style="{StaticResource PaneToolButton}"
                                         Tag="Source" Click="PaneHide_Click"
                                         MinWidth="24" Padding="6,2"
                                         ToolTip="Hide this pane (use Panes▾ in toolbar to restore)"/>
@@ -328,13 +328,13 @@
                             BorderThickness="0,0,0,1"
                             Padding="6,4">
                         <StackPanel Orientation="Horizontal">
-                            <Button Content="Skip (N)" Style="{StaticResource ToolButton}"
+                            <Button Content="Skip (N)" Style="{StaticResource ActionToolButton}"
                                     Click="Skip_Click" ToolTip="Advance to next without moving"/>
-                            <Button Content="✎ Rename" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            <Button Content="✎ Rename" Style="{StaticResource ActionToolButton}" Margin="6,0,0,0"
                                     Click="Rename_Click" ToolTip="Rename selected file (F2). Multi-select opens batch rename."/>
-                            <Button Content="🗑 Trash" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            <Button Content="🗑 Trash" Style="{StaticResource DangerToolButton}" Margin="6,0,0,0"
                                     Click="Trash_Click" ToolTip="Send selected to Recycle Bin (Del)"/>
-                            <Button Content="Tags…" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            <Button Content="Tags…" Style="{StaticResource ActionToolButton}" Margin="6,0,0,0"
                                     Click="Tags_Click"
                                     ToolTip="Edit ratings and tags for the selected items (Ctrl+T)"/>
                         </StackPanel>
@@ -555,15 +555,15 @@
                                        Foreground="{DynamicResource PanelForeground}"/>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                                         VerticalAlignment="Center">
-                                <Button Content="◀" Style="{StaticResource ToolButton}"
+                                <Button Content="◀" Style="{StaticResource PaneToolButton}"
                                         Tag="Preview" Click="PaneMoveLeft_Click"
                                         MinWidth="24" Padding="6,2" Margin="0,0,2,0"
                                         ToolTip="Move this pane one slot to the left"/>
-                                <Button Content="▶" Style="{StaticResource ToolButton}"
+                                <Button Content="▶" Style="{StaticResource PaneToolButton}"
                                         Tag="Preview" Click="PaneMoveRight_Click"
                                         MinWidth="24" Padding="6,2" Margin="0,0,2,0"
                                         ToolTip="Move this pane one slot to the right"/>
-                                <Button Content="✕" Style="{StaticResource ToolButton}"
+                                <Button Content="✕" Style="{StaticResource PaneToolButton}"
                                         Tag="Preview" Click="PaneHide_Click"
                                         MinWidth="24" Padding="6,2"
                                         ToolTip="Hide this pane (use Panes▾ in toolbar to restore)"/>
@@ -576,8 +576,8 @@
                             Visibility="Collapsed">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
-                                <Button Content="▶/⏸" Width="46" Style="{StaticResource ToolButton}" Click="VideoTogglePlay_Click" ToolTip="Play / Pause (Space)"/>
-                                <Button Content="⏹" Width="32" Style="{StaticResource ToolButton}" Click="VideoStop_Click"
+                                <Button Content="▶/⏸" Width="46" Style="{StaticResource ActionToolButton}" Click="VideoTogglePlay_Click" ToolTip="Play / Pause (Space)"/>
+                                <Button Content="⏹" Width="32" Style="{StaticResource ActionToolButton}" Click="VideoStop_Click"
                                         ToolTip="Stop playback"/>
                                 <ToggleButton x:Name="LoopToggle" Content="↻" Width="32" Margin="4,0,0,0"
                                               Style="{StaticResource ToolToggleButton}"
@@ -644,18 +644,18 @@
                         <DockPanel LastChildFill="True">
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                                         VerticalAlignment="Center">
-                                <Button Content="+ Add" Style="{StaticResource ToolButton}" Click="AddDestination_Click"
+                                <Button Content="+ Add" Style="{StaticResource ActionToolButton}" Click="AddDestination_Click"
                                         ToolTip="Add a new destination button (folder + hotkey)" Margin="0,0,4,0"/>
                                 <Separator Margin="2,0,4,0"/>
-                                <Button Content="◀" Style="{StaticResource ToolButton}"
+                                <Button Content="◀" Style="{StaticResource PaneToolButton}"
                                         Tag="Destinations" Click="PaneMoveLeft_Click"
                                         MinWidth="24" Padding="6,2" Margin="0,0,2,0"
                                         ToolTip="Move this pane one slot to the left"/>
-                                <Button Content="▶" Style="{StaticResource ToolButton}"
+                                <Button Content="▶" Style="{StaticResource PaneToolButton}"
                                         Tag="Destinations" Click="PaneMoveRight_Click"
                                         MinWidth="24" Padding="6,2" Margin="0,0,2,0"
                                         ToolTip="Move this pane one slot to the right"/>
-                                <Button Content="✕" Style="{StaticResource ToolButton}"
+                                <Button Content="✕" Style="{StaticResource PaneToolButton}"
                                         Tag="Destinations" Click="PaneHide_Click"
                                         MinWidth="24" Padding="6,2"
                                         ToolTip="Hide this pane (use Panes▾ in toolbar to restore)"/>
