@@ -1066,8 +1066,12 @@ public partial class MainWindow : Window
                 if (ct.IsCancellationRequested) { CrashLogger.Info("probe:cancelled"); return; }
                 try
                 {
-                    ProbeVideo(item, ct);
-                    if (item.Thumbnail != null) thumbsAssigned++;
+                    // ProbeVideo returns (gotThumb, gotDims) directly because both fields
+                    // are assigned via Dispatcher.BeginInvoke and would race with a check
+                    // on item.Thumbnail / item.PixelWidth here.
+                    var (gotThumb, gotDims) = ProbeVideo(item, ct);
+                    if (gotThumb) thumbsAssigned++;
+                    if (gotDims) dimsAssigned++;
                 }
                 catch (Exception ex)
                 {
@@ -1177,12 +1181,17 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ProbeVideo(MediaItem item, CancellationToken ct)
+    /// <summary>Returns (gotThumbnail, gotDimensions) — needed because both fields are
+    /// assigned via Dispatcher.BeginInvoke (UI thread) and the caller can't observe
+    /// them synchronously to count progress.</summary>
+    private (bool gotThumb, bool gotDims) ProbeVideo(MediaItem item, CancellationToken ct)
     {
+        bool gotDims = false;
         try
         {
             var (w, h, dur) = VideoProbe.TryReadVideoInfo(item.FullPath);
-            if (ct.IsCancellationRequested) return;
+            if (ct.IsCancellationRequested) return (false, false);
+            if (w > 0 && h > 0) gotDims = true;
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 if (w > 0 && h > 0) { item.PixelWidth = w; item.PixelHeight = h; }
@@ -1191,7 +1200,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { CrashLogger.Log(ex, $"video-probe:{item.FullPath}"); }
 
-        if (ct.IsCancellationRequested) return;
+        if (ct.IsCancellationRequested) return (false, gotDims);
 
         // Video thumbnail via Windows Shell (same source as Explorer's preview).
         // Cached identically to image thumbnails so a second scan is instant.
@@ -1219,9 +1228,15 @@ public partial class MainWindow : Window
                     if (ct.IsCancellationRequested) return;
                     item.Thumbnail = thumb;
                 }));
+                return (true, gotDims);
             }
+            return (false, gotDims);
         }
-        catch (Exception ex) { CrashLogger.Log(ex, $"video-thumb:{item.FullPath}"); }
+        catch (Exception ex)
+        {
+            CrashLogger.Log(ex, $"video-thumb:{item.FullPath}");
+            return (false, gotDims);
+        }
     }
 
     // ----------------- VIEW MODE -----------------
