@@ -48,6 +48,24 @@ public class MoveHistoryService
 
     public IEnumerable<List<MoveRecord>> AllBatches() => _undoStack;
 
+    /// <summary>
+    /// Remove a specific batch from the stack (used by the History scrubber
+    /// when undoing a batch that isn't necessarily the most recent). Identity
+    /// match — no value comparison. Returns true if removed.
+    /// </summary>
+    public bool RemoveBatch(List<MoveRecord> batch)
+    {
+        if (batch == null || _undoStack.Count == 0) return false;
+        // Stack<T> doesn't support arbitrary removal; rebuild without the target.
+        var ordered = new List<List<MoveRecord>>(_undoStack); // top -> bottom
+        bool removed = ordered.Remove(batch);
+        if (!removed) return false;
+        _undoStack.Clear();
+        // Re-push bottom -> top so the stack order is preserved.
+        for (int i = ordered.Count - 1; i >= 0; i--) _undoStack.Push(ordered[i]);
+        return true;
+    }
+
     private static void AppendCsv(IEnumerable<MoveRecord> records)
     {
         try

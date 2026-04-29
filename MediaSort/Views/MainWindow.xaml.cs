@@ -1867,6 +1867,29 @@ public partial class MainWindow : Window
         SelectIndex(idx);
     }
 
+    /// <summary>Toolbar "History…" button — opens the per-batch undo scrubber.</summary>
+    private void History_Click(object sender, RoutedEventArgs e)
+    {
+        var win = new MediaSort.Views.HistoryWindow(this) { Owner = this };
+        win.ShowDialog();
+        UndoButton.IsEnabled = _history.CanUndo;
+        RefreshDestinationCounts();
+    }
+
+    /// <summary>Source-header "Top" button — jump to first item.</summary>
+    private void SourceTop_Click(object sender, RoutedEventArgs e)
+    {
+        if (MediaItems.Count == 0) return;
+        SelectIndex(0);
+    }
+
+    /// <summary>Source-header "Bottom" button — jump to last item.</summary>
+    private void SourceBottom_Click(object sender, RoutedEventArgs e)
+    {
+        if (MediaItems.Count == 0) return;
+        SelectIndex(MediaItems.Count - 1);
+    }
+
     private void UpdatePositionDisplay()
     {
         _suppressSliderUpdate = true;
@@ -3165,7 +3188,29 @@ public partial class MainWindow : Window
     {
         var batch = _history.PopUndo();
         if (batch == null) { StatusText.Text = "Nothing to undo."; return; }
+        UndoBatchInternal(batch);
+    }
 
+    /// <summary>
+    /// Restore a specific batch (used by both Ctrl+Z most-recent-undo and the
+    /// History scrubber for arbitrary-batch undo). The caller is responsible
+    /// for removing the batch from the history stack first.
+    /// </summary>
+    /// <summary>Public surface for HistoryWindow.</summary>
+    internal MoveHistoryService HistoryService => _history;
+
+    /// <summary>
+    /// Undo a specific batch (called from HistoryWindow). Removes it from the
+    /// stack and restores files. Safe no-op if batch isn't currently in stack.
+    /// </summary>
+    internal void UndoSpecificBatch(List<MoveHistoryService.MoveRecord> batch)
+    {
+        if (!_history.RemoveBatch(batch)) { StatusText.Text = "That batch is no longer in history."; return; }
+        UndoBatchInternal(batch);
+    }
+
+    internal void UndoBatchInternal(List<MoveHistoryService.MoveRecord> batch)
+    {
         int restored = 0;
         // Items + which destination they're flying back FROM, captured for the
         // reverse animation that plays after ApplyFilter realizes their containers.
@@ -4062,6 +4107,7 @@ public partial class MainWindow : Window
             if (e.Key == Key.OemComma) { Settings_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
             if (e.Key == Key.F) { SearchBox.Focus(); SearchBox.SelectAll(); e.Handled = true; return; }
             if (e.Key == Key.Z) { Undo_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
+            if (e.Key == Key.H) { History_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
             if (e.Key == Key.A)
             {
                 ActiveSelector?.Items?.OfType<object>().ToList(); // ensure containers

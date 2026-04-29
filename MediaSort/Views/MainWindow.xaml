@@ -193,6 +193,8 @@
                             Click="SelectAll_Click" ToolTip="Select every visible item in the source list (Ctrl+A)"/>
                     <Button x:Name="UndoButton" Content="↶ Undo" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="Undo_Click" ToolTip="Undo last move or batch (Ctrl+Z)" IsEnabled="False"/>
+                    <Button Content="History…" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            Click="History_Click" ToolTip="Browse all undo batches and undo any one of them (Ctrl+H)"/>
                     <Button Content="Skip (N)" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="Skip_Click" ToolTip="Advance to next without moving"/>
                     <Button Content="✎ Rename" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
@@ -243,10 +245,23 @@
                     <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
                         <DockPanel LastChildFill="True">
                             <TextBlock DockPanel.Dock="Left" Text="Source" FontWeight="Bold"
+                                       VerticalAlignment="Center"
                                        Foreground="{DynamicResource PanelForeground}"/>
+                            <!-- Right-justified jump-to-top / jump-to-bottom for the source list. -->
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <Button Content="Top" Style="{StaticResource ToolButton}"
+                                        Click="SourceTop_Click"
+                                        MinWidth="54" Padding="10,2" Margin="0,0,4,0"
+                                        ToolTip="Jump to the first item in the source list (Home)"/>
+                                <Button Content="Bottom" Style="{StaticResource ToolButton}"
+                                        Click="SourceBottom_Click"
+                                        MinWidth="66" Padding="10,2"
+                                        ToolTip="Jump to the last item in the source list (End)"/>
+                            </StackPanel>
                             <!-- Current source folder name (e.g. 'Master'). Hidden when no folder picked. -->
                             <TextBlock x:Name="SourceFolderNameText"
-                                       Margin="8,0,0,0"
+                                       Margin="8,0,8,0"
                                        VerticalAlignment="Center"
                                        Foreground="{DynamicResource PanelForeground}"
                                        Opacity="0.85"
