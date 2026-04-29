@@ -1298,8 +1298,30 @@ public partial class MainWindow : Window
         try
         {
             if (_mediaPlayer == null) return;
-            if (_mediaPlayer.IsPlaying) _mediaPlayer.Pause();
-            else _mediaPlayer.Play();
+            if (_mediaPlayer.IsPlaying)
+            {
+                _mediaPlayer.Pause();
+                return;
+            }
+
+            // Once a video reaches Ended/Stopped state, calling Play() with no args
+            // is a no-op in LibVLC — we must reload the current Media to restart.
+            var st = _mediaPlayer.State;
+            if (st == VLCState.Ended || st == VLCState.Stopped || st == VLCState.Error || st == VLCState.NothingSpecial)
+            {
+                var sel = GetSelectedItems().FirstOrDefault();
+                if (sel != null && sel.Kind == MediaKind.Video && _libVlc != null)
+                {
+                    using var media = new Media(_libVlc, new Uri(sel.FullPath));
+                    _mediaPlayer.Play(media);
+                    ApplyAudioPreviewState();
+                    _videoTimer?.Start();
+                    return;
+                }
+            }
+
+            // Paused → resume.
+            _mediaPlayer.Play();
         }
         catch { }
     }
