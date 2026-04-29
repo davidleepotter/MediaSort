@@ -1204,7 +1204,16 @@ public partial class MainWindow : Window
                 {
                     PreviewImage.Source = null;
                     PreviewImage.Visibility = Visibility.Collapsed;
-                    PreviewEmpty.Text = $"Cannot decode {item.Extension}";
+                    // (#15) Friendlier message for HEIC / RAW formats that depend on optional Microsoft codecs.
+                    var ext = item.Extension.ToLowerInvariant();
+                    string msg;
+                    if (Models.MediaFormats.IsHeif(ext))
+                        msg = $"Cannot decode {ext}.\nInstall the \u201cHEIF Image Extensions\u201d package from the Microsoft Store to preview HEIC/HEIF files.";
+                    else if (Models.MediaFormats.IsRaw(ext))
+                        msg = $"Cannot decode {ext}.\nNo embedded preview was found, and the Microsoft \u201cRaw Image Extension\u201d (or your camera vendor\u2019s codec) does not appear to be installed.";
+                    else
+                        msg = $"Cannot decode {ext}";
+                    PreviewEmpty.Text = msg;
                     PreviewEmpty.Visibility = Visibility.Visible;
                     StatusText.Text = $"Cannot decode {item.FileName}";
                     return;

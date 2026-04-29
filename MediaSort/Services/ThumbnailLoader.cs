@@ -13,7 +13,60 @@ public static class ThumbnailLoader
     public static BitmapImage? LoadThumbnail(MediaItem item, int decodePixelWidth = 128)
     {
         if (item.Kind != MediaKind.Image) return null;
+
+        // RAW: try embedded JPEG thumbnail first (instant, no codec required).
+        var ext = System.IO.Path.GetExtension(item.FullPath);
+        if (MediaFormats.IsRaw(ext))
+        {
+            var raw = TryLoadEmbeddedRawThumbnail(item.FullPath, decodePixelWidth);
+            if (raw != null) return raw;
+            // Fall through to WIC — will only succeed if the user has the
+            // Microsoft RAW Image Extension or a vendor codec installed.
+        }
+
         return TryLoadBitmap(item.FullPath, decodePixelWidth);
+    }
+
+    /// <summary>
+    /// (#15) Pull the embedded JPEG preview out of a RAW file via WIC. RAW files
+    /// universally embed a full-size or medium JPEG that decodes instantly without
+    /// the Microsoft RAW Image Extension. Returns null if no embedded thumbnail.
+    /// </summary>
+    public static BitmapImage? TryLoadEmbeddedRawThumbnail(string path, int decodePixelWidth)
+    {
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var decoder = BitmapDecoder.Create(
+                fs,
+                BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.PreservePixelFormat,
+                BitmapCacheOption.OnLoad);
+            if (decoder.Frames.Count == 0) return null;
+            var frame = decoder.Frames[0];
+            BitmapSource? thumb = frame.Thumbnail;
+            if (thumb == null) return null;
+
+            using var outMs = new MemoryStream();
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(thumb));
+            encoder.Save(outMs);
+            outMs.Position = 0;
+
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.CreateOptions = BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.IgnoreColorProfile;
+            if (decodePixelWidth > 0) bmp.DecodePixelWidth = decodePixelWidth;
+            bmp.StreamSource = outMs;
+            bmp.EndInit();
+            bmp.Freeze();
+            return bmp.PixelWidth > 0 ? bmp : null;
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Info($"raw-thumb-fail {ex.GetType().Name}: {ex.Message}");
+            return null;
+        }
     }
 
     /// <summary>
@@ -177,6 +230,16 @@ public static class ThumbnailLoader
 
     public static BitmapSource? LoadFull(string path)
     {
+        // (#15) For RAW files, prefer the embedded full-size JPEG preview — it
+        // matches what every camera app shows and avoids the slow / codec-gated
+        // RAW pixel decode. Fall through to WIC if no embedded preview.
+        var ext = System.IO.Path.GetExtension(path);
+        if (MediaFormats.IsRaw(ext))
+        {
+            var emb = TryLoadEmbeddedRawThumbnail(path, 0);
+            if (emb != null) return emb;
+        }
+
         // Try the simple path first
         var simple = TryLoadBitmap(path, 0);
         if (simple != null) return simple;

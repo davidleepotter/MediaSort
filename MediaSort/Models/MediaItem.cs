@@ -205,6 +205,7 @@ public class MediaItem : INotifyPropertyChanged
     {
         ext = ext.ToLowerInvariant();
         if (MediaFormats.ImageExtensions.Contains(ext)) return MediaKind.Image;
+        if (MediaFormats.RawExtensions.Contains(ext)) return MediaKind.Image; // RAW shows as image
         if (MediaFormats.VideoExtensions.Contains(ext)) return MediaKind.Video;
         return MediaKind.Other;
     }
