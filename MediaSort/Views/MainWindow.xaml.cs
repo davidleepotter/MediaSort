@@ -227,7 +227,10 @@ public partial class MainWindow : Window
     {
         if (MediaItems.Count == 0) return;
 
-        var selected = ActiveSelector?.SelectedItem as MediaItem;
+        // Capture FULL multi-selection (not just the primary item) so user selections
+        // survive a re-sort triggered by probe completion / sort-key change.
+        var previouslySelected = GetSelectedItems();
+        var primary = ActiveSelector?.SelectedItem as MediaItem;
 
         IOrderedEnumerable<MediaItem> ordered = _settings.SortKey switch
         {
@@ -256,15 +259,74 @@ public partial class MainWindow : Window
                         : ordered.ThenBy(m => m.FileName, StringComparer.OrdinalIgnoreCase))
                      .ToList();
 
+        // Skip the rebuild entirely if the order didn't change — avoids needless
+        // container recycling and selection churn on every probe completion.
+        bool orderChanged = sorted.Count != MediaItems.Count;
+        if (!orderChanged)
+        {
+            for (int i = 0; i < sorted.Count; i++)
+            {
+                if (!ReferenceEquals(sorted[i], MediaItems[i])) { orderChanged = true; break; }
+            }
+        }
+        if (!orderChanged) return;
+
         _suppressSelectionUpdate = true;
         MediaItems.Clear();
         foreach (var m in sorted) MediaItems.Add(m);
         _suppressSelectionUpdate = false;
 
-        var newIdx = selected != null ? MediaItems.IndexOf(selected) : -1;
-        if (newIdx < 0 && MediaItems.Count > 0) newIdx = 0;
-        if (newIdx >= 0) SelectIndex(newIdx);
+        // Restore the full multi-selection.
+        RestoreSelection(previouslySelected, primary);
         UpdatePositionDisplay();
+    }
+
+    /// <summary>Restores selection on all three list views after MediaItems was rebuilt.</summary>
+    private void RestoreSelection(System.Collections.Generic.IList<MediaItem> items, MediaItem? primary)
+    {
+        if (items == null || items.Count == 0)
+        {
+            // Fall back to selecting the primary if multi-selection was empty.
+            if (primary != null)
+            {
+                var idx = MediaItems.IndexOf(primary);
+                if (idx >= 0) SelectIndex(idx);
+            }
+            return;
+        }
+
+        _suppressSelectionUpdate = true;
+        try
+        {
+            ListView_List.SelectedItems.Clear();
+            ListView_Details.SelectedItems.Clear();
+            ListView_Thumbs.SelectedItems.Clear();
+            foreach (var m in items)
+            {
+                if (!MediaItems.Contains(m)) continue;
+                ListView_List.SelectedItems.Add(m);
+                ListView_Details.SelectedItems.Add(m);
+                ListView_Thumbs.SelectedItems.Add(m);
+            }
+        }
+        finally
+        {
+            _suppressSelectionUpdate = false;
+        }
+
+        // Bring the primary back into view and refresh preview/stats.
+        var anchor = primary != null && MediaItems.Contains(primary) ? primary : items[0];
+        switch (ActiveSelector)
+        {
+            case ListBox lb when MediaItems.Contains(anchor):
+                lb.ScrollIntoView(anchor);
+                break;
+            case ListView lv when MediaItems.Contains(anchor):
+                lv.ScrollIntoView(anchor);
+                break;
+        }
+        UpdatePreview(anchor);
+        UpdateStats();
     }
 
     // ----------------- FILTERING / SEARCH -----------------

@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Threading;
 using MediaSort.Services;
 
 namespace MediaSort;
@@ -27,12 +28,25 @@ public partial class App : System.Windows.Application
         ThemeManager.Initialize();
         base.OnStartup(e);
 
-        // Close the splash with a fade as soon as the main window has actually rendered
-        // its first frame (ContentRendered), so the user never sees a white window.
-        if (_splash != null && MainWindow != null)
+        // MainWindow is created asynchronously by WPF AFTER OnStartup returns when using
+        // StartupUri, so MainWindow is still null here. Defer the subscription via the
+        // dispatcher at Loaded priority — by the time this lambda runs, MainWindow exists.
+        Dispatcher.BeginInvoke(new Action(() =>
         {
-            MainWindow.ContentRendered += MainWindow_ContentRendered;
-        }
+            if (_splash == null) return;
+            var w = MainWindow;
+            if (w == null)
+            {
+                // Last-ditch fallback: close the splash with a short delay so we never
+                // leave the user staring at it forever.
+                Dispatcher.BeginInvoke(new Action(CloseSplash), DispatcherPriority.ApplicationIdle);
+                return;
+            }
+            // ContentRendered fires after the very first paint of the window's visual tree.
+            w.ContentRendered += MainWindow_ContentRendered;
+            // Safety net: also close on Activated in case ContentRendered is delayed.
+            w.Activated += MainWindow_Activated;
+        }), DispatcherPriority.Loaded);
     }
 
     private void MainWindow_ContentRendered(object? sender, EventArgs e)
@@ -40,7 +54,23 @@ public partial class App : System.Windows.Application
         if (sender is Window w)
         {
             w.ContentRendered -= MainWindow_ContentRendered;
+            w.Activated -= MainWindow_Activated;
         }
+        CloseSplash();
+    }
+
+    private void MainWindow_Activated(object? sender, EventArgs e)
+    {
+        if (sender is Window w)
+        {
+            w.Activated -= MainWindow_Activated;
+        }
+        // Close on next idle tick so any pending first paint has a chance to land first.
+        Dispatcher.BeginInvoke(new Action(CloseSplash), DispatcherPriority.ApplicationIdle);
+    }
+
+    private void CloseSplash()
+    {
         try
         {
             _splash?.Close(TimeSpan.FromMilliseconds(300));
