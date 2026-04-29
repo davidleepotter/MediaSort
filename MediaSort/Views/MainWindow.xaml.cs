@@ -642,6 +642,33 @@ public partial class MainWindow : Window
         SearchBox.Text = "";
     }
 
+    /// <summary>
+    /// (#9) Esc clears the filter and returns focus to the source list so the
+    /// user can immediately resume keyboard navigation. If the box is already
+    /// empty, just hand focus back without consuming the key (so Esc still has
+    /// its 'cancel' feel).
+    /// </summary>
+    private void SearchBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            if (!string.IsNullOrEmpty(SearchBox.Text))
+            {
+                SearchBox.Text = "";
+            }
+            // Hand keyboard focus back to whichever list is visible so arrow keys
+            // and destination hotkeys work again right away.
+            ActiveSelector?.Focus();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter)
+        {
+            // Enter — commit and jump to the list, leaving the filter active.
+            ActiveSelector?.Focus();
+            e.Handled = true;
+        }
+    }
+
     private void DateFilterCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!IsLoaded) return;

@@ -149,7 +149,8 @@
                                Foreground="{DynamicResource PanelForeground}"/>
                     <TextBox x:Name="SearchBox" Width="220" VerticalAlignment="Center"
                              TextChanged="SearchBox_TextChanged"
-                             ToolTip="Filter the source list (Ctrl+F)"/>
+                             PreviewKeyDown="SearchBox_PreviewKeyDown"
+                             ToolTip="Filter the source list by file name (Ctrl+F to focus, Esc to clear)"/>
                     <Button Content="✕" Width="24" Margin="2,0,0,0" Style="{StaticResource ToolButton}"
                             Click="ClearSearch_Click" ToolTip="Clear"/>
 
