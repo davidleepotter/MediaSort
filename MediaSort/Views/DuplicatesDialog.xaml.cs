@@ -43,6 +43,9 @@ public partial class DuplicatesDialog : Window
     public DuplicatesDialog(IEnumerable<DuplicateGroup> groups, IEnumerable<DestinationButton> destinations)
     {
         InitializeComponent();
+        // Match every other dialog: paint the title bar with the current theme
+        // (dark mode override on Win11) instead of the default light system chrome.
+        SourceInitialized += (_, _) => Services.WindowChrome.ApplyCurrentTheme(this);
 
         _groups = new ObservableCollection<DuplicateGroup>(groups);
         GroupsList.ItemsSource = _groups;
