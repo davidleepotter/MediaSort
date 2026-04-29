@@ -238,6 +238,31 @@ public static class FileMover
         }
     }
 
+    /// <summary>
+    /// Permanently delete a file (NOT recoverable from the Recycle Bin).
+    /// Returns true on success.
+    /// </summary>
+    public static bool DeletePermanently(string path)
+    {
+        try
+        {
+            // Strip read-only so File.Delete doesn't throw on protected files.
+            try
+            {
+                var attr = System.IO.File.GetAttributes(path);
+                if ((attr & System.IO.FileAttributes.ReadOnly) != 0)
+                    System.IO.File.SetAttributes(path, attr & ~System.IO.FileAttributes.ReadOnly);
+            }
+            catch { }
+            System.IO.File.Delete(path);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     /// <summary>Internal-but-accessible wrapper for cross-class reuse.</summary>
     internal static string MakeUniquePathPublic(string fullPath) => MakeUniquePath(fullPath);
     /// <summary>Internal-but-accessible wrapper for cross-class reuse.</summary>

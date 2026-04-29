@@ -2639,9 +2639,22 @@ public partial class MainWindow : Window
     private void DeleteItemsFromDestinationButton(List<MediaItem> items)
     {
         var msg = items.Count == 1
-            ? $"Send '{items[0].FileName}' to the Recycle Bin?"
-            : $"Send {items.Count} files to the Recycle Bin?";
-        if (!ConfirmDialog.Show(this, "Delete", msg, "Send to Recycle Bin", "Cancel")) return;
+            ? $"Delete '{items[0].FileName}'?"
+            : $"Delete {items.Count} files?";
+        var choice = DeleteChoiceDialog.Show(this, "Delete", msg);
+        if (choice == DeleteChoice.Cancel) return;
+        DeleteItemsBatch(items, choice == DeleteChoice.Permanent);
+    }
+
+    /// <summary>
+    /// Shared delete-batch worker for both <see cref="DeleteItemsFromDestinationButton"/>
+    /// and <see cref="Trash_Click"/>. Handles either Recycle Bin or permanent
+    /// delete based on <paramref name="permanent"/>; permanent deletes are NOT
+    /// pushed to the undo history (irrecoverable).
+    /// </summary>
+    private void DeleteItemsBatch(List<MediaItem> items, bool permanent)
+    {
+        if (items.Count == 0) return;
 
         StopVideo();
         PreviewImage.Source = null;
@@ -2651,22 +2664,36 @@ public partial class MainWindow : Window
         var delSnapshot = items.ToList();
         int delTotal = delSnapshot.Count;
         int delProcessed = 0;
+        int permanentDeleted = 0;
         foreach (var item in delSnapshot)
         {
             delProcessed++;
             if (delTotal > 1)
             {
-                StatusText.Text = $"Deleting {delProcessed}/{delTotal}: {item.FileName}";
+                StatusText.Text = permanent
+                    ? $"Deleting (permanent) {delProcessed}/{delTotal}: {item.FileName}"
+                    : $"Deleting {delProcessed}/{delTotal}: {item.FileName}";
                 try { Dispatcher.Invoke(() => { }, DispatcherPriority.Background); } catch { }
             }
-            if (FileMover.SendToRecycleBin(item.FullPath))
+            bool ok = permanent
+                ? FileMover.DeletePermanently(item.FullPath)
+                : FileMover.SendToRecycleBin(item.FullPath);
+            if (ok)
             {
-                batch.Add(new MoveHistoryService.MoveRecord
+                if (permanent)
                 {
-                    OriginalPath = item.FullPath,
-                    NewPath = "(recycle bin)",
-                    Action = "Trash"
-                });
+                    permanentDeleted++;
+                    // Don't push to undo history — permanent deletes are not recoverable.
+                }
+                else
+                {
+                    batch.Add(new MoveHistoryService.MoveRecord
+                    {
+                        OriginalPath = item.FullPath,
+                        NewPath = "(recycle bin)",
+                        Action = "Trash"
+                    });
+                }
                 _sessionStats.RecordDelete(item.SizeBytes); // (#11)
                 _allItems.Remove(item);
                 MediaItems.Remove(item);
@@ -2678,7 +2705,12 @@ public partial class MainWindow : Window
             _history.Push(batch);
             UndoButton.IsEnabled = _history.CanUndo;
             StatusText.Text = $"Deleted {batch.Count} file(s) (sent to Recycle Bin)";
-            RefreshDestinationCounts(); // bug fix: dest tile counts didn't update after delete
+            RefreshDestinationCounts();
+        }
+        else if (permanentDeleted > 0)
+        {
+            StatusText.Text = $"Permanently deleted {permanentDeleted} file(s)";
+            RefreshDestinationCounts();
         }
 
         if (MediaItems.Count > 0)
@@ -3249,52 +3281,11 @@ public partial class MainWindow : Window
         if (items.Count == 0) return;
 
         var msg = items.Count == 1
-            ? $"Send '{items[0].FileName}' to the Recycle Bin?"
-            : $"Send {items.Count} files to the Recycle Bin?";
-        if (!ConfirmDialog.Show(this, "Trash", msg, "Send to Recycle Bin", "Cancel")) return;
-
-        StopVideo();
-        PreviewImage.Source = null;
-
-        var firstIdx = MediaItems.IndexOf(items[0]);
-        var batch = new List<MoveHistoryService.MoveRecord>();
-        var delSnapshot = items.ToList();
-        int delTotal = delSnapshot.Count;
-        int delProcessed = 0;
-        foreach (var item in delSnapshot)
-        {
-            delProcessed++;
-            if (delTotal > 1)
-            {
-                StatusText.Text = $"Deleting {delProcessed}/{delTotal}: {item.FileName}";
-                try { Dispatcher.Invoke(() => { }, DispatcherPriority.Background); } catch { }
-            }
-            if (FileMover.SendToRecycleBin(item.FullPath))
-            {
-                batch.Add(new MoveHistoryService.MoveRecord
-                {
-                    OriginalPath = item.FullPath,
-                    NewPath = "(recycle bin)",
-                    Action = "Trash"
-                });
-                _sessionStats.RecordDelete(item.SizeBytes); // (#11)
-                _allItems.Remove(item);
-                MediaItems.Remove(item);
-            }
-        }
-
-        if (batch.Count > 0)
-        {
-            _history.Push(batch);
-            UndoButton.IsEnabled = _history.CanUndo;
-            StatusText.Text = $"Sent {batch.Count} file(s) to Recycle Bin";
-            RefreshDestinationCounts(); // bug fix: dest tile counts didn't update after delete
-        }
-
-        if (MediaItems.Count > 0)
-            SelectIndex(Math.Min(firstIdx, MediaItems.Count - 1));
-        else { ClearPreview(); UpdatePositionDisplay(); }
-        UpdateStats();
+            ? $"Delete '{items[0].FileName}'?"
+            : $"Delete {items.Count} files?";
+        var choice = DeleteChoiceDialog.Show(this, "Delete", msg);
+        if (choice == DeleteChoice.Cancel) return;
+        DeleteItemsBatch(items, choice == DeleteChoice.Permanent);
     }
 
     // ----------------- DUPLICATES -----------------

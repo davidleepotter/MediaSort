@@ -901,6 +901,27 @@
                                         CornerRadius="5"
                                         Margin="1,2,1,4"
                                         IsHitTestVisible="False"/>
+                                <!-- Folder watermark: low-opacity vector folder icon
+                                     sitting in the bottom-right corner of each dest
+                                     button. Pure vector so it stays crisp at any DPI
+                                     and tints automatically against any AccentBrush. -->
+                                <Viewbox x:Name="FolderWatermark"
+                                         Width="40" Height="40"
+                                         HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                         Margin="0,0,8,6"
+                                         IsHitTestVisible="False"
+                                         Opacity="0.18">
+                                    <Canvas Width="24" Height="24">
+                                        <!-- Back tab -->
+                                        <Path Data="M 2,5 L 9,5 L 11,7 L 22,7 L 22,9 L 2,9 Z"
+                                              Fill="White"/>
+                                        <!-- Body -->
+                                        <Path Data="M 2,8 L 22,8 L 21,20 L 3,20 Z"
+                                              Fill="White"/>
+                                        <!-- Top edge highlight -->
+                                        <Path Data="M 2,8 L 22,8" Stroke="White" StrokeThickness="0.6" Opacity="0.6"/>
+                                    </Canvas>
+                                </Viewbox>
                                 <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                                   VerticalAlignment="Center"
                                                   Margin="{TemplateBinding Padding}"
@@ -918,6 +939,7 @@
                                         </Setter.Value>
                                     </Setter>
                                     <Setter TargetName="Highlight" Property="BorderBrush" Value="#99FFFFFF"/>
+                                    <Setter TargetName="FolderWatermark" Property="Opacity" Value="0.30"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <!-- Remove drop shadow + push down 2px -->

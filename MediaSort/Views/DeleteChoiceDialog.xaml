@@ -1,0 +1,53 @@
+<Window x:Class="MediaSort.Views.DeleteChoiceDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Delete"
+        Icon="pack://application:,,,/Assets/AppIcon.ico"
+        SizeToContent="WidthAndHeight"
+        MinWidth="420" MaxWidth="560"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource PanelForeground}"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+    <Grid Margin="18,16,18,14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" x:Name="HeadingText"
+                   Text="Delete"
+                   FontWeight="Bold" FontSize="14"
+                   Foreground="{DynamicResource PanelForeground}"
+                   Margin="0,0,0,8"/>
+
+        <TextBlock Grid.Row="1" x:Name="MessageText"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource PanelForeground}"
+                   Margin="0,0,0,8"
+                   MaxWidth="520"/>
+
+        <TextBlock Grid.Row="2" x:Name="WarningText"
+                   TextWrapping="Wrap"
+                   Foreground="#FFCC6666"
+                   FontStyle="Italic"
+                   Margin="0,0,0,16"
+                   MaxWidth="520"
+                   Visibility="Collapsed"/>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="CancelButton" Content="Cancel"
+                    MinWidth="90" Padding="14,4" Margin="4,0"
+                    IsCancel="True" Click="Cancel_Click"/>
+            <Button x:Name="PermanentButton" Content="Delete Permanently"
+                    MinWidth="90" Padding="14,4" Margin="4,0"
+                    Click="Permanent_Click"/>
+            <Button x:Name="RecycleButton" Content="Send to Recycle Bin"
+                    MinWidth="90" Padding="14,4" Margin="4,0"
+                    IsDefault="True" Click="Recycle_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
