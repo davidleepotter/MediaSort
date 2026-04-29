@@ -1610,7 +1610,26 @@ public partial class MainWindow : Window
 
     private MoveHistoryService.MoveRecord? DoMove(string sourcePath, string targetFolder, string? rename, ConflictPolicy policy)
     {
-        var r = FileMover.MoveToFolder(sourcePath, targetFolder, policy, rename);
+        MoveResult r;
+        // Large-file path: spin up a progress dialog and use the chunked mover so the
+        // UI stays responsive and the user can cancel a 4 GB cross-volume copy.
+        try
+        {
+            var fi = new System.IO.FileInfo(sourcePath);
+            if (fi.Exists && fi.Length >= FileMoverProgress.LargeFileThreshold)
+            {
+                r = MoveOrCopyWithProgressDialog(sourcePath, targetFolder, policy, rename, isCopy: false);
+            }
+            else
+            {
+                r = FileMover.MoveToFolder(sourcePath, targetFolder, policy, rename);
+            }
+        }
+        catch
+        {
+            r = FileMover.MoveToFolder(sourcePath, targetFolder, policy, rename);
+        }
+
         if (r.Outcome == MoveOutcome.Moved)
         {
             return new MoveHistoryService.MoveRecord
@@ -1628,6 +1647,46 @@ public partial class MainWindow : Window
         return null;
     }
 
+    /// <summary>
+    /// Run a chunked move/copy on a worker thread while a modal ProgressDialog reports
+    /// percent and supports cancel. Returns the final MoveResult.
+    /// </summary>
+    private MoveResult MoveOrCopyWithProgressDialog(string sourcePath, string targetFolder,
+        ConflictPolicy policy, string? rename, bool isCopy)
+    {
+        var header = isCopy ? "Copying file…" : "Moving file…";
+        var detail = System.IO.Path.GetFileName(sourcePath) + "  →  " + targetFolder;
+        var dlg = new MediaSort.Views.ProgressDialog(header, detail) { Owner = this };
+
+        MoveResult? captured = null;
+        var progress = new System.Progress<(long done, long total)>(p => dlg.ReportProgress(p.done, p.total));
+        var ct = dlg.Token;
+
+        var thread = new System.Threading.Thread(() =>
+        {
+            try
+            {
+                captured = isCopy
+                    ? FileMoverProgress.CopyWithProgress(sourcePath, targetFolder, policy, rename, progress, ct)
+                    : FileMoverProgress.MoveWithProgress(sourcePath, targetFolder, policy, rename, progress, ct);
+            }
+            catch (System.Exception ex)
+            {
+                captured = new MoveResult { Outcome = MoveOutcome.Failed, ErrorMessage = ex.Message, OriginalPath = sourcePath };
+            }
+            finally
+            {
+                Dispatcher.BeginInvoke(new System.Action(() => { try { dlg.Close(); } catch { } }));
+            }
+        });
+        thread.IsBackground = true;
+        thread.Start();
+
+        dlg.ShowDialog();
+        thread.Join();
+        return captured ?? new MoveResult { Outcome = MoveOutcome.Failed, ErrorMessage = "No result" };
+    }
+
     // ----------------- UNDO / TRASH / SKIP -----------------
 
     private void Undo_Click(object sender, RoutedEventArgs e)
@@ -1636,16 +1695,24 @@ public partial class MainWindow : Window
         if (batch == null) { StatusText.Text = "Nothing to undo."; return; }
 
         int restored = 0;
+        // Items + which destination they're flying back FROM, captured for the
+        // reverse animation that plays after ApplyFilter realizes their containers.
+        var restoredPairs = new List<(MediaItem item, FrameworkElement? sourceDestEl)>();
+
         foreach (var rec in batch)
         {
             if (rec.Action == "Move")
             {
+                // Snapshot the destination element BEFORE the move so we can fly from it.
+                var destEl = FindDestinationElementForPath(rec.NewPath);
+
                 var r = FileMover.UndoMove(rec.NewPath, rec.OriginalPath);
                 if (r.Outcome == MoveOutcome.Moved)
                 {
                     var item = new MediaItem(r.FinalPath);
                     _allItems.Add(item);
                     restored++;
+                    restoredPairs.Add((item, destEl));
                     StartBackgroundProbe(new List<MediaItem> { item }, _probeCts?.Token ?? CancellationToken.None);
                 }
             }
@@ -1660,6 +1727,65 @@ public partial class MainWindow : Window
         UndoButton.IsEnabled = _history.CanUndo;
         StatusText.Text = $"Undone — restored {restored} file(s)";
         RefreshDestinationCounts();
+
+        // Fire the reverse-flight animation after layout has rebuilt — otherwise the
+        // item containers don't exist yet and TranslatePoint returns the wrong rect.
+        if (restoredPairs.Count > 0)
+        {
+            Dispatcher.BeginInvoke(new Action(() => TryPlayRestoreAnimationsForBatch(restoredPairs)),
+                                   System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+    }
+
+    /// <summary>
+    /// Look up the destination button row whose folder path is the parent of <paramref name="filePath"/>.
+    /// Returns the visual container so we can use its on-screen bounds as the animation origin.
+    /// </summary>
+    private FrameworkElement? FindDestinationElementForPath(string filePath)
+    {
+        try
+        {
+            var folder = System.IO.Path.GetDirectoryName(filePath);
+            if (string.IsNullOrEmpty(folder)) return null;
+            var dest = _settings.Destinations.FirstOrDefault(d =>
+                string.Equals(
+                    System.IO.Path.GetFullPath(d.FolderPath ?? "").TrimEnd('\\', '/'),
+                    System.IO.Path.GetFullPath(folder).TrimEnd('\\', '/'),
+                    StringComparison.OrdinalIgnoreCase));
+            return dest != null ? FindDestinationElement(dest) : null;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>
+    /// Reverse of TryPlayMoveAnimationsForBatch: ghosts fly from each destination
+    /// row back to the restored item's row in the source list.
+    /// </summary>
+    private void TryPlayRestoreAnimationsForBatch(List<(MediaItem item, FrameworkElement? destEl)> pairs)
+    {
+        if (pairs == null || pairs.Count == 0) return;
+
+        int limit = Math.Min(pairs.Count, MaxAnimatedGhosts);
+        // Fall back to the active selector itself when an individual item container
+        // isn't realized (virtualized off-screen) — still gives the user a clear
+        // "flying back to the source list" gesture.
+        FrameworkElement? listFallback = ActiveSelector as FrameworkElement;
+
+        for (int i = 0; i < limit; i++)
+        {
+            var (item, destEl) = pairs[i];
+            if (destEl == null) continue;
+
+            var targetEl = GetItemElement(item) ?? listFallback;
+            if (targetEl == null) continue;
+
+            var visual = CaptureItemVisual(item, targetEl);
+            // Stagger ghosts so they fan in instead of stacking.
+            var delayMs = i * 35;
+            // Reuse TryPlayMoveAnimation with src=destEl, dest=item row — animation
+            // direction is purely defined by the from/to elements.
+            TryPlayMoveAnimation(item, destEl, targetEl, visual, delayMs);
+        }
     }
 
     private void Skip_Click(object sender, RoutedEventArgs e)
