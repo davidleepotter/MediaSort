@@ -73,6 +73,9 @@ public partial class MainWindow : Window
     private readonly List<DestinationButton> _destQueue = new();
     private List<MediaItem>? _destQueueItems; // captured at queue-start time
 
+    // (#16) Volume monitor: detects USB / network unmount and online recovery.
+    private VolumeMonitor? _volumeMonitor;
+
     // Image preview pan/zoom state
     private bool _imagePanning;
     private System.Windows.Point _imagePanStart;
@@ -89,7 +92,79 @@ public partial class MainWindow : Window
 
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
-        SourceInitialized += (_, _) => WindowChrome.ApplyCurrentTheme(this);
+        SourceInitialized += (_, _) =>
+        {
+            WindowChrome.ApplyCurrentTheme(this);
+            // (#16) Hook WM_DEVICECHANGE so we react to USB plug/unplug instantly.
+            _volumeMonitor = new VolumeMonitor();
+            _volumeMonitor.StatusChanged += VolumeMonitor_StatusChanged;
+            _volumeMonitor.Attach(this);
+            RefreshVolumeWatchList();
+        };
+    }
+
+    // ===================== (#16) USB / NETWORK UNMOUNT DETECTION =====================
+
+    /// <summary>
+    /// Re-sync the VolumeMonitor's watch list from current source folder + destinations.
+    /// Call after any change to either set.
+    /// </summary>
+    private void RefreshVolumeWatchList()
+    {
+        if (_volumeMonitor == null || _settings == null) return;
+        var paths = new List<string>();
+        if (!string.IsNullOrWhiteSpace(_settings.SourceFolder)) paths.Add(_settings.SourceFolder);
+        foreach (var d in Destinations)
+            if (!string.IsNullOrWhiteSpace(d.FolderPath)) paths.Add(d.FolderPath);
+        _volumeMonitor.SetWatchList(paths);
+        // Push current state into UI immediately so freshly-added destinations
+        // show their banner without waiting for the first transition event.
+        UpdateOfflineBindings();
+    }
+
+    private void VolumeMonitor_StatusChanged(VolumeStatusChange change)
+    {
+        // Marshal to UI thread (HwndSource hook can fire on the UI thread already, but
+        // belt-and-braces for the timer poll path).
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(new Action(() => VolumeMonitor_StatusChanged(change)));
+            return;
+        }
+        UpdateOfflineBindings();
+        if (_settings != null && string.Equals(change.Path, _settings.SourceFolder, StringComparison.OrdinalIgnoreCase))
+        {
+            StatusText.Text = change.IsOnline
+                ? $"Source folder reconnected: {change.Path}"
+                : $"Source folder went offline: {change.Path}";
+        }
+        else
+        {
+            StatusText.Text = change.IsOnline
+                ? $"Destination reconnected: {change.Path}"
+                : $"Destination went offline: {change.Path}";
+        }
+    }
+
+    private void UpdateOfflineBindings()
+    {
+        if (_volumeMonitor == null) return;
+        // Source banner
+        if (_settings != null && !string.IsNullOrWhiteSpace(_settings.SourceFolder))
+        {
+            bool online = _volumeMonitor.IsOnline(_settings.SourceFolder);
+            SourceOfflineBanner.Visibility = online ? Visibility.Collapsed : Visibility.Visible;
+        }
+        else
+        {
+            SourceOfflineBanner.Visibility = Visibility.Collapsed;
+        }
+        // Destination flags
+        foreach (var d in Destinations)
+        {
+            if (string.IsNullOrWhiteSpace(d.FolderPath)) { d.IsOffline = false; continue; }
+            d.IsOffline = !_volumeMonitor.IsOnline(d.FolderPath);
+        }
     }
 
     // ----------------- LIFECYCLE -----------------
@@ -785,6 +860,9 @@ public partial class MainWindow : Window
         _allItems.Clear();
         MediaItems.Clear();
         StatusText.Text = "Scanning…";
+
+        // (#16) Track the new source path for unmount detection.
+        RefreshVolumeWatchList();
 
         // (#19) If we have remembered view/sort prefs for this folder, apply them BEFORE
         // ApplyFilter so the new items render the way the user last left them.
@@ -1530,6 +1608,7 @@ public partial class MainWindow : Window
         {
             Destinations.Add(dest);
             RefreshDestinationCounts();
+            RefreshVolumeWatchList(); // (#16)
             SaveSettings();
         }
     }
@@ -1542,6 +1621,7 @@ public partial class MainWindow : Window
             if (dlg.ShowDialog() == true)
             {
                 RefreshDestinationCounts();
+                RefreshVolumeWatchList(); // (#16) folder may have changed
                 SaveSettings();
             }
         }
@@ -1555,6 +1635,7 @@ public partial class MainWindow : Window
                     MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 Destinations.Remove(dest);
+                RefreshVolumeWatchList(); // (#16)
                 SaveSettings();
             }
         }

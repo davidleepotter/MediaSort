@@ -42,6 +42,13 @@
                                VerticalAlignment="Center" Margin="10,0"
                                Foreground="{DynamicResource MutedForeground}"
                                MaxWidth="500" TextTrimming="CharacterEllipsis"/>
+                    <!-- (#16) Banner shown when the source folder becomes unreachable. -->
+                    <Border x:Name="SourceOfflineBanner" Visibility="Collapsed"
+                            Background="#E07A28" Padding="8,2" CornerRadius="4"
+                            VerticalAlignment="Center" Margin="6,0,0,0"
+                            ToolTip="The source folder is currently unreachable. Reconnect the drive or network share to continue.">
+                        <TextBlock Text="⚠ Source offline" Foreground="White" FontWeight="Bold" FontSize="11"/>
+                    </Border>
 
                     <Separator Margin="6,0"/>
 
@@ -525,12 +532,15 @@
                                                     <Button Content="✕" Width="28" Margin="2,0" Click="RemoveDestination_Click" Tag="{Binding}" ToolTip="Remove"/>
                                                 </StackPanel>
                                                 <Button Style="{StaticResource DestButton}" Click="SendToDestination_Click" Tag="{Binding}"
+                                                        Opacity="{Binding BadgeOpacity}"
                                                         ToolTip="Click: send selected items here&#x0A;Ctrl+Click: open this folder in Explorer">
                                                     <StackPanel>
                                                         <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
                                                         <TextBlock Text="{Binding HotKeyDisplay}" FontSize="10" Opacity="0.8"/>
                                                         <TextBlock Text="{Binding FolderPath}" FontSize="10" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
                                                         <TextBlock Text="{Binding BadgeText}" FontSize="10" Opacity="0.65" FontStyle="Italic"/>
+                                                        <TextBlock Text="{Binding StatusGlyph}" ToolTip="{Binding StatusGlyphTooltip}"
+                                                                   FontSize="10" FontWeight="Bold" Foreground="#E07A28"/>
                                                     </StackPanel>
                                                 </Button>
                                             </DockPanel>

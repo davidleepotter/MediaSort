@@ -17,6 +17,7 @@ public class DestinationButton : INotifyPropertyChanged
     private int _itemCount;
     private string _flashBadge = "";
     private double _flashOpacity = 0;
+    private bool _isOffline;
 
     public string Name
     {
@@ -171,6 +172,35 @@ public class DestinationButton : INotifyPropertyChanged
         get => _flashOpacity;
         set { _flashOpacity = value; OnPropertyChanged(); }
     }
+
+    /// <summary>
+    /// (#16) True when the underlying folder is currently unreachable
+    /// (e.g. USB unplugged, network share dropped). Surfaces an "Offline"
+    /// indicator on the destination button.
+    /// </summary>
+    public bool IsOffline
+    {
+        get => _isOffline;
+        set
+        {
+            if (_isOffline == value) return;
+            _isOffline = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(StatusGlyph));
+            OnPropertyChanged(nameof(StatusGlyphTooltip));
+            OnPropertyChanged(nameof(BadgeOpacity));
+        }
+    }
+
+    /// <summary>⚠ if offline, empty otherwise. Bound in the destination row.</summary>
+    public string StatusGlyph => _isOffline ? "⚠ Offline" : "";
+
+    public string StatusGlyphTooltip => _isOffline
+        ? "This folder is currently unreachable. Reconnect the drive or network share to use this destination."
+        : "";
+
+    /// <summary>Dim the row when offline.</summary>
+    public double BadgeOpacity => _isOffline ? 0.5 : 1.0;
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged([CallerMemberName] string? p = null)
