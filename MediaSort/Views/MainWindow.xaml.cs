@@ -1798,6 +1798,7 @@ public partial class MainWindow : Window
         ListView_Details.Visibility = Visibility.Collapsed;
         ListView_Thumbs.Visibility = Visibility.Collapsed;
 
+        bool isThumbs = false;
         switch ((ViewMode)ViewModeCombo.SelectedIndex)
         {
             case ViewMode.List:
@@ -1808,12 +1809,46 @@ public partial class MainWindow : Window
                 break;
             case ViewMode.Thumbnails:
                 ListView_Thumbs.Visibility = Visibility.Visible;
+                isThumbs = true;
                 break;
+        }
+
+        // (UX R3) Show the live thumb-size slider only in Thumbnails view; sync
+        // its current value with the persisted setting so it picks up the right
+        // starting position whenever the user switches into thumbnails.
+        if (ThumbSizePanel != null)
+        {
+            ThumbSizePanel.Visibility = isThumbs ? Visibility.Visible : Visibility.Collapsed;
+            if (isThumbs && ThumbSizeSlider != null && _settings != null)
+            {
+                int size = Math.Max(60, Math.Min(240, _settings.ThumbnailSize));
+                if ((int)ThumbSizeSlider.Value != size) ThumbSizeSlider.Value = size;
+                if (ThumbSizeValue != null) ThumbSizeValue.Text = $"{size}px";
+            }
         }
 
         var idx = GetSelectedIndex();
         if (MediaItems.Count > 0)
             SelectIndex(idx >= 0 ? idx : 0);
+    }
+
+    /// <summary>(UX R3) Live thumb-size slider in the Source pane toolbar. Updates
+    /// AppSettings.ThumbnailSize and pushes the new value into Window resources so
+    /// the Thumbnails view tiles resize live without a restart.</summary>
+    private void ThumbSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (!IsLoaded || _settings == null) return;
+        int size = (int)e.NewValue;
+        size = Math.Max(60, Math.Min(240, size));
+        if (_settings.ThumbnailSize == size)
+        {
+            if (ThumbSizeValue != null) ThumbSizeValue.Text = $"{size}px";
+            return;
+        }
+        _settings.ThumbnailSize = size;
+        ApplyThumbnailSize();
+        if (ThumbSizeValue != null) ThumbSizeValue.Text = $"{size}px";
+        SaveSettings();
     }
 
     private ListBox? ActiveSelector =>
@@ -1948,6 +1983,42 @@ public partial class MainWindow : Window
             SelectIndex(MediaItems.Count - 1);
             e.Handled = true;
         }
+        else if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control &&
+                 (Keyboard.Modifiers & ~ModifierKeys.Control) == 0)
+        {
+            // (UX R3) Quick-rating: Ctrl+0..Ctrl+5 sets the rating on the current
+            // selection. Ctrl+0 clears. Plain digits stay free for destination
+            // hotkeys. Both top-row digits and the numpad are accepted.
+            int? rating = e.Key switch
+            {
+                Key.D0 or Key.NumPad0 => 0,
+                Key.D1 or Key.NumPad1 => 1,
+                Key.D2 or Key.NumPad2 => 2,
+                Key.D3 or Key.NumPad3 => 3,
+                Key.D4 or Key.NumPad4 => 4,
+                Key.D5 or Key.NumPad5 => 5,
+                _ => null
+            };
+            if (rating.HasValue)
+            {
+                ApplyQuickRating(rating.Value);
+                e.Handled = true;
+            }
+        }
+    }
+
+    /// <summary>(UX R3) Quick-rating: apply a 0..5 rating to every currently selected
+    /// source item, persist via TagStore, and surface a brief status message.</summary>
+    private void ApplyQuickRating(int rating)
+    {
+        var items = GetSelectedItems();
+        if (items.Count == 0) return;
+        foreach (var it in items) _tags.SetRating(it, rating);
+        try { _tags.SaveIfDirty(); } catch { }
+        StatusText.Text = rating == 0
+            ? $"Cleared rating on {items.Count} item{(items.Count == 1 ? "" : "s")}"
+            : $"Rated {items.Count} item{(items.Count == 1 ? "" : "s")} {new string('★', rating)}";
+        ApplyFilter(); // refilter in case the Min★ filter is active
     }
 
     // ---- (#8) External-Explorer drag-drop into the source list ------------------
@@ -2618,6 +2689,44 @@ public partial class MainWindow : Window
                 SaveSettings();
             }
         }
+    }
+
+    /// <summary>(UX R3) Copy a destination's folder path to the clipboard.</summary>
+    private void CopyDestPath_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.Tag is DestinationButton dest)
+        {
+            try
+            {
+                System.Windows.Clipboard.SetText(dest.FolderPath ?? "");
+                StatusText.Text = $"Copied path to clipboard: {dest.FolderPath}";
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Log(ex, "copy-dest-path");
+                StatusText.Text = $"Couldn't copy path: {ex.Message}";
+            }
+        }
+    }
+
+    /// <summary>(UX R3) Reorder all destinations alphabetically by Name (case-insensitive).
+    /// Hotkeys are preserved per-destination — only the on-screen order changes.</summary>
+    private void SortDestinationsAlpha_Click(object sender, RoutedEventArgs e)
+    {
+        if (Destinations.Count < 2) return;
+        var sorted = Destinations
+            .OrderBy(d => d.Name ?? "", StringComparer.OrdinalIgnoreCase)
+            .ThenBy(d => d.FolderPath ?? "", StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        // Move items into sorted order in-place so the bound ItemsControl animates
+        // the change rather than refreshing the whole list.
+        for (int i = 0; i < sorted.Count; i++)
+        {
+            int from = Destinations.IndexOf(sorted[i]);
+            if (from != i && from >= 0) Destinations.Move(from, i);
+        }
+        SaveSettings();
+        StatusText.Text = $"Sorted {Destinations.Count} destinations alphabetically";
     }
 
     // ===================== (#10) DRAG-HANDLE REORDER =====================

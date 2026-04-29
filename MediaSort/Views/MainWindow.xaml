@@ -104,6 +104,23 @@
                         <ComboBoxItem Content="Thumbnails"/>
                     </ComboBox>
 
+                    <!-- (UX R3) Live thumb-size slider. Only visible in Thumbnails view.
+                         60..240 px maps directly to AppSettings.ThumbnailSize and persists. -->
+                    <StackPanel x:Name="ThumbSizePanel" Orientation="Horizontal"
+                                VerticalAlignment="Center" Margin="8,0,0,0"
+                                Visibility="Collapsed">
+                        <TextBlock Text="Size:" VerticalAlignment="Center" Margin="0,0,4,0"
+                                   Foreground="{DynamicResource PanelForeground}"/>
+                        <Slider x:Name="ThumbSizeSlider" Width="110" VerticalAlignment="Center"
+                                Minimum="60" Maximum="240" SmallChange="10" LargeChange="20"
+                                IsSnapToTickEnabled="True" TickFrequency="10"
+                                ValueChanged="ThumbSizeSlider_ValueChanged"
+                                ToolTip="Drag to resize thumbnail tiles (60–240 px)"/>
+                        <TextBlock x:Name="ThumbSizeValue" VerticalAlignment="Center" Margin="6,0,0,0"
+                                   MinWidth="36" TextAlignment="Right"
+                                   Foreground="{DynamicResource MutedForeground}"/>
+                    </StackPanel>
+
                     <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="12,0,4,0"
                                Foreground="{DynamicResource PanelForeground}"/>
                     <ComboBox x:Name="SortKeyCombo" Width="110"
@@ -785,9 +802,11 @@
                                                         <ContextMenu>
                                                             <MenuItem Header="Open folder in Explorer" Tag="{Binding}" Click="OpenDestFolder_Click"/>
                                                             <MenuItem Header="Use as source folder" Tag="{Binding}" Click="UseDestAsSource_Click"/>
+                                                            <MenuItem Header="Copy folder path" Tag="{Binding}" Click="CopyDestPath_Click"/>
                                                             <Separator/>
                                                             <MenuItem Header="Move up" Tag="{Binding}" Click="MoveDestUp_Click"/>
                                                             <MenuItem Header="Move down" Tag="{Binding}" Click="MoveDestDown_Click"/>
+                                                            <MenuItem Header="Sort destinations A–Z" Click="SortDestinationsAlpha_Click"/>
                                                             <Separator/>
                                                             <MenuItem Header="Edit destination..." Tag="{Binding}" Click="EditDestination_Click"/>
                                                             <MenuItem Header="Remove destination" Tag="{Binding}" Click="RemoveDestination_Click"/>
