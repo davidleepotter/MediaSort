@@ -193,7 +193,77 @@ public partial class MainWindow : Window
         if (AspectFilterCombo.SelectedIndex >= 0)
             _settings.AspectGroupFilter = (AspectGroup)AspectFilterCombo.SelectedIndex;
         _settings.Destinations = Destinations.Select(SettingsService.ToSerializable).ToList();
+        // (#19) Persist per-folder view/sort so each source folder remembers how the user likes to look at it.
+        SaveFolderStateForCurrent();
         SettingsService.Save(_settings);
+    }
+
+    // ----------------- PER-FOLDER STATE (#19) -----------------
+
+    /// <summary>
+    /// Normalize a folder path so we get a single canonical key per folder regardless
+    /// of trailing slashes or case differences on Windows.
+    /// </summary>
+    private static string NormalizeFolderKey(string folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder)) return "";
+        try
+        {
+            return System.IO.Path.GetFullPath(folder)
+                .TrimEnd('\\', '/')
+                .ToLowerInvariant();
+        }
+        catch { return folder.ToLowerInvariant(); }
+    }
+
+    /// <summary>
+    /// If we have a saved view/sort for this folder, push it into _settings (and the combos)
+    /// so the next ApplyFilter / ApplyViewMode picks it up.
+    /// </summary>
+    private void ApplyFolderState(string folder)
+    {
+        var key = NormalizeFolderKey(folder);
+        if (string.IsNullOrEmpty(key)) return;
+        var state = _settings.FolderStates.FirstOrDefault(s => NormalizeFolderKey(s.Path) == key);
+        if (state == null) return;
+
+        _settings.ViewMode = state.ViewMode;
+        _settings.SortKey = state.SortKey;
+        _settings.SortDescending = state.SortDescending;
+
+        // Reflect in UI without triggering SaveSettings recursion (combos fire SelectionChanged
+        // but the _initializing path is gone by now — SaveSettings is harmless because we're
+        // about to save anyway).
+        if (ViewModeCombo != null && ViewModeCombo.SelectedIndex != (int)state.ViewMode)
+            ViewModeCombo.SelectedIndex = (int)state.ViewMode;
+        if (SortKeyCombo != null && SortKeyCombo.SelectedIndex != (int)state.SortKey)
+            SortKeyCombo.SelectedIndex = (int)state.SortKey;
+        UpdateSortDirButton();
+    }
+
+    /// <summary>Persist the current view/sort under the current source folder key.</summary>
+    private void SaveFolderStateForCurrent()
+    {
+        var folder = _settings.SourceFolder;
+        var key = NormalizeFolderKey(folder);
+        if (string.IsNullOrEmpty(key)) return;
+
+        var state = _settings.FolderStates.FirstOrDefault(s => NormalizeFolderKey(s.Path) == key);
+        if (state == null)
+        {
+            state = new PerFolderState { Path = folder };
+            _settings.FolderStates.Add(state);
+        }
+        state.ViewMode = _settings.ViewMode;
+        state.SortKey = _settings.SortKey;
+        state.SortDescending = _settings.SortDescending;
+
+        // Cap so the JSON doesn't grow unbounded across years of usage.
+        const int MaxFolderStates = 200;
+        if (_settings.FolderStates.Count > MaxFolderStates)
+        {
+            _settings.FolderStates.RemoveRange(0, _settings.FolderStates.Count - MaxFolderStates);
+        }
     }
 
     // ----------------- SORTING -----------------
@@ -626,6 +696,11 @@ public partial class MainWindow : Window
         _allItems.Clear();
         MediaItems.Clear();
         StatusText.Text = "Scanning…";
+
+        // (#19) If we have remembered view/sort prefs for this folder, apply them BEFORE
+        // ApplyFilter so the new items render the way the user last left them.
+        ApplyFolderState(folder);
+        ApplyViewMode();
 
         bool recursive = RecursiveCheck.IsChecked == true;
         bool includeHidden = _settings.IncludeHiddenFiles;
