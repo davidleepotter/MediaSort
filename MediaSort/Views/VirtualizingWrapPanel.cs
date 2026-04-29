@@ -120,7 +120,31 @@ public class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
             return new Size(0, 0);
         }
 
-        // Use a generous initial cell size if we haven't measured anything yet.
+        var generator = ItemContainerGenerator;
+
+        // Step 1: if we don't yet know the cell size, realize item 0 with an
+        // unconstrained measure so its DataTemplate (which uses fixed Width/Height)
+        // reports its natural desired size. Without this, the first measure pass
+        // constrained children to the initial 120x120 guess, which baked the wrong
+        // size into the visual tree and produced the cropped/black-bar tiles the
+        // user reported. We only do this on the very first pass.
+        if (_itemSize.Width <= 1 || _itemSize.Height <= 1)
+        {
+            var probePos = generator.GeneratorPositionFromIndex(0);
+            using (generator.StartAt(probePos, GeneratorDirection.Forward, true))
+            {
+                var probe = (UIElement)generator.GenerateNext(out bool probeNew);
+                if (probeNew)
+                {
+                    AddInternalChild(probe);
+                    generator.PrepareItemContainer(probe);
+                }
+                probe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                if (probe.DesiredSize.Width > 1 && probe.DesiredSize.Height > 1)
+                    _itemSize = probe.DesiredSize;
+            }
+        }
+
         // Items per row is derived from the available width and the cached item size.
         double availW = double.IsInfinity(availableSize.Width) || availableSize.Width <= 0
             ? _itemSize.Width
@@ -138,7 +162,6 @@ public class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
         int lastIndex  = Math.Min(itemCount - 1, (lastVisibleRow + 1) * _itemsPerRow - 1);
 
         // Realize containers for [firstIndex..lastIndex], recycle the rest.
-        var generator = ItemContainerGenerator;
         var startPos = generator.GeneratorPositionFromIndex(firstIndex);
         int childIndex = (startPos.Offset == 0) ? startPos.Index : startPos.Index + 1;
 
@@ -161,17 +184,21 @@ public class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
                     InsertInternalChild(childIndex, child);
                 }
 
-                child.Measure(new Size(_itemSize.Width, _itemSize.Height));
+                // Measure unconstrained so the fixed-size DataTemplate gets its
+                // real desired size. We position the child later inside a cell of
+                // size _itemSize; arranging a child whose desired size matches the
+                // cell avoids the black-band cropping bug.
+                child.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
 
-                // Update item size from the first realized child each pass so a theme
-                // change or a different ThumbTileSize resource takes effect promptly.
-                if (itemIndex == firstIndex && child.DesiredSize.Width > 0 && child.DesiredSize.Height > 0)
+                // If a child's desired size grew (theme change, larger ThumbTileSize
+                // resource), update the cell size to match. This will be picked up
+                // on the next measure pass via InvalidateMeasure below.
+                if (child.DesiredSize.Width > _itemSize.Width + 0.5 ||
+                    child.DesiredSize.Height > _itemSize.Height + 0.5)
                 {
-                    if (child.DesiredSize.Width > _itemSize.Width || child.DesiredSize.Height > _itemSize.Height
-                        || _itemSize.Width <= 1 || _itemSize.Height <= 1)
-                    {
-                        _itemSize = child.DesiredSize;
-                    }
+                    _itemSize = child.DesiredSize;
+                    Dispatcher.BeginInvoke(new Action(InvalidateMeasure),
+                        System.Windows.Threading.DispatcherPriority.Render);
                 }
             }
         }
