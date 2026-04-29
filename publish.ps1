@@ -1,23 +1,24 @@
 <#
 .SYNOPSIS
-  Publishes MediaSort to D:\Temp\MediaSorter (clean build, framework-dependent, win-x64).
+  Publishes MediaSort to D:\Temp\MediaSorter (clean build, self-contained, single-file, win-x64).
 
 .DESCRIPTION
-  - Runs `dotnet publish` using the FolderProfile publish profile.
-  - Cleans the destination directory first so old files don't linger.
-  - Run from anywhere; the script locates the .csproj relative to itself.
+  Defaults to self-contained + single-file: one ~150 MB MediaSort.exe that
+  runs on any Windows 10/11 machine without requiring .NET to be installed.
+  Pass -FrameworkDependent for a tiny ~5 MB build that requires .NET 9
+  Desktop Runtime on the target machine.
 
 .EXAMPLE
-  PS> .\publish.ps1
-  PS> .\publish.ps1 -SelfContained        # bundle .NET runtime
-  PS> .\publish.ps1 -SingleFile           # produce a single .exe
+  PS> .\publish.ps1                         # self-contained, single .exe (default)
+  PS> .\publish.ps1 -FrameworkDependent     # tiny .exe, requires .NET 9 installed
+  PS> .\publish.ps1 -MultiFile              # folder of DLLs instead of single .exe
 #>
 param(
     [string]$OutputDir = 'D:\Temp\MediaSorter',
     [string]$Configuration = 'Release',
     [string]$Runtime = 'win-x64',
-    [switch]$SelfContained,
-    [switch]$SingleFile,
+    [switch]$FrameworkDependent,
+    [switch]$MultiFile,
     [switch]$NoClean
 )
 
@@ -39,8 +40,8 @@ if (Test-Path $OutputDir) {
     New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 }
 
-$selfContainedFlag = if ($SelfContained) { 'true' } else { 'false' }
-$singleFileFlag    = if ($SingleFile)    { 'true' } else { 'false' }
+$selfContainedFlag = if ($FrameworkDependent) { 'false' } else { 'true' }
+$singleFileFlag    = if ($MultiFile)          { 'false' } else { 'true' }
 
 Write-Host "Publishing MediaSort -> $OutputDir" -ForegroundColor Cyan
 Write-Host "  Configuration : $Configuration"
@@ -54,6 +55,9 @@ Write-Host ""
     -r $Runtime `
     --self-contained $selfContainedFlag `
     -p:PublishSingleFile=$singleFileFlag `
+    -p:IncludeNativeLibrariesForSelfExtract=true `
+    -p:EnableCompressionInSingleFile=true `
+    -p:PublishReadyToRun=true `
     -p:PublishDir="$OutputDir\" `
     -p:PublishProtocol=FileSystem
 
