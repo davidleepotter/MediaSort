@@ -116,6 +116,7 @@
                         <ComboBoxItem Content="Modified"/>
                         <ComboBoxItem Content="Kind"/>
                         <ComboBoxItem Content="Duration"/>
+                        <ComboBoxItem Content="Created"/>
                     </ComboBox>
                     <Button x:Name="SortDirButton" Content="▲" Width="30"
                             Style="{StaticResource ToolButton}"
@@ -357,6 +358,9 @@
                                     </GridViewColumn>
                                     <GridViewColumn Width="120" DisplayMemberBinding="{Binding ModifiedDate, StringFormat=yyyy-MM-dd HH:mm}">
                                         <GridViewColumnHeader Content="Modified" Tag="Modified" Click="GridHeader_Click"/>
+                                    </GridViewColumn>
+                                    <GridViewColumn Width="120" DisplayMemberBinding="{Binding CreatedDate, StringFormat=yyyy-MM-dd HH:mm}">
+                                        <GridViewColumnHeader Content="Created" Tag="Created" Click="GridHeader_Click"/>
                                     </GridViewColumn>
                                 </GridView>
                             </ListView.View>

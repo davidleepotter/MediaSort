@@ -16,7 +16,9 @@ public enum SortKey
     Aspect,
     Modified,
     Kind,
-    Duration
+    Duration,
+    // Append new keys at the end — SortKeyCombo binds by enum ordinal.
+    Created
 }
 
 public enum ThemeOverride
