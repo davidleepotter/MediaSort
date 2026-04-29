@@ -1180,22 +1180,28 @@ public partial class MainWindow : Window
         {
             var items = GetSelectedItems();
             if (items.Count == 0) { StatusText.Text = "No item selected."; return; }
+            DispatchAction(items, dest, fe);
+        }
+    }
 
-            // Honor the toolbar Action dropdown: Move (default), Copy (keep originals),
-            // or Delete (send originals to Recycle Bin without copying anywhere).
-            switch (_settings.Action)
-            {
-                case FileAction.Copy:
-                    CopyItemsTo(items, dest, fe);
-                    return;
-                case FileAction.Delete:
-                    DeleteItemsFromDestinationButton(items);
-                    return;
-                case FileAction.Move:
-                default:
-                    MoveItemsTo(items, dest, fe);
-                    return;
-            }
+    // Single chokepoint for sending items to a destination, honoring the
+    // toolbar Action dropdown: Move (default), Copy (keep originals), or
+    // Delete (recycle originals without copying). Used by button click,
+    // hotkeys, and any future trigger so the action setting is never bypassed.
+    private void DispatchAction(List<MediaItem> items, DestinationButton dest, FrameworkElement? destinationElement)
+    {
+        switch (_settings.Action)
+        {
+            case FileAction.Copy:
+                CopyItemsTo(items, dest, destinationElement);
+                return;
+            case FileAction.Delete:
+                DeleteItemsFromDestinationButton(items);
+                return;
+            case FileAction.Move:
+            default:
+                MoveItemsTo(items, dest, destinationElement);
+                return;
         }
     }
 
@@ -1810,7 +1816,7 @@ public partial class MainWindow : Window
             {
                 var items = GetSelectedItems();
                 if (items.Count == 0) return;
-                MoveItemsTo(items, dest, FindDestinationElement(dest));
+                DispatchAction(items, dest, FindDestinationElement(dest));
                 e.Handled = true;
                 return;
             }
