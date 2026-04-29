@@ -22,6 +22,7 @@ public partial class SettingsWindow : Window
         SourceFolderBox.Text = settings.SourceFolder;
         RecursiveCheck.IsChecked = settings.RecursiveScan;
         IncludeHiddenCheck.IsChecked = settings.IncludeHiddenFiles;
+        RefreshThumbCacheStats();
         AutoAdvanceCheck.IsChecked = settings.AutoAdvanceAfterMove;
         ViewModeCombo.SelectedIndex = (int)settings.ViewMode;
         ConflictPolicyCombo.SelectedIndex = (int)settings.ConflictPolicy;
@@ -119,5 +120,32 @@ public partial class SettingsWindow : Window
                 "Save Debug Log",
                 System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
+    }
+
+    private void RefreshThumbCacheStats()
+    {
+        try
+        {
+            var (bytes, count) = MediaSort.Services.ThumbnailCache.GetDiskStats();
+            double mb = bytes / (1024.0 * 1024.0);
+            ThumbCacheStatusText.Text = count == 0
+                ? "Thumbnail cache is empty."
+                : $"On disk: {count} thumbnail(s), {mb:0.0} MB.";
+        }
+        catch
+        {
+            ThumbCacheStatusText.Text = "";
+        }
+    }
+
+    private void ClearThumbCache_Click(object sender, RoutedEventArgs e)
+    {
+        var res = System.Windows.MessageBox.Show(this,
+            "This will delete all cached thumbnails (memory + disk). Thumbnails will be regenerated next time you open a folder. Continue?",
+            "Clear Thumbnail Cache",
+            System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Question);
+        if (res != System.Windows.MessageBoxResult.OK) return;
+        MediaSort.Services.ThumbnailCache.ClearAll();
+        RefreshThumbCacheStats();
     }
 }

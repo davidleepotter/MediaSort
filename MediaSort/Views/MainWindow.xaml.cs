@@ -763,24 +763,51 @@ public partial class MainWindow : Window
 
         _ = Task.Run(() =>
         {
+            // (#1) Parallelize image thumbnails. Cap parallelism so we don't drown the
+            // disk on slow drives or thrash the dispatcher with thousands of cross-thread
+            // BeginInvoke calls. Videos stay serial — LibVLC's media-parse path is not safe
+            // to fan out across threads.
             int thumbsAssigned = 0;
             int dimsAssigned = 0;
             int failures = 0;
-            foreach (var item in items)
+
+            var images = items.Where(i => i.Kind == MediaKind.Image).ToList();
+            var videos = items.Where(i => i.Kind == MediaKind.Video).ToList();
+
+            // Reasonable cap: 4 in flight is plenty for HDD; SSDs aren't bottlenecked
+            // by the decode itself anyway. ProcessorCount/2 gives a sane upper bound
+            // on big workstations.
+            int dop = Math.Min(4, Math.Max(2, Environment.ProcessorCount / 2));
+            try
+            {
+                Parallel.ForEach(
+                    images,
+                    new ParallelOptions { MaxDegreeOfParallelism = dop, CancellationToken = ct },
+                    item =>
+                    {
+                        if (ct.IsCancellationRequested) return;
+                        try
+                        {
+                            if (ProbeImage(item, ct))
+                                System.Threading.Interlocked.Increment(ref thumbsAssigned);
+                            if (item.PixelWidth > 0)
+                                System.Threading.Interlocked.Increment(ref dimsAssigned);
+                        }
+                        catch (OperationCanceledException) { }
+                        catch (Exception ex)
+                        {
+                            System.Threading.Interlocked.Increment(ref failures);
+                            CrashLogger.Log(ex, $"probe:{item.FullPath}");
+                        }
+                    });
+            }
+            catch (OperationCanceledException) { CrashLogger.Info("probe:cancelled"); return; }
+
+            // Videos serially.
+            foreach (var item in videos)
             {
                 if (ct.IsCancellationRequested) { CrashLogger.Info("probe:cancelled"); return; }
-                try
-                {
-                    if (item.Kind == MediaKind.Image)
-                    {
-                        if (ProbeImage(item, ct)) thumbsAssigned++;
-                        if (item.PixelWidth > 0) dimsAssigned++;
-                    }
-                    else if (item.Kind == MediaKind.Video)
-                    {
-                        ProbeVideo(item, ct);
-                    }
-                }
+                try { ProbeVideo(item, ct); }
                 catch (Exception ex)
                 {
                     failures++;
@@ -823,28 +850,39 @@ public partial class MainWindow : Window
 
         if (ct.IsCancellationRequested) return false;
 
-        // Thumbnail: read bytes + decode on the background thread. BitmapFromBytes
-        // returns a frozen BitmapSource that's safe to hand to the UI thread.
-        BitmapSource? thumb = null;
-        try
+        // (#2) Two-tier cache lookup: memory → disk → decode-and-store. The cache key encodes
+        // path + mtime + size + decode width, so edits and re-saves invalidate cleanly.
+        const int ThumbDecodeWidth = 128;
+        BitmapSource? thumb = ThumbnailCache.TryGetMemory(item.FullPath, ThumbDecodeWidth)
+                              ?? ThumbnailCache.TryGetDisk(item.FullPath, ThumbDecodeWidth);
+
+        if (thumb == null)
         {
-            var bytes = ThumbnailLoader.TryReadAllBytes(item.FullPath);
-            if (bytes == null)
+            // Thumbnail: read bytes + decode on the background thread. BitmapFromBytes
+            // returns a frozen BitmapSource that's safe to hand to the UI thread.
+            try
             {
-                CrashLogger.Info($"probe:read-null {item.FileName}");
+                var bytes = ThumbnailLoader.TryReadAllBytes(item.FullPath);
+                if (bytes == null)
+                {
+                    CrashLogger.Info($"probe:read-null {item.FileName}");
+                    return false;
+                }
+                thumb = ThumbnailLoader.BitmapFromBytes(bytes, ThumbDecodeWidth);
+                if (thumb == null)
+                {
+                    CrashLogger.Info($"probe:decode-null {item.FileName} bytes={bytes.Length}");
+                    return false;
+                }
+                // Persist for next time.
+                try { ThumbnailCache.Put(item.FullPath, ThumbDecodeWidth, thumb); }
+                catch (Exception ex) { CrashLogger.Log(ex, $"thumb-cache-put:{item.FullPath}"); }
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Log(ex, $"probe-image-bg:{item.FullPath}");
                 return false;
             }
-            thumb = ThumbnailLoader.BitmapFromBytes(bytes, 128);
-            if (thumb == null)
-            {
-                CrashLogger.Info($"probe:decode-null {item.FileName} bytes={bytes.Length}");
-                return false;
-            }
-        }
-        catch (Exception ex)
-        {
-            CrashLogger.Log(ex, $"probe-image-bg:{item.FullPath}");
-            return false;
         }
 
         if (ct.IsCancellationRequested) return false;

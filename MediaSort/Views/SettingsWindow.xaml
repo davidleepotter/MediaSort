@@ -179,6 +179,14 @@
                 <Button Content="Save Debug Log…" Style="{StaticResource ToolButton}"
                         HorizontalAlignment="Left" Click="SaveDebugLog_Click"
                         ToolTip="Save a debug log file you can attach to a bug report"/>
+
+                <TextBlock Text="Performance" FontSize="16" FontWeight="Bold" Margin="0,16,0,8"
+                           Foreground="{DynamicResource PanelForeground}"/>
+                <TextBlock x:Name="ThumbCacheStatusText"
+                           Foreground="{DynamicResource MutedForeground}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <Button Content="Clear Thumbnail Cache" Style="{StaticResource ToolButton}"
+                        HorizontalAlignment="Left" Click="ClearThumbCache_Click"
+                        ToolTip="Wipe both the in-memory and on-disk thumbnail cache. Thumbnails will be regenerated on the next folder load."/>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>
