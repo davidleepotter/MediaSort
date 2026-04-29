@@ -3218,6 +3218,10 @@ public partial class MainWindow : Window
     /// <summary>Public surface for HistoryWindow.</summary>
     internal MoveHistoryService HistoryService => _history;
 
+    /// <summary>Sync the toolbar Undo button's enabled state with the history
+    /// stack. Called from HistoryWindow after Clear or arbitrary undo.</summary>
+    internal void RefreshUndoButtonState() => UndoButton.IsEnabled = _history.CanUndo;
+
     /// <summary>
     /// Undo a specific batch (called from HistoryWindow). Removes it from the
     /// stack and restores files. Safe no-op if batch isn't currently in stack.

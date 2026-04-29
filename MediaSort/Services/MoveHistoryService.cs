@@ -53,6 +53,10 @@ public class MoveHistoryService
     /// when undoing a batch that isn't necessarily the most recent). Identity
     /// match — no value comparison. Returns true if removed.
     /// </summary>
+    /// <summary>Drops every batch from the in-memory undo stack. Does NOT
+    /// touch the on-disk CSV audit log — that's a permanent record.</summary>
+    public void ClearAll() => _undoStack.Clear();
+
     public bool RemoveBatch(List<MoveRecord> batch)
     {
         if (batch == null || _undoStack.Count == 0) return false;

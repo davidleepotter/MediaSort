@@ -70,6 +70,11 @@
                     Style="{StaticResource ToolButton}" Click="OpenLog_Click"
                     MinWidth="110" Padding="14,4"
                     ToolTip="Opens the CSV move-history log in Notepad."/>
+            <Button DockPanel.Dock="Left" x:Name="ClearHistoryButton"
+                    Content="Clear History"
+                    Style="{StaticResource ToolButton}" Click="ClearHistory_Click"
+                    MinWidth="110" Padding="14,4" Margin="6,0,0,0"
+                    ToolTip="Drop all undo batches from memory. The CSV audit log on disk is preserved."/>
             <Button DockPanel.Dock="Right" Content="Close"
                     Style="{StaticResource ToolButton}" Click="Close_Click"
                     MinWidth="90" Padding="14,4" Margin="6,0,0,0"

@@ -132,5 +132,28 @@ public partial class HistoryWindow : Window
         }
     }
 
+    private void ClearHistory_Click(object sender, RoutedEventArgs e)
+    {
+        if (_owner.HistoryService.UndoBatchCount == 0)
+        {
+            System.Windows.MessageBox.Show(this,
+                "No batches to clear.",
+                "Move history", System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
+            return;
+        }
+        var res = System.Windows.MessageBox.Show(this,
+            $"Drop all {_owner.HistoryService.UndoBatchCount} undo batch(es) from memory?\n\n" +
+            "You will not be able to undo any of them after this. The on-disk CSV audit log is preserved.",
+            "Clear move history",
+            System.Windows.MessageBoxButton.OKCancel,
+            System.Windows.MessageBoxImage.Warning);
+        if (res != System.Windows.MessageBoxResult.OK) return;
+
+        _owner.HistoryService.ClearAll();
+        _owner.RefreshUndoButtonState();
+        Reload();
+    }
+
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 }
