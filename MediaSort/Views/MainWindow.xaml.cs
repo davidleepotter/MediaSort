@@ -1594,6 +1594,18 @@ public partial class MainWindow : Window
         if (_suppressSelectionUpdate) return;
         if (sender is Selector sel && sel == ActiveSelector)
         {
+            // Explicitly sync MediaItem.IsSelected from the Selector's AddedItems/
+            // RemovedItems. The ItemContainerStyle setter binding (ListBoxItem.IsSelected
+            // ↔ MediaItem.IsSelected, TwoWay) is unreliable inside virtualized panels:
+            // when a container recycles, the local IsSelected can fall out of sync with
+            // the data item, leaving the thumb tile's checkbox visually unchecked even
+            // when the row is selected. Driving the model directly from the selection
+            // event guarantees the checkbox always reflects reality.
+            foreach (var removed in e.RemovedItems.OfType<MediaItem>())
+                removed.IsSelected = false;
+            foreach (var added in e.AddedItems.OfType<MediaItem>())
+                added.IsSelected = true;
+
             var idx = sel.SelectedIndex;
             if (idx >= 0 && idx < MediaItems.Count)
             {
