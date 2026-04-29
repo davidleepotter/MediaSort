@@ -1046,8 +1046,16 @@ public partial class MainWindow : Window
         var videoCount = items.Count(i => i.Kind == MediaKind.Video);
         CrashLogger.Info($"probe:start total={items.Count} images={imageCount} videos={videoCount} report={reportCompletion}");
 
+        int totalForStatus = items.Count;
+
         _ = Task.Run(() =>
         {
+            // Lower the priority of the entire probe pipeline so thumbnail decoding
+            // never starves UI input (mouse, scroll, keyboard). User reported very
+            // sluggish mouse movement on a 1938-image network share — BelowNormal
+            // pool threads still complete the work, just behind the foreground UI.
+            try { System.Threading.Thread.CurrentThread.Priority = System.Threading.ThreadPriority.BelowNormal; } catch { }
+
             // (#1) Parallelize image thumbnails. Cap parallelism so we don't drown the
             // disk on slow drives or thrash the dispatcher with thousands of cross-thread
             // BeginInvoke calls. Videos stay serial — LibVLC's media-parse path is not safe
@@ -1055,6 +1063,7 @@ public partial class MainWindow : Window
             int thumbsAssigned = 0;
             int dimsAssigned = 0;
             int failures = 0;
+            int processed = 0;
 
             var images = items.Where(i => i.Kind == MediaKind.Image).ToList();
             var videos = items.Where(i => i.Kind == MediaKind.Video).ToList();
@@ -1063,6 +1072,28 @@ public partial class MainWindow : Window
             // and floods the dispatcher with thumbnail-assign posts, making the UI
             // sluggish during scan-and-probe of large folders (700+ items).
             int dop = Math.Min(2, Math.Max(1, Environment.ProcessorCount / 4));
+
+            // Periodic status update. Only post on count change AND minimum 200ms
+            // gap so we don't spam the dispatcher — each post itself contends with
+            // the UI thread.
+            int lastStatusTick = Environment.TickCount;
+            int lastStatusValue = -1;
+            void PostStatus(int done, bool force)
+            {
+                if (totalForStatus <= 0) return;
+                int now = Environment.TickCount;
+                if (!force && (now - lastStatusTick) < 200) return;
+                if (!force && done == lastStatusValue) return;
+                lastStatusTick = now;
+                lastStatusValue = done;
+                int doneCap = done;
+                int totalCap = totalForStatus;
+                Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                {
+                    StatusText.Text = $"Loading thumbnails… {doneCap:N0} of {totalCap:N0}";
+                }));
+            }
+
             try
             {
                 Parallel.ForEach(
@@ -1071,6 +1102,7 @@ public partial class MainWindow : Window
                     item =>
                     {
                         if (ct.IsCancellationRequested) return;
+                        try { System.Threading.Thread.CurrentThread.Priority = System.Threading.ThreadPriority.BelowNormal; } catch { }
                         try
                         {
                             if (ProbeImage(item, ct))
@@ -1084,6 +1116,8 @@ public partial class MainWindow : Window
                             System.Threading.Interlocked.Increment(ref failures);
                             CrashLogger.Log(ex, $"probe:{item.FullPath}");
                         }
+                        int p = System.Threading.Interlocked.Increment(ref processed);
+                        PostStatus(p, force: false);
                     });
             }
             catch (OperationCanceledException) { CrashLogger.Info("probe:cancelled"); return; }
@@ -1106,6 +1140,8 @@ public partial class MainWindow : Window
                     failures++;
                     CrashLogger.Log(ex, $"probe:{item.FullPath}");
                 }
+                processed++;
+                PostStatus(processed, force: false);
             }
 
             CrashLogger.Info($"probe:done thumbs={thumbsAssigned} dims={dimsAssigned} failures={failures}");
@@ -1129,6 +1165,12 @@ public partial class MainWindow : Window
                         StatusText.Text = finalFails > 0
                             ? $"Thumbnails regenerated: {finalThumbs:N0} of {finalTotal:N0} ({finalFails:N0} failed)"
                             : $"Thumbnails regenerated: {finalThumbs:N0} of {finalTotal:N0}";
+                    }
+                    else
+                    {
+                        // Restore the steady-state status text so users don't keep
+                        // seeing "Loading thumbnails…" forever.
+                        StatusText.Text = $"{finalTotal:N0} media file(s) found";
                     }
                 }));
             }
