@@ -109,6 +109,7 @@ public partial class MainWindow : Window
         SortKeyCombo.SelectedIndex = (int)_settings.SortKey;
         DateFilterCombo.SelectedIndex = (int)_settings.DateFilter;
         AspectFilterCombo.SelectedIndex = (int)_settings.AspectGroupFilter;
+        ActionCombo.SelectedIndex = (int)_settings.Action;
         UpdateSortDirButton();
 
         ThemeManager.ApplyOverride(_settings.ThemeOverride, _settings.AccentColor);
@@ -1189,8 +1190,194 @@ public partial class MainWindow : Window
         {
             var items = GetSelectedItems();
             if (items.Count == 0) { StatusText.Text = "No item selected."; return; }
-            MoveItemsTo(items, dest, fe);
+
+            // Honor the toolbar Action dropdown: Move (default), Copy (keep originals),
+            // or Delete (send originals to Recycle Bin without copying anywhere).
+            switch (_settings.Action)
+            {
+                case FileAction.Copy:
+                    CopyItemsTo(items, dest, fe);
+                    return;
+                case FileAction.Delete:
+                    DeleteItemsFromDestinationButton(items);
+                    return;
+                case FileAction.Move:
+                default:
+                    MoveItemsTo(items, dest, fe);
+                    return;
+            }
         }
+    }
+
+    private void ActionCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_initializing || _settings == null) return;
+        var idx = ActionCombo.SelectedIndex;
+        if (idx < 0) return;
+        _settings.Action = (FileAction)idx;
+        StatusText.Text = $"Action mode: {_settings.Action}";
+        SaveSettings();
+    }
+
+    private void SelectAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (ActiveSelector is ListBox lb) lb.SelectAll();
+        else if (ActiveSelector is ListView lv) lv.SelectAll();
+        UpdateStats();
+    }
+
+    /// <summary>
+    /// Copy variant of MoveItemsTo — same conflict handling, but originals stay in place
+    /// and the source list is not modified.
+    /// </summary>
+    private void CopyItemsTo(List<MediaItem> items, DestinationButton dest, FrameworkElement? destinationElement)
+    {
+        if (string.IsNullOrWhiteSpace(dest.FolderPath))
+        {
+            StatusText.Text = $"Destination '{dest.Name}' has no folder set.";
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(dest.KindFilter))
+        {
+            var blocked = items.Where(i => i.Kind.ToString() != dest.KindFilter).ToList();
+            if (blocked.Count > 0)
+            {
+                StatusText.Text = $"'{dest.Name}' only accepts {dest.KindFilter} files. Skipped {blocked.Count}.";
+                items = items.Where(i => i.Kind.ToString() == dest.KindFilter).ToList();
+                if (items.Count == 0) return;
+            }
+        }
+
+        // Reset per-batch conflict prefs
+        _conflictPolicyForBatch = SettingPolicyToConflict(_settings.ConflictPolicy);
+        _applyToAllForBatch = _conflictPolicyForBatch != ConflictPolicy.Prompt;
+
+        int copied = 0;
+        foreach (var item in items.ToList())
+        {
+            var rec = CopyWithPolicy(item.FullPath, dest, ref _conflictPolicyForBatch, ref _applyToAllForBatch);
+            if (rec != null) copied++;
+        }
+
+        if (copied > 0)
+        {
+            StatusText.Text = $"Copied {copied} file(s) to {dest.Name}";
+            RefreshDestinationCounts();
+        }
+        UpdateStats();
+    }
+
+    /// <summary>
+    /// "Delete" mode: when a destination button is activated, ignore its folder
+    /// and just send the selected source files to the Recycle Bin.
+    /// </summary>
+    private void DeleteItemsFromDestinationButton(List<MediaItem> items)
+    {
+        var msg = items.Count == 1
+            ? $"Send '{items[0].FileName}' to the Recycle Bin?"
+            : $"Send {items.Count} files to the Recycle Bin?";
+        if (MessageBox.Show(msg, "Delete", MessageBoxButton.YesNo, MessageBoxImage.Question)
+            != MessageBoxResult.Yes) return;
+
+        StopVideo();
+        PreviewImage.Source = null;
+
+        var firstIdx = MediaItems.IndexOf(items[0]);
+        var batch = new List<MoveHistoryService.MoveRecord>();
+        foreach (var item in items.ToList())
+        {
+            if (FileMover.SendToRecycleBin(item.FullPath))
+            {
+                batch.Add(new MoveHistoryService.MoveRecord
+                {
+                    OriginalPath = item.FullPath,
+                    NewPath = "(recycle bin)",
+                    Action = "Trash"
+                });
+                _allItems.Remove(item);
+                MediaItems.Remove(item);
+            }
+        }
+
+        if (batch.Count > 0)
+        {
+            _history.Push(batch);
+            UndoButton.IsEnabled = _history.CanUndo;
+            StatusText.Text = $"Deleted {batch.Count} file(s) (sent to Recycle Bin)";
+        }
+
+        if (MediaItems.Count > 0)
+            SelectIndex(Math.Min(firstIdx, MediaItems.Count - 1));
+        else { ClearPreview(); UpdatePositionDisplay(); }
+        UpdateStats();
+    }
+
+    /// <summary>
+    /// Copy variant of MoveWithPolicy — evaluates subfolder template, respects
+    /// the per-batch conflict policy, and calls FileMover.CopyToFolder.
+    /// </summary>
+    private MoveHistoryService.MoveRecord? CopyWithPolicy(string sourcePath,
+                                                          DestinationButton dest,
+                                                          ref ConflictPolicy policy,
+                                                          ref bool applyAll)
+    {
+        var targetFolder = dest.FolderPath;
+        if (!string.IsNullOrEmpty(dest.SubfolderTemplate))
+        {
+            var fi = new FileInfo(sourcePath);
+            var date = fi.Exists ? fi.LastWriteTime : DateTime.Now;
+            var sub = System.Text.RegularExpressions.Regex.Replace(dest.SubfolderTemplate,
+                @"\{(\w+)(?::([^}]+))?\}", m =>
+                {
+                    var token = m.Groups[1].Value.ToLowerInvariant();
+                    var fmt = m.Groups[2].Success ? m.Groups[2].Value : null;
+                    return token switch
+                    {
+                        "date" => date.ToString(string.IsNullOrEmpty(fmt) ? "yyyy-MM" : fmt),
+                        _ => m.Value
+                    };
+                });
+            foreach (var c in Path.GetInvalidFileNameChars()) sub = sub.Replace(c.ToString(), "");
+            targetFolder = Path.Combine(targetFolder, sub);
+        }
+
+        var probable = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
+        if (File.Exists(probable) && policy == ConflictPolicy.Prompt && !applyAll)
+        {
+            var dlg = new ConflictDialog(Path.GetFileName(sourcePath), targetFolder) { Owner = this };
+            if (dlg.ShowDialog() != true) return null;
+            policy = dlg.Choice;
+            applyAll = dlg.ApplyToAll;
+            if (!applyAll)
+            {
+                var oneShot = policy;
+                policy = ConflictPolicy.Prompt;
+                return DoCopy(sourcePath, targetFolder, dest.RenameTemplate, oneShot);
+            }
+        }
+
+        return DoCopy(sourcePath, targetFolder, dest.RenameTemplate, policy);
+    }
+
+    private MoveHistoryService.MoveRecord? DoCopy(string sourcePath, string targetFolder, string? rename, ConflictPolicy policy)
+    {
+        var r = FileMover.CopyToFolder(sourcePath, targetFolder, policy, rename);
+        if (r.Outcome == MoveOutcome.Moved)
+        {
+            return new MoveHistoryService.MoveRecord
+            {
+                OriginalPath = sourcePath,
+                NewPath = r.FinalPath,
+                When = DateTime.Now,
+                Action = "Copy"
+            };
+        }
+        if (r.Outcome == MoveOutcome.Failed)
+        {
+            StatusText.Text = $"Copy failed: {r.ErrorMessage}";
+        }
+        return null;
     }
 
     private void MoveItemsTo(List<MediaItem> items, DestinationButton dest, FrameworkElement? destinationElement)

@@ -43,6 +43,14 @@ public enum AspectGroup
     Square
 }
 
+/// <summary>What to do when a destination button is activated for the selected file(s).</summary>
+public enum FileAction
+{
+    Move,
+    Copy,
+    Delete
+}
+
 public class SerializableDestination
 {
     public string Name { get; set; } = "";
@@ -88,6 +96,9 @@ public class AppSettings
     // ---- Behavior ----
     public ConflictPolicySetting ConflictPolicy { get; set; } = ConflictPolicySetting.Prompt;
     public bool AutoAdvanceAfterMove { get; set; } = true;
+
+    /// <summary>What action to perform when sending selected items to a destination.</summary>
+    public FileAction Action { get; set; } = FileAction.Move;
 
     // ---- Memory ----
     public List<PerFolderState> FolderStates { get; set; } = new();

@@ -114,6 +114,75 @@ public static class FileMover
     }
 
     /// <summary>
+    /// Copy a file with explicit conflict policy and optional rename template.
+    /// Mirrors MoveToFolder semantics but leaves the source file in place.
+    /// </summary>
+    public static MoveResult CopyToFolder(string sourceFile, string destFolder,
+                                          ConflictPolicy policy,
+                                          string? renameTemplate)
+    {
+        var result = new MoveResult { OriginalPath = sourceFile };
+
+        if (string.IsNullOrWhiteSpace(sourceFile) || !File.Exists(sourceFile))
+        {
+            result.Outcome = MoveOutcome.Failed;
+            result.ErrorMessage = "Source file not found.";
+            return result;
+        }
+
+        if (string.IsNullOrWhiteSpace(destFolder))
+        {
+            result.Outcome = MoveOutcome.Failed;
+            result.ErrorMessage = "Destination folder is empty.";
+            return result;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(destFolder);
+
+            var fileName = ApplyRenameTemplate(sourceFile, renameTemplate);
+            var target = Path.Combine(destFolder, fileName);
+
+            if (File.Exists(target))
+            {
+                switch (policy)
+                {
+                    case ConflictPolicy.Skip:
+                        result.Outcome = MoveOutcome.Skipped;
+                        result.FinalPath = target;
+                        return result;
+
+                    case ConflictPolicy.Prompt:
+                        result.Outcome = MoveOutcome.NeedsUserDecision;
+                        result.FinalPath = target;
+                        return result;
+
+                    case ConflictPolicy.Overwrite:
+                        // File.Copy(overwrite:true) handles this in one call
+                        break;
+
+                    case ConflictPolicy.Rename:
+                    default:
+                        target = MakeUniquePath(target);
+                        break;
+                }
+            }
+
+            File.Copy(sourceFile, target, overwrite: policy == ConflictPolicy.Overwrite);
+            result.Outcome = MoveOutcome.Moved; // "Moved" outcome reused for "completed successfully"
+            result.FinalPath = target;
+            return result;
+        }
+        catch (Exception ex)
+        {
+            result.Outcome = MoveOutcome.Failed;
+            result.ErrorMessage = ex.Message;
+            return result;
+        }
+    }
+
+    /// <summary>
     /// Move a file back to its original location (used by Undo). If the original
     /// folder no longer exists, it's recreated. If the original name is taken,
     /// a unique name is generated next to it.

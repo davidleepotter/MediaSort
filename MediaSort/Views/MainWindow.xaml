@@ -131,8 +131,20 @@
                         <ComboBoxItem Content="Square"/>
                     </ComboBox>
 
+                    <TextBlock Text="Action:" VerticalAlignment="Center" Margin="14,0,4,0"
+                               Foreground="{DynamicResource PanelForeground}"/>
+                    <ComboBox x:Name="ActionCombo" Width="100" VerticalAlignment="Center"
+                              SelectionChanged="ActionCombo_SelectionChanged"
+                              ToolTip="What to do when a destination is activated: Move (default), Copy (keep original), or Delete (send original to Recycle Bin and ignore destination folder)">
+                        <ComboBoxItem Content="Move" IsSelected="True"/>
+                        <ComboBoxItem Content="Copy"/>
+                        <ComboBoxItem Content="Delete"/>
+                    </ComboBox>
+
                     <Button Content="Find duplicates" Style="{StaticResource ToolButton}" Margin="14,0,0,0"
                             Click="FindDuplicates_Click" ToolTip="Highlight near-duplicate images"/>
+                    <Button Content="Select All" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            Click="SelectAll_Click" ToolTip="Select every visible item in the source list (Ctrl+A)"/>
                     <Button Content="Skip (N)" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="Skip_Click" ToolTip="Advance to next without moving"/>
                     <Button Content="🗑 Trash" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
@@ -278,9 +290,14 @@
                             </ListBox.ContextMenu>
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <WrapPanel/>
+                                    <WrapPanel HorizontalAlignment="Center"/>
                                 </ItemsPanelTemplate>
                             </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <Border Width="{DynamicResource ThumbTileSize}" Height="{DynamicResource ThumbTileHeight}" Margin="4"
