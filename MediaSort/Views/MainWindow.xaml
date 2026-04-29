@@ -138,7 +138,7 @@
 
                     <Button Content="Find duplicates" Style="{StaticResource ToolButton}" Margin="14,0,0,0"
                             Click="FindDuplicates_Click" ToolTip="Highlight near-duplicate images"/>
-                    <Button Content="Select All" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                    <Button x:Name="SelectAllButton" Content="Select All" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="SelectAll_Click" ToolTip="Select every visible item in the source list (Ctrl+A)"/>
                     <Button x:Name="UndoButton" Content="↶ Undo" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="Undo_Click" ToolTip="Undo last move or batch (Ctrl+Z)" IsEnabled="False"/>

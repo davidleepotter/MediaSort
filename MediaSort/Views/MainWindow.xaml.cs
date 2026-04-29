@@ -420,6 +420,16 @@ public partial class MainWindow : Window
         var sel = ActiveSelector?.SelectedItems.Count ?? 0;
         long size = MediaItems.Sum(m => m.SizeBytes);
         StatsText.Text = $"{shown} of {total} shown · {sel} selected · {FormatBytes(size)}";
+
+        // Toggle Select All <-> Unselect All so one button covers both directions.
+        if (SelectAllButton != null)
+        {
+            bool everythingSelected = shown > 0 && sel >= shown;
+            SelectAllButton.Content = everythingSelected ? "Unselect All" : "Select All";
+            SelectAllButton.ToolTip = everythingSelected
+                ? "Clear the current selection (Ctrl+A)"
+                : "Select every visible item in the source list (Ctrl+A)";
+        }
     }
 
     private static string FormatBytes(long b)
@@ -1320,8 +1330,21 @@ public partial class MainWindow : Window
 
     private void SelectAll_Click(object sender, RoutedEventArgs e)
     {
-        if (ActiveSelector is ListBox lb) lb.SelectAll();
-        else if (ActiveSelector is ListView lv) lv.SelectAll();
+        // Toggle behavior: if everything is already selected, clear the selection;
+        // otherwise select all visible items.
+        var sel = ActiveSelector;
+        if (sel == null) return;
+        bool everythingSelected = MediaItems.Count > 0 && sel.SelectedItems.Count >= MediaItems.Count;
+        if (everythingSelected)
+        {
+            if (sel is ListBox lb) lb.UnselectAll();
+            else if (sel is ListView lv) lv.UnselectAll();
+        }
+        else
+        {
+            if (sel is ListBox lb2) lb2.SelectAll();
+            else if (sel is ListView lv2) lv2.SelectAll();
+        }
         UpdateStats();
     }
 
