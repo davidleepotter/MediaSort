@@ -23,13 +23,56 @@ public class MediaItem : INotifyPropertyChanged
     private bool _isDuplicate;
     private bool _isSelected;
     private bool _isFavorite;
+    private string _fullPath = "";
+    private string _fileName = "";
+    private string _extension = "";
+    private long _sizeBytes;
+    private DateTime _modifiedDate;
 
-    public string FullPath { get; }
-    public string FileName { get; }
-    public string Extension { get; }
-    public long SizeBytes { get; }
-    public DateTime ModifiedDate { get; }
+    public string FullPath
+    {
+        get => _fullPath;
+        private set { if (_fullPath == value) return; _fullPath = value; OnPropertyChanged(); }
+    }
+    public string FileName
+    {
+        get => _fileName;
+        private set { if (_fileName == value) return; _fileName = value; OnPropertyChanged(); }
+    }
+    public string Extension
+    {
+        get => _extension;
+        private set { if (_extension == value) return; _extension = value; OnPropertyChanged(); }
+    }
+    public long SizeBytes
+    {
+        get => _sizeBytes;
+        private set { if (_sizeBytes == value) return; _sizeBytes = value; OnPropertyChanged(); OnPropertyChanged(nameof(SizeDisplay)); }
+    }
+    public DateTime ModifiedDate
+    {
+        get => _modifiedDate;
+        private set { if (_modifiedDate == value) return; _modifiedDate = value; OnPropertyChanged(); }
+    }
     public MediaKind Kind { get; }
+
+    /// <summary>
+    /// Update path/name/size after a rename has been performed on disk. Caller must
+    /// have already moved the file. Triggers PropertyChanged on bindings so list
+    /// rows refresh in place.
+    /// </summary>
+    public void UpdateAfterRename(string newFullPath)
+    {
+        FullPath = newFullPath;
+        var fi = new FileInfo(newFullPath);
+        FileName = fi.Name;
+        Extension = fi.Extension.ToLowerInvariant();
+        if (fi.Exists)
+        {
+            SizeBytes = fi.Length;
+            ModifiedDate = fi.LastWriteTime;
+        }
+    }
 
     public string SizeDisplay => FormatSize(SizeBytes);
 
@@ -149,13 +192,13 @@ public class MediaItem : INotifyPropertyChanged
 
     public MediaItem(string fullPath)
     {
-        FullPath = fullPath;
+        _fullPath = fullPath;
         var fi = new FileInfo(fullPath);
-        FileName = fi.Name;
-        Extension = fi.Extension.ToLowerInvariant();
-        SizeBytes = fi.Exists ? fi.Length : 0;
-        ModifiedDate = fi.Exists ? fi.LastWriteTime : DateTime.MinValue;
-        Kind = ClassifyExtension(Extension);
+        _fileName = fi.Name;
+        _extension = fi.Extension.ToLowerInvariant();
+        _sizeBytes = fi.Exists ? fi.Length : 0;
+        _modifiedDate = fi.Exists ? fi.LastWriteTime : DateTime.MinValue;
+        Kind = ClassifyExtension(_extension);
     }
 
     public static MediaKind ClassifyExtension(string ext)

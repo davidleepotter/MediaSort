@@ -2261,6 +2261,68 @@ public partial class MainWindow : Window
         StatusText.Text = $"Copied {sel.Count} path(s) to clipboard";
     }
 
+    // ----------------- RENAME (#6) -----------------
+
+    /// <summary>
+    /// F2 / context-menu rename. Single-selection only. Validates collisions, then
+    /// renames on disk and updates the MediaItem in place so bindings refresh.
+    /// </summary>
+    private void RenameSelected()
+    {
+        var sel = GetSelectedItems();
+        if (sel.Count == 0)
+        {
+            StatusText.Text = "Select a file to rename (F2).";
+            return;
+        }
+        if (sel.Count > 1)
+        {
+            StatusText.Text = $"Rename only works on one file at a time — {sel.Count} selected.";
+            return;
+        }
+
+        var item = sel[0];
+        if (!File.Exists(item.FullPath))
+        {
+            StatusText.Text = $"File no longer exists: {item.FileName}";
+            return;
+        }
+
+        var dlg = new RenameDialog(item.FullPath) { Owner = this };
+        if (dlg.ShowDialog() != true || string.IsNullOrEmpty(dlg.NewFileName)) return;
+
+        var dir = Path.GetDirectoryName(item.FullPath) ?? "";
+        var newPath = Path.Combine(dir, dlg.NewFileName);
+
+        var oldPath = item.FullPath;
+        var wasFavorite = item.IsFavorite;
+        try
+        {
+            File.Move(oldPath, newPath);
+            item.UpdateAfterRename(newPath);
+
+            PreviewTitle.Text = $"Preview — {item.FileName}";
+            StatusText.Text = $"Renamed to {item.FileName}";
+
+            // Update favorites store so the star survives the path change.
+            if (wasFavorite)
+            {
+                _settings.Favorites.RemoveAll(p => string.Equals(p, oldPath, StringComparison.OrdinalIgnoreCase));
+                if (!_settings.Favorites.Contains(newPath, StringComparer.OrdinalIgnoreCase))
+                    _settings.Favorites.Add(newPath);
+                SaveSettings();
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Rename failed: {ex.Message}";
+            MessageBox.Show(this, ex.Message, "Rename failed",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void Rename_Click(object sender, RoutedEventArgs e) => RenameSelected();
+
     // ----------------- MOVE ANIMATION -----------------
 
     private FrameworkElement? GetSelectedItemElement()
@@ -2579,6 +2641,14 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 return;
             }
+        }
+
+        // (#6) F2 = inline rename on the single selected file. Disabled when multi-select.
+        if (e.Key == Key.F2 && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            RenameSelected();
+            e.Handled = true;
+            return;
         }
 
         // Destination hotkeys

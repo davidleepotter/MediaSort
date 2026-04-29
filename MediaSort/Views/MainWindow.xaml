@@ -213,6 +213,7 @@
                                 <ContextMenu>
                                     <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
                                     <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
+                                    <MenuItem Header="Rename..." InputGestureText="F2" Click="Rename_Click"/>
                                     <Separator/>
                                     <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
                                 </ContextMenu>
@@ -248,6 +249,7 @@
                                 <ContextMenu>
                                     <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
                                     <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
+                                    <MenuItem Header="Rename..." InputGestureText="F2" Click="Rename_Click"/>
                                     <Separator/>
                                     <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
                                 </ContextMenu>
@@ -309,6 +311,7 @@
                                 <ContextMenu>
                                     <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
                                     <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
+                                    <MenuItem Header="Rename..." InputGestureText="F2" Click="Rename_Click"/>
                                     <Separator/>
                                     <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
                                 </ContextMenu>
