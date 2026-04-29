@@ -4132,24 +4132,30 @@ public partial class MainWindow : Window
         if (_settings == null) return;
         double minHeight;
         System.Windows.Thickness padding;
+        double tileWidth;
         switch (_settings.DestButtonSize)
         {
             case DestButtonSizeMode.Compact:
-                minHeight = 32;
-                padding = new System.Windows.Thickness(6, 3, 6, 3);
+                // Tight enough to fit ~3 columns in a 600px-wide panel.
+                minHeight = 26;
+                padding = new System.Windows.Thickness(4, 1, 4, 1);
+                tileWidth = 170;
                 break;
             case DestButtonSizeMode.Large:
                 minHeight = 56;
                 padding = new System.Windows.Thickness(10, 10, 10, 10);
+                tileWidth = 260;
                 break;
             case DestButtonSizeMode.Normal:
             default:
                 minHeight = 42;
                 padding = new System.Windows.Thickness(8, 6, 8, 6);
+                tileWidth = 220;
                 break;
         }
         Resources["DestButtonMinHeight"] = minHeight;
         Resources["DestButtonPadding"]   = padding;
+        Resources["DestTileWidth"]       = tileWidth;
     }
 
     private static System.Windows.Media.FontFamily ResolveFontFamily(string? name)

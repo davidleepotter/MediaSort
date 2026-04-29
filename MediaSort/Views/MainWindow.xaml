@@ -35,9 +35,12 @@
         <sys:Double x:Key="DestBadgeFontSize">10</sys:Double>
 
         <!-- Destination button overall size (compact / normal / large).
-             Updated at runtime from settings via ApplyDestButtonSize(). -->
+             Updated at runtime from settings via ApplyDestButtonSize().
+             DestTileWidth controls the per-tile width that drives multi-column
+             wrap layout in the destinations panel. -->
         <sys:Double x:Key="DestButtonMinHeight">42</sys:Double>
         <Thickness x:Key="DestButtonPadding">8,6</Thickness>
+        <sys:Double x:Key="DestTileWidth">220</sys:Double>
 
         <!-- Shared context menu for all three source-list views (List/Details/Thumbnails).
              The 'Send to' submenu is populated dynamically in MediaList_ContextMenuOpening
@@ -560,12 +563,20 @@
                             </ItemsControl.Template>
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <VirtualizingStackPanel IsItemsHost="True" Orientation="Vertical"/>
+                                    <!-- Multi-column wrap layout. Tiles use DestTileWidth so the
+                                         panel flows them into as many columns as fit. The wider
+                                         the user makes the destinations panel, the more columns
+                                         appear. Vertical scroll kicks in when rows overflow. -->
+                                    <vwp:VirtualizingWrapPanel IsItemsHost="True"
+                                                               Orientation="Horizontal"
+                                                               SpacingMode="None"
+                                                               StretchItems="False"/>
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Margin="6,4" Tag="{Binding}">
+                                    <Grid Margin="6,4" Tag="{Binding}"
+                                          Width="{DynamicResource DestTileWidth}">
                                         <Border Background="{DynamicResource ItemBackground}"
                                                 BorderBrush="{DynamicResource BorderBrushColor}"
                                                 BorderThickness="1" Padding="6"
