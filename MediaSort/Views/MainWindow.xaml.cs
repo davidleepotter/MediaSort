@@ -3208,6 +3208,73 @@ public partial class MainWindow : Window
         StatusText.Text = $"Copied {sel.Count} path(s) to clipboard";
     }
 
+    // ----------------- ROTATE -----------------
+
+    private void RotateClockwise_Click(object sender, RoutedEventArgs e)
+        => RotateSelected(ImageRotator.RotationDirection.Clockwise90);
+
+    private void RotateCounterClockwise_Click(object sender, RoutedEventArgs e)
+        => RotateSelected(ImageRotator.RotationDirection.Counterclockwise90);
+
+    private void Rotate180_Click(object sender, RoutedEventArgs e)
+        => RotateSelected(ImageRotator.RotationDirection.Rotate180);
+
+    /// <summary>
+    /// Rotates all selected image files in place. Skips non-images, regenerates
+    /// thumbnails, and refreshes the preview pane if the rotated item is shown.
+    /// </summary>
+    private void RotateSelected(ImageRotator.RotationDirection direction)
+    {
+        var items = GetSelectedItems()
+            .Where(i => i.Kind == MediaKind.Image && ImageRotator.CanRotate(i.FullPath))
+            .ToList();
+
+        if (items.Count == 0)
+        {
+            StatusText.Text = "Select an image to rotate.";
+            return;
+        }
+
+        if (items.Count > 1)
+        {
+            var confirm = MessageBox.Show(
+                this,
+                $"Rotate {items.Count} images?",
+                "Rotate",
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Question);
+            if (confirm != MessageBoxResult.OK) return;
+        }
+
+        int ok = 0, fail = 0;
+        foreach (var item in items)
+        {
+            if (ImageRotator.Rotate(item.FullPath, direction, out var err))
+            {
+                ok++;
+                item.Thumbnail = null;
+            }
+            else
+            {
+                fail++;
+                CrashLogger.Info($"rotate failed {item.FullPath}: {err}");
+            }
+        }
+
+        // Regenerate thumbnails and dimensions for the rotated items.
+        try { _probeCts?.Cancel(); } catch { }
+        _probeCts = new CancellationTokenSource();
+        StartBackgroundProbe(items, _probeCts.Token, reportCompletion: false);
+
+        // Refresh preview if the currently shown item was rotated.
+        var sel = GetSelectedItems().FirstOrDefault();
+        if (sel != null && items.Contains(sel)) UpdatePreview(sel);
+
+        StatusText.Text = fail == 0
+            ? $"Rotated {ok} image(s)."
+            : $"Rotated {ok}, failed {fail}.";
+    }
+
     // ----------------- RENAME (#6) -----------------
 
     /// <summary>

@@ -453,12 +453,14 @@
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="SnapsToDevicePixels" Value="True"/>
                 <Setter Property="HasDropShadow" Value="True"/>
+                <Setter Property="OverridesDefaultStyle" Value="True"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ContextMenu">
                             <Border Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
+                                    TextElement.Foreground="{DynamicResource PanelForeground}"
                                     SnapsToDevicePixels="True">
                                 <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
                             </Border>
@@ -522,7 +524,12 @@
                                            PopupAnimation="Fade">
                                         <Border Background="{DynamicResource PanelBackground}"
                                                 BorderBrush="{DynamicResource BorderBrushColor}"
-                                                BorderThickness="1">
+                                                BorderThickness="1"
+                                                TextElement.Foreground="{DynamicResource PanelForeground}"
+                                                Margin="0,0,4,4">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.45" Color="Black"/>
+                                            </Border.Effect>
                                             <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
                                         </Border>
                                     </Popup>

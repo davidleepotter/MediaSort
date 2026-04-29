@@ -223,6 +223,11 @@
                                     <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
                                     <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
                                     <MenuItem Header="Rename..." InputGestureText="F2" Click="Rename_Click"/>
+                                    <MenuItem Header="Rotate">
+                                        <MenuItem Header="Rotate 90° Clockwise" Click="RotateClockwise_Click"/>
+                                        <MenuItem Header="Rotate 90° Counter-Clockwise" Click="RotateCounterClockwise_Click"/>
+                                        <MenuItem Header="Rotate 180°" Click="Rotate180_Click"/>
+                                    </MenuItem>
                                     <Separator/>
                                     <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
                                 </ContextMenu>
@@ -259,6 +264,11 @@
                                     <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
                                     <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
                                     <MenuItem Header="Rename..." InputGestureText="F2" Click="Rename_Click"/>
+                                    <MenuItem Header="Rotate">
+                                        <MenuItem Header="Rotate 90° Clockwise" Click="RotateClockwise_Click"/>
+                                        <MenuItem Header="Rotate 90° Counter-Clockwise" Click="RotateCounterClockwise_Click"/>
+                                        <MenuItem Header="Rotate 180°" Click="Rotate180_Click"/>
+                                    </MenuItem>
                                     <Separator/>
                                     <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
                                 </ContextMenu>
@@ -326,6 +336,11 @@
                                     <MenuItem Header="Open in Explorer" Click="OpenInExplorer_Click"/>
                                     <MenuItem Header="Copy full path" Click="CopyPath_Click"/>
                                     <MenuItem Header="Rename..." InputGestureText="F2" Click="Rename_Click"/>
+                                    <MenuItem Header="Rotate">
+                                        <MenuItem Header="Rotate 90° Clockwise" Click="RotateClockwise_Click"/>
+                                        <MenuItem Header="Rotate 90° Counter-Clockwise" Click="RotateCounterClockwise_Click"/>
+                                        <MenuItem Header="Rotate 180°" Click="Rotate180_Click"/>
+                                    </MenuItem>
                                     <Separator/>
                                     <MenuItem Header="Send to Recycle Bin" Click="Trash_Click"/>
                                 </ContextMenu>
