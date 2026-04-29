@@ -421,12 +421,15 @@
                                 <Button Content="⏹" Width="32" Style="{StaticResource ToolButton}" Click="VideoStop_Click"
                                         ToolTip="Stop playback"/>
                                 <ToggleButton x:Name="LoopToggle" Content="↻" Width="32" Margin="4,0,0,0"
+                                              Style="{StaticResource ToolToggleButton}"
                                               ToolTip="Loop"/>
                                 <!-- (#20) Audio preview: mute toggle + volume slider. M toggles mute. -->
                                 <ToggleButton x:Name="MuteToggle" Content="🔊" Width="32" Margin="8,0,0,0"
+                                              Style="{StaticResource ToolToggleButton}"
                                               ToolTip="Mute / unmute (M)" Click="MuteToggle_Click"/>
                                 <Slider x:Name="VolumeSlider" Width="90" Minimum="0" Maximum="100"
                                         Margin="6,0,0,0" VerticalAlignment="Center"
+                                        Style="{StaticResource ToolSlider}"
                                         ToolTip="Volume (0–100)"
                                         ValueChanged="VolumeSlider_ValueChanged"/>
                             </StackPanel>
@@ -435,6 +438,7 @@
                                        Foreground="{DynamicResource MutedForeground}"/>
                             <Slider x:Name="VideoScrub" Minimum="0" Maximum="1000" Margin="10,0"
                                     VerticalAlignment="Center"
+                                    Style="{StaticResource ToolSlider}"
                                     Thumb.DragStarted="VideoScrub_DragStarted"
                                     Thumb.DragCompleted="VideoScrub_DragCompleted"
                                     PreviewMouseDown="VideoScrub_PreviewMouseDown"/>

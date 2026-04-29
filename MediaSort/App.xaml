@@ -792,6 +792,248 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+            <!-- ============================================================
+                 3D ToolToggleButton: matches ToolButton's bevel + gradient.
+                 Checked = "pushed in" (inverted gradient + shadow on top).
+                 Used by LoopToggle and MuteToggle in the video controls.
+                 ============================================================ -->
+            <Style TargetType="ToggleButton" x:Key="ToolToggleButton">
+                <Setter Property="Padding" Value="6,3"/>
+                <Setter Property="Margin" Value="2"/>
+                <Setter Property="Foreground" Value="{DynamicResource ButtonForeground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorder}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Grid>
+                                <Border x:Name="Outer"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="3"
+                                        SnapsToDevicePixels="True">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#3C3C3C" Offset="0"/>
+                                            <GradientStop Color="#2A2A2A" Offset="0.5"/>
+                                            <GradientStop Color="#1E1E1E" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <Border x:Name="Highlight"
+                                        BorderThickness="1,1,0,0"
+                                        BorderBrush="#55FFFFFF"
+                                        CornerRadius="3"
+                                        Margin="1"
+                                        IsHitTestVisible="False"/>
+                                <Border x:Name="Shadow"
+                                        BorderThickness="0,0,1,1"
+                                        BorderBrush="#66000000"
+                                        CornerRadius="3"
+                                        Margin="1"
+                                        IsHitTestVisible="False"/>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  RecognizesAccessKey="True"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Outer" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#4A4A4A" Offset="0"/>
+                                                <GradientStop Color="#363636" Offset="0.5"/>
+                                                <GradientStop Color="#262626" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#80FFFFFF"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Outer" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#1A1A1A" Offset="0"/>
+                                                <GradientStop Color="#252525" Offset="0.5"/>
+                                                <GradientStop Color="#383838" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter TargetName="Highlight" Property="BorderThickness" Value="0,0,1,1"/>
+                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#33FFFFFF"/>
+                                    <Setter TargetName="Shadow" Property="BorderThickness" Value="1,1,0,0"/>
+                                    <Setter TargetName="Shadow" Property="BorderBrush" Value="#80000000"/>
+                                </Trigger>
+                                <!-- Checked = looks pushed in, with accent tint so it's clearly "on" -->
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Outer" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#1F2D3D" Offset="0"/>
+                                                <GradientStop Color="#264563" Offset="0.5"/>
+                                                <GradientStop Color="#33597F" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter TargetName="Outer" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter TargetName="Highlight" Property="BorderThickness" Value="0,0,1,1"/>
+                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#33FFFFFF"/>
+                                    <Setter TargetName="Shadow" Property="BorderThickness" Value="1,1,0,0"/>
+                                    <Setter TargetName="Shadow" Property="BorderBrush" Value="#80000000"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ============================================================
+                 3D Slider thumb: raised gradient pill with bevel.
+                 Used inside ToolSlider's template.
+                 ============================================================ -->
+            <Style TargetType="Thumb" x:Key="ToolSliderThumb">
+                <Setter Property="Width" Value="14"/>
+                <Setter Property="Height" Value="18"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Thumb">
+                            <Grid>
+                                <Border x:Name="ThumbOuter"
+                                        CornerRadius="3"
+                                        BorderBrush="{DynamicResource ButtonBorder}"
+                                        BorderThickness="1"
+                                        SnapsToDevicePixels="True">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#4A4A4A" Offset="0"/>
+                                            <GradientStop Color="#2F2F2F" Offset="0.5"/>
+                                            <GradientStop Color="#1E1E1E" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <Border BorderThickness="1,1,0,0"
+                                        BorderBrush="#66FFFFFF"
+                                        CornerRadius="3"
+                                        Margin="1"
+                                        IsHitTestVisible="False"/>
+                                <Border BorderThickness="0,0,1,1"
+                                        BorderBrush="#88000000"
+                                        CornerRadius="3"
+                                        Margin="1"
+                                        IsHitTestVisible="False"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="ThumbOuter" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsDragging" Value="True">
+                                    <Setter TargetName="ThumbOuter" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter TargetName="ThumbOuter" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#1A1A1A" Offset="0"/>
+                                                <GradientStop Color="#2A2A2A" Offset="0.5"/>
+                                                <GradientStop Color="#3C3C3C" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ============================================================
+                 3D ToolSlider: inset "sunken" track + 3D thumb pill.
+                 Used by VolumeSlider and VideoScrub. Horizontal only.
+                 ============================================================ -->
+            <Style TargetType="Slider" x:Key="ToolSlider">
+                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                <Setter Property="MinHeight" Value="22"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Slider">
+                            <Grid VerticalAlignment="Center">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <!-- Inset track: dark sunken channel with bevel reversed (shadow on top) -->
+                                <Border Height="6"
+                                        VerticalAlignment="Center"
+                                        CornerRadius="3"
+                                        BorderBrush="#22000000"
+                                        BorderThickness="1"
+                                        SnapsToDevicePixels="True">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#141414" Offset="0"/>
+                                            <GradientStop Color="#1E1E1E" Offset="0.6"/>
+                                            <GradientStop Color="#2A2A2A" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <!-- Inner 1px shadow on top + highlight on bottom (sunken bevel) -->
+                                <Border Height="6"
+                                        VerticalAlignment="Center"
+                                        CornerRadius="3"
+                                        BorderThickness="1,1,0,0"
+                                        BorderBrush="#88000000"
+                                        IsHitTestVisible="False"/>
+                                <Border Height="6"
+                                        VerticalAlignment="Center"
+                                        CornerRadius="3"
+                                        BorderThickness="0,0,1,1"
+                                        BorderBrush="#22FFFFFF"
+                                        IsHitTestVisible="False"/>
+                                <Track x:Name="PART_Track">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate TargetType="RepeatButton">
+                                                    <!-- Filled portion = accent gradient -->
+                                                    <Border Height="6" CornerRadius="3" SnapsToDevicePixels="True">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#4FA3FF" Offset="0"/>
+                                                                <GradientStop Color="#2D7FD9" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="Slider.IncreaseLarge" Focusable="False">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate TargetType="RepeatButton">
+                                                    <Border Background="Transparent"/>
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.IncreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Style="{StaticResource ToolSliderThumb}"/>
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
