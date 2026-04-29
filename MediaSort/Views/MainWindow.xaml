@@ -238,18 +238,6 @@
                             Click="History_Click" ToolTip="Browse all undo batches and undo any one of them (Ctrl+H)"/>
                 </StackPanel>
 
-                <!-- Toolbar row 3: per-item actions -->
-                <StackPanel Orientation="Horizontal" Margin="6,2,6,4">
-                    <Button Content="Skip (N)" Style="{StaticResource ToolButton}"
-                            Click="Skip_Click" ToolTip="Advance to next without moving"/>
-                    <Button Content="✎ Rename" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
-                            Click="Rename_Click" ToolTip="Rename selected file (F2). Multi-select opens batch rename."/>
-                    <Button Content="🗑 Trash" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
-                            Click="Trash_Click" ToolTip="Send selected to Recycle Bin (Del)"/>
-                    <Button Content="Tags…" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
-                            Click="Tags_Click"
-                            ToolTip="Edit ratings and tags for the selected items (Ctrl+T)"/>
-                </StackPanel>
             </StackPanel>
         </Border>
 
@@ -330,6 +318,26 @@
                                        ToolTip="{Binding ElementName=SourcePathText, Path=Text}"
                                        Text=""/>
                         </DockPanel>
+                    </Border>
+
+                    <!-- Per-item action buttons (moved from global toolbar so they stay
+                         with the Source list they operate on). -->
+                    <Border DockPanel.Dock="Top"
+                            Background="{DynamicResource PanelBackground}"
+                            BorderBrush="{DynamicResource BorderBrushColor}"
+                            BorderThickness="0,0,0,1"
+                            Padding="6,4">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Skip (N)" Style="{StaticResource ToolButton}"
+                                    Click="Skip_Click" ToolTip="Advance to next without moving"/>
+                            <Button Content="✎ Rename" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                                    Click="Rename_Click" ToolTip="Rename selected file (F2). Multi-select opens batch rename."/>
+                            <Button Content="🗑 Trash" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                                    Click="Trash_Click" ToolTip="Send selected to Recycle Bin (Del)"/>
+                            <Button Content="Tags…" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                                    Click="Tags_Click"
+                                    ToolTip="Edit ratings and tags for the selected items (Ctrl+T)"/>
+                        </StackPanel>
                     </Border>
 
                     <Grid DockPanel.Dock="Bottom" Margin="6">
