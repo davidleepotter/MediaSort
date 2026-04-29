@@ -21,6 +21,7 @@ public partial class BatchRenameDialog : Window
     }
 
     private readonly List<MediaItem> _items;
+    private bool _ready;
 
     /// <summary>
     /// After OK, the ordered list of (oldFullPath, newFullPath) renames to perform.
@@ -39,6 +40,7 @@ public partial class BatchRenameDialog : Window
 
         Loaded += (_, _) =>
         {
+            _ready = true;
             PatternBox.Focus();
             PatternBox.SelectAll();
             UpdatePreview();
@@ -52,6 +54,12 @@ public partial class BatchRenameDialog : Window
 
     private void UpdatePreview()
     {
+        // XAML event handlers fire during InitializeComponent() before all named
+        // fields are wired up, so bail until the dialog has fully loaded.
+        if (!_ready) return;
+        if (PatternBox == null || StartBox == null || PreviewList == null ||
+            LowercaseCheck == null || ReplaceSpacesCheck == null || ErrorText == null)
+            return;
         ErrorText.Text = "";
         if (!int.TryParse(StartBox.Text?.Trim() ?? "1", out int start)) start = 1;
 
