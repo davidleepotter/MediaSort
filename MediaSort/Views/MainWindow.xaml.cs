@@ -1085,11 +1085,16 @@ public partial class MainWindow : Window
             SetSourceFolder(_settings.SourceFolder);
     }
 
-    private void RegenThumbnails_Click(object sender, RoutedEventArgs e)
+    private void RegenThumbnails_Click(object sender, RoutedEventArgs e) => RegenAllThumbnails(reportNoItems: true);
+
+    /// <summary>Wipes cached thumbnails and kicks off a fresh background probe so
+    /// every BitmapImage decodes at the current ThumbnailSize. Shared between the
+    /// manual toolbar button and the live thumb-size slider's debounced refresh.</summary>
+    private void RegenAllThumbnails(bool reportNoItems)
     {
         if (_allItems.Count == 0)
         {
-            StatusText.Text = "No items in source list to regenerate.";
+            if (reportNoItems) StatusText.Text = "No items in source list to regenerate.";
             return;
         }
 
@@ -1834,7 +1839,14 @@ public partial class MainWindow : Window
 
     /// <summary>(UX R3) Live thumb-size slider in the Source pane toolbar. Updates
     /// AppSettings.ThumbnailSize and pushes the new value into Window resources so
-    /// the Thumbnails view tiles resize live without a restart.</summary>
+    /// the Thumbnails view tiles resize live without a restart. Tile size changes
+    /// instantly; underlying BitmapImage decode is debounced (~400ms after the user
+    /// stops dragging) so we don't thrash the decoder on every slider tick — but
+    /// we still need it because BitmapImage.DecodePixelWidth was set at the old
+    /// size and won't refresh on its own, leaving padding or pixelation.</summary>
+    private System.Windows.Threading.DispatcherTimer? _thumbResizeDebounceTimer;
+    private const int ThumbResizeDebounceMs = 400;
+
     private void ThumbSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (!IsLoaded || _settings == null) return;
@@ -1849,6 +1861,25 @@ public partial class MainWindow : Window
         ApplyThumbnailSize();
         if (ThumbSizeValue != null) ThumbSizeValue.Text = $"{size}px";
         SaveSettings();
+        DebounceRegenAllThumbnails();
+    }
+
+    private void DebounceRegenAllThumbnails()
+    {
+        if (_thumbResizeDebounceTimer == null)
+        {
+            _thumbResizeDebounceTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = System.TimeSpan.FromMilliseconds(ThumbResizeDebounceMs)
+            };
+            _thumbResizeDebounceTimer.Tick += (s, _) =>
+            {
+                _thumbResizeDebounceTimer!.Stop();
+                RegenAllThumbnails(reportNoItems: false);
+            };
+        }
+        _thumbResizeDebounceTimer.Stop();
+        _thumbResizeDebounceTimer.Start();
     }
 
     private ListBox? ActiveSelector =>
