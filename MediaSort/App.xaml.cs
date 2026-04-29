@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using MediaSort.Services;
 
@@ -12,8 +13,9 @@ public partial class App : System.Windows.Application
     protected override void OnStartup(StartupEventArgs e)
     {
         // Show the splash manually so we can control when it closes — we want it visible
-        // through the entire MainWindow load (theme init, control templating, first paint),
-        // not just until WPF starts. autoClose:false leaves it up until we call Close().
+        // through the entire MainWindow load (theme init, control templating, scan kickoff,
+        // first paint), not just until WPF starts. autoClose:false leaves it up until we
+        // call Close() ourselves.
         try
         {
             _splash = new SplashScreen("Assets/Splash.png");
@@ -21,7 +23,6 @@ public partial class App : System.Windows.Application
         }
         catch
         {
-            // Splash is best-effort — never let it block startup.
             _splash = null;
         }
 
@@ -29,51 +30,63 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
 
         // MainWindow is created asynchronously by WPF AFTER OnStartup returns when using
-        // StartupUri, so MainWindow is still null here. Defer the subscription via the
-        // dispatcher at Loaded priority — by the time this lambda runs, MainWindow exists.
+        // StartupUri, so MainWindow is null right now. Defer the subscription until the
+        // dispatcher reaches Loaded priority — by then MainWindow exists.
+        // The window itself starts at Opacity=0 (set in XAML) so the user never sees a
+        // half-rendered or wrong-themed window flash. Once it has rendered its first frame,
+        // we fade it in and close the splash.
         Dispatcher.BeginInvoke(new Action(() =>
         {
-            if (_splash == null) return;
             var w = MainWindow;
             if (w == null)
             {
-                // Last-ditch fallback: close the splash with a short delay so we never
-                // leave the user staring at it forever.
-                Dispatcher.BeginInvoke(new Action(CloseSplash), DispatcherPriority.ApplicationIdle);
+                CloseSplash();
                 return;
             }
-            // ContentRendered fires after the very first paint of the window's visual tree.
             w.ContentRendered += MainWindow_ContentRendered;
-            // Safety net: also close on Activated in case ContentRendered is delayed.
-            w.Activated += MainWindow_Activated;
         }), DispatcherPriority.Loaded);
     }
 
     private void MainWindow_ContentRendered(object? sender, EventArgs e)
     {
-        if (sender is Window w)
-        {
-            w.ContentRendered -= MainWindow_ContentRendered;
-            w.Activated -= MainWindow_Activated;
-        }
-        CloseSplash();
+        if (sender is not Window w) return;
+        w.ContentRendered -= MainWindow_ContentRendered;
+
+        // Wait one extra dispatcher pass at Render priority so any async layout from
+        // ContentRendered handlers (initial scan UI updates, etc.) settles before we fade in.
+        w.Dispatcher.BeginInvoke(new Action(() => RevealWindow(w)), DispatcherPriority.Render);
     }
 
-    private void MainWindow_Activated(object? sender, EventArgs e)
+    private void RevealWindow(Window w)
     {
-        if (sender is Window w)
+        // Fade the main window from 0 -> 1 while the splash fades out, so the transition
+        // looks deliberate rather than a hard cut.
+        var fadeIn = new DoubleAnimation
         {
-            w.Activated -= MainWindow_Activated;
+            From = 0.0,
+            To = 1.0,
+            Duration = TimeSpan.FromMilliseconds(220),
+            FillBehavior = FillBehavior.HoldEnd,
+        };
+        try
+        {
+            w.BeginAnimation(Window.OpacityProperty, fadeIn);
         }
-        // Close on next idle tick so any pending first paint has a chance to land first.
-        Dispatcher.BeginInvoke(new Action(CloseSplash), DispatcherPriority.ApplicationIdle);
+        catch
+        {
+            // If the animation can't start for any reason, just snap to visible so the
+            // user is never left with an invisible window.
+            w.Opacity = 1.0;
+        }
+
+        CloseSplash();
     }
 
     private void CloseSplash()
     {
         try
         {
-            _splash?.Close(TimeSpan.FromMilliseconds(300));
+            _splash?.Close(TimeSpan.FromMilliseconds(250));
         }
         catch
         {

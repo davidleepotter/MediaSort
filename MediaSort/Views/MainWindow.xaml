@@ -11,6 +11,7 @@
         Background="{DynamicResource WindowBackground}"
         Foreground="{DynamicResource PanelForeground}"
         WindowStartupLocation="CenterScreen"
+        Opacity="0"
         AllowDrop="True"
         Drop="Window_Drop"
         DragOver="Window_DragOver"
