@@ -26,7 +26,6 @@ using ListView = System.Windows.Controls.ListView;
 using MessageBox = System.Windows.MessageBox;
 using TextBox = System.Windows.Controls.TextBox;
 using MediaPlayer = LibVLCSharp.Shared.MediaPlayer;
-using DragDropEffects = System.Windows.DragDropEffects;
 using DragEventArgs = System.Windows.DragEventArgs;
 using Clipboard = System.Windows.Clipboard;
 using DataObject = System.Windows.DataObject;
@@ -56,10 +55,6 @@ public partial class MainWindow : Window
     private DispatcherTimer? _videoTimer;
     private readonly MoveHistoryService _history = new();
     private CancellationTokenSource? _probeCts;
-
-    // Drag-and-drop state
-    private System.Windows.Point? _dragStart;
-    private bool _isDragging;
 
     // Image preview pan/zoom state
     private bool _imagePanning;
@@ -808,134 +803,6 @@ public partial class MainWindow : Window
             PositionText.Text = $"{idx + 1}/{MediaItems.Count}";
         }
         _suppressSliderUpdate = false;
-    }
-
-    // ----------------- DRAG-AND-DROP -----------------
-
-    private void MediaList_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        _dragStart = e.GetPosition(null);
-        _isDragging = false;
-    }
-
-    private void MediaList_MouseMove(object sender, MouseEventArgs e)
-    {
-        if (_isDragging || _dragStart == null) return;
-        if (e.LeftButton != MouseButtonState.Pressed) return;
-
-        var pos = e.GetPosition(null);
-        if (Math.Abs(pos.X - _dragStart.Value.X) < SystemParameters.MinimumHorizontalDragDistance &&
-            Math.Abs(pos.Y - _dragStart.Value.Y) < SystemParameters.MinimumVerticalDragDistance) return;
-
-        var items = GetSelectedItems();
-        if (items.Count == 0) return;
-
-        _isDragging = true;
-        try
-        {
-            var paths = items.Select(i => i.FullPath).ToArray();
-            var data = new DataObject(DataFormats.FileDrop, paths);
-            DragDrop.DoDragDrop((DependencyObject)sender, data, DragDropEffects.Move | DragDropEffects.Copy);
-        }
-        finally
-        {
-            _isDragging = false;
-            _dragStart = null;
-        }
-    }
-
-    private void Window_DragOver(object sender, DragEventArgs e)
-    {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
-        {
-            e.Effects = DragDropEffects.Copy;
-            e.Handled = true;
-        }
-    }
-
-    private void Window_Drop(object sender, DragEventArgs e)
-    {
-        // Only handle drops on the main window background — not when dropped on destinations
-        if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
-        var paths = (string[]?)e.Data.GetData(DataFormats.FileDrop);
-        if (paths == null || paths.Length == 0) return;
-
-        // If a single folder is dropped, set it as source
-        if (paths.Length == 1 && Directory.Exists(paths[0]))
-        {
-            SetSourceFolder(paths[0]);
-            _settings.SourceFolder = paths[0];
-            SaveSettings();
-            return;
-        }
-
-        // Otherwise: treat as media files to add (parent folder of first becomes source if none set)
-        if (string.IsNullOrWhiteSpace(_settings.SourceFolder))
-        {
-            var parent = Path.GetDirectoryName(paths[0]);
-            if (!string.IsNullOrWhiteSpace(parent))
-            {
-                SetSourceFolder(parent);
-                _settings.SourceFolder = parent;
-                SaveSettings();
-            }
-        }
-        else
-        {
-            // Just refresh in case the dropped files came from outside but the user wants a refresh
-            Refresh_Click(this, new RoutedEventArgs());
-        }
-    }
-
-    private void Destination_DragOver(object sender, DragEventArgs e)
-    {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
-        {
-            e.Effects = DragDropEffects.Move;
-            e.Handled = true;
-        }
-    }
-
-    private void Destination_DragEnter(object sender, DragEventArgs e)
-    {
-        if (sender is FrameworkElement fe) fe.Opacity = 0.7;
-    }
-
-    private void Destination_DragLeave(object sender, DragEventArgs e)
-    {
-        if (sender is FrameworkElement fe) fe.Opacity = 1.0;
-    }
-
-    private void Destination_Drop(object sender, DragEventArgs e)
-    {
-        if (sender is FrameworkElement fe) fe.Opacity = 1.0;
-        if (sender is not FrameworkElement target || target.Tag is not DestinationButton dest) return;
-        if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
-        var paths = (string[]?)e.Data.GetData(DataFormats.FileDrop);
-        if (paths == null || paths.Length == 0) return;
-
-        // Map dropped paths back to MediaItems if they belong to current source
-        var items = paths
-            .Select(p => _allItems.FirstOrDefault(m => string.Equals(m.FullPath, p, StringComparison.OrdinalIgnoreCase)))
-            .Where(m => m != null)
-            .Cast<MediaItem>()
-            .ToList();
-
-        if (items.Count == 0)
-        {
-            // External drop: move using paths directly
-            var batch = new List<MoveHistoryService.MoveRecord>();
-            foreach (var p in paths.Where(File.Exists))
-            {
-                var r = MoveWithPolicy(p, dest, ref _conflictPolicyForBatch, ref _applyToAllForBatch);
-                if (r != null) batch.Add(r);
-            }
-            if (batch.Count > 0) _history.Push(batch);
-            UndoButton.IsEnabled = _history.CanUndo;
-            return;
-        }
-
-        MoveItemsTo(items, dest, target);
     }
 
     // ----------------- PREVIEW -----------------

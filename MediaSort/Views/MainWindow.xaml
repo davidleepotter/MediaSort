@@ -12,9 +12,6 @@
         Foreground="{DynamicResource PanelForeground}"
         WindowStartupLocation="CenterScreen"
         Opacity="0"
-        AllowDrop="True"
-        Drop="Window_Drop"
-        DragOver="Window_DragOver"
         KeyDown="Window_KeyDown">
     <Window.Resources>
         <conv:MediaKindToVisibilityConverter x:Key="KindVis"/>
@@ -211,9 +208,6 @@
                                  Foreground="{DynamicResource PanelForeground}"
                                  BorderThickness="0"
                                  SelectionMode="Extended"
-                                 AllowDrop="True"
-                                 PreviewMouseLeftButtonDown="MediaList_PreviewMouseDown"
-                                 MouseMove="MediaList_MouseMove"
                                  SelectionChanged="MediaList_SelectionChanged"
                                  KeyDown="MediaList_KeyDown">
                             <ListBox.ContextMenu>
@@ -246,9 +240,6 @@
                                   Foreground="{DynamicResource PanelForeground}"
                                   BorderThickness="0"
                                   SelectionMode="Extended"
-                                  AllowDrop="True"
-                                  PreviewMouseLeftButtonDown="MediaList_PreviewMouseDown"
-                                  MouseMove="MediaList_MouseMove"
                                   SelectionChanged="MediaList_SelectionChanged"
                                   KeyDown="MediaList_KeyDown">
                             <ListView.ContextMenu>
@@ -300,9 +291,6 @@
                                  Foreground="{DynamicResource PanelForeground}"
                                  BorderThickness="0"
                                  SelectionMode="Extended"
-                                 AllowDrop="True"
-                                 PreviewMouseLeftButtonDown="MediaList_PreviewMouseDown"
-                                 MouseMove="MediaList_MouseMove"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  SelectionChanged="MediaList_SelectionChanged"
                                  KeyDown="MediaList_KeyDown">
@@ -462,11 +450,6 @@
                                     <Border Background="{DynamicResource ItemBackground}"
                                             BorderBrush="{DynamicResource BorderBrushColor}"
                                             BorderThickness="1" Margin="6,4" Padding="6"
-                                            AllowDrop="True"
-                                            Drop="Destination_Drop"
-                                            DragOver="Destination_DragOver"
-                                            DragEnter="Destination_DragEnter"
-                                            DragLeave="Destination_DragLeave"
                                             Tag="{Binding}">
                                         <DockPanel>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
