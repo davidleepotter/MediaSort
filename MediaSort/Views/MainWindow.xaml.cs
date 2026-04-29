@@ -837,7 +837,7 @@ public partial class MainWindow : Window
 
         StatusText.Text = $"Regenerating thumbnails for {_allItems.Count} item(s)...";
         CrashLogger.Info($"regen-thumbs requested count={_allItems.Count}");
-        StartBackgroundProbe(_allItems.ToList(), _probeCts.Token);
+        StartBackgroundProbe(_allItems.ToList(), _probeCts.Token, reportCompletion: true);
     }
 
     private void Recursive_Changed(object sender, RoutedEventArgs e)
@@ -885,27 +885,79 @@ public partial class MainWindow : Window
         bool recursive = RecursiveCheck.IsChecked == true;
         bool includeHidden = _settings.IncludeHiddenFiles;
 
+        // Show a non-modal progress dialog after a brief delay so small folders don't
+        // flash a popup. The dialog ticks a running count from the scan thread and is
+        // closed in `finally` regardless of how the scan ended.
+        ProgressDialog? scanDialog = null;
+        var dialogCts = CancellationTokenSource.CreateLinkedTokenSource(scanToken);
+        _ = Task.Delay(250, dialogCts.Token).ContinueWith(t =>
+        {
+            if (t.IsCanceled || scanToken.IsCancellationRequested) return;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (scanToken.IsCancellationRequested) return;
+                scanDialog = new ProgressDialog("Scanning folder…", folder)
+                {
+                    Owner = this,
+                };
+                scanDialog.ReportProgress(0, 0); // indeterminate
+                // Wire dialog Cancel -> cancel our scan token.
+                scanDialog.Token.Register(() =>
+                {
+                    try { _scanCts?.Cancel(); } catch { }
+                });
+                scanDialog.Show();
+            }));
+        }, TaskScheduler.Default);
+
         // Heavy folder enumeration on a background thread — huge folders can take seconds
-        // and would otherwise freeze the UI right after launch. Now cancellation-aware (#23)
-        // and hidden/system-aware (#24).
+        // and would otherwise freeze the UI right after launch. Now cancellation-aware (#23),
+        // hidden/system-aware (#24), and progress-aware via the popup above.
         List<MediaItem> items;
         try
         {
-            items = await Task.Run(
-                () => MediaScanner.Scan(folder, recursive, includeHidden, scanToken).ToList(),
-                scanToken);
+            items = await Task.Run(() =>
+            {
+                var list = new List<MediaItem>();
+                int images = 0, videos = 0;
+                var nextTick = Environment.TickCount + 100;
+                foreach (var mi in MediaScanner.Scan(folder, recursive, includeHidden, scanToken))
+                {
+                    list.Add(mi);
+                    if (mi.Kind == MediaKind.Image) images++; else if (mi.Kind == MediaKind.Video) videos++;
+                    if (Environment.TickCount >= nextTick)
+                    {
+                        nextTick = Environment.TickCount + 100;
+                        var imgN = images; var vidN = videos;
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            scanDialog?.SetDetail($"Found {imgN:N0} image(s), {vidN:N0} video(s)…");
+                        }));
+                    }
+                }
+                return list;
+            }, scanToken);
         }
         catch (OperationCanceledException)
         {
             // A newer scan started — silently abandon this one. The newer call already
             // cleared collections and updated status text.
+            try { dialogCts.Cancel(); } catch { }
+            try { scanDialog?.Close(); } catch { }
             return;
         }
         catch (Exception ex)
         {
             CrashLogger.Log(ex, $"scan:{folder}");
             StatusText.Text = $"Scan failed: {ex.Message}";
+            try { dialogCts.Cancel(); } catch { }
+            try { scanDialog?.Close(); } catch { }
             return;
+        }
+        finally
+        {
+            try { dialogCts.Cancel(); } catch { }
+            try { scanDialog?.Close(); } catch { }
         }
 
         // If we were cancelled while the result list was being materialized, bail.
@@ -932,11 +984,11 @@ public partial class MainWindow : Window
         StartBackgroundProbe(items, _probeCts.Token);
     }
 
-    private void StartBackgroundProbe(List<MediaItem> items, CancellationToken ct)
+    private void StartBackgroundProbe(List<MediaItem> items, CancellationToken ct, bool reportCompletion = false)
     {
         var imageCount = items.Count(i => i.Kind == MediaKind.Image);
         var videoCount = items.Count(i => i.Kind == MediaKind.Video);
-        CrashLogger.Info($"probe:start total={items.Count} images={imageCount} videos={videoCount}");
+        CrashLogger.Info($"probe:start total={items.Count} images={imageCount} videos={videoCount} report={reportCompletion}");
 
         _ = Task.Run(() =>
         {
@@ -984,7 +1036,11 @@ public partial class MainWindow : Window
             foreach (var item in videos)
             {
                 if (ct.IsCancellationRequested) { CrashLogger.Info("probe:cancelled"); return; }
-                try { ProbeVideo(item, ct); }
+                try
+                {
+                    ProbeVideo(item, ct);
+                    if (item.Thumbnail != null) thumbsAssigned++;
+                }
                 catch (Exception ex)
                 {
                     failures++;
@@ -995,12 +1051,25 @@ public partial class MainWindow : Window
             CrashLogger.Info($"probe:done thumbs={thumbsAssigned} dims={dimsAssigned} failures={failures}");
 
             if (ct.IsCancellationRequested) return;
+
+            // Capture for the dispatcher closure.
+            int finalThumbs = thumbsAssigned;
+            int finalFails = failures;
+            int finalTotal = items.Count;
+
             try
             {
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     if (_settings.SortKey == SortKey.Aspect || _settings.SortKey == SortKey.Duration)
                         ApplySort();
+
+                    if (reportCompletion)
+                    {
+                        StatusText.Text = finalFails > 0
+                            ? $"Thumbnails regenerated: {finalThumbs:N0} of {finalTotal:N0} ({finalFails:N0} failed)"
+                            : $"Thumbnails regenerated: {finalThumbs:N0} of {finalTotal:N0}";
+                    }
                 }));
             }
             catch (Exception ex) { CrashLogger.Log(ex, "probe:final-sort"); }
