@@ -556,6 +556,9 @@ public partial class MainWindow : Window
             SortKey.Modified => _settings.SortDescending
                                 ? MediaItems.OrderByDescending(m => m.ModifiedDate)
                                 : MediaItems.OrderBy(m => m.ModifiedDate),
+            SortKey.Created  => _settings.SortDescending
+                                ? MediaItems.OrderByDescending(m => m.CreatedDate)
+                                : MediaItems.OrderBy(m => m.CreatedDate),
             SortKey.Kind     => _settings.SortDescending
                                 ? MediaItems.OrderByDescending(m => m.Kind.ToString())
                                 : MediaItems.OrderBy(m => m.Kind.ToString()),
@@ -1046,7 +1049,7 @@ public partial class MainWindow : Window
                 var list = new List<MediaItem>();
                 int images = 0, videos = 0;
                 var nextTick = Environment.TickCount + 100;
-                foreach (var mi in MediaScanner.Scan(folder, recursive, includeHidden, scanToken))
+                foreach (var mi in MediaScanner.ScanFast(folder, recursive, includeHidden, scanToken))
                 {
                     list.Add(mi);
                     if (mi.Kind == MediaKind.Image) images++; else if (mi.Kind == MediaKind.Video) videos++;
@@ -1802,7 +1805,7 @@ public partial class MainWindow : Window
                     {
                         if (Directory.Exists(p))
                         {
-                            foreach (var mi in MediaScanner.Scan(p, recursive, includeHidden, CancellationToken.None))
+                            foreach (var mi in MediaScanner.ScanFast(p, recursive, includeHidden, CancellationToken.None))
                             {
                                 if (seen.Add(mi.FullPath)) list.Add(mi);
                             }
@@ -1957,6 +1960,7 @@ public partial class MainWindow : Window
             new("Path", item.FullPath),
             new("Size", item.SizeDisplay),
             new("Modified", item.ModifiedDate.ToString("yyyy-MM-dd HH:mm")),
+            new("Created", item.CreatedDate.ToString("yyyy-MM-dd HH:mm")),
             new("Kind", item.Kind.ToString()),
         };
         if (item.PixelWidth > 0 && item.PixelHeight > 0)

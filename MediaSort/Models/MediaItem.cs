@@ -28,6 +28,7 @@ public class MediaItem : INotifyPropertyChanged
     private string _extension = "";
     private long _sizeBytes;
     private DateTime _modifiedDate;
+    private DateTime _createdDate;
 
     public string FullPath
     {
@@ -54,6 +55,15 @@ public class MediaItem : INotifyPropertyChanged
         get => _modifiedDate;
         private set { if (_modifiedDate == value) return; _modifiedDate = value; OnPropertyChanged(); }
     }
+    /// <summary>
+    /// File-system creation time (NTFS "created" timestamp). Note: on Windows
+    /// this is when the file came to exist on this volume — a copy resets it.
+    /// </summary>
+    public DateTime CreatedDate
+    {
+        get => _createdDate;
+        private set { if (_createdDate == value) return; _createdDate = value; OnPropertyChanged(); }
+    }
     public MediaKind Kind { get; }
 
     /// <summary>
@@ -71,6 +81,7 @@ public class MediaItem : INotifyPropertyChanged
         {
             SizeBytes = fi.Length;
             ModifiedDate = fi.LastWriteTime;
+            CreatedDate = fi.CreationTime;
         }
     }
 
@@ -198,6 +209,30 @@ public class MediaItem : INotifyPropertyChanged
         _extension = fi.Extension.ToLowerInvariant();
         _sizeBytes = fi.Exists ? fi.Length : 0;
         _modifiedDate = fi.Exists ? fi.LastWriteTime : DateTime.MinValue;
+        _createdDate = fi.Exists ? fi.CreationTime : DateTime.MinValue;
+        Kind = ClassifyExtension(_extension);
+    }
+
+    /// <summary>
+    /// Fast-path constructor used by <see cref="Services.MediaScanner.ScanFast"/>.
+    /// Skips the second <c>new FileInfo</c> stat by accepting pre-populated values
+    /// already read from the directory enumeration's <c>FileSystemEntry</c>.
+    /// </summary>
+    public MediaItem(string fullPath, string fileName, string extension, long sizeBytes, DateTime modifiedDate)
+        : this(fullPath, fileName, extension, sizeBytes, modifiedDate, modifiedDate) { }
+
+    /// <summary>
+    /// Fast-path constructor with both modified and created timestamps from the
+    /// directory enumeration record — avoids any extra stat call.
+    /// </summary>
+    public MediaItem(string fullPath, string fileName, string extension, long sizeBytes, DateTime modifiedDate, DateTime createdDate)
+    {
+        _fullPath = fullPath;
+        _fileName = fileName;
+        _extension = extension.ToLowerInvariant();
+        _sizeBytes = sizeBytes;
+        _modifiedDate = modifiedDate;
+        _createdDate = createdDate;
         Kind = ClassifyExtension(_extension);
     }
 

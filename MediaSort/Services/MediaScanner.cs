@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.IO.Enumeration;
 using System.Linq;
 using System.Threading;
 using MediaSort.Models;
@@ -80,6 +83,119 @@ public static class MediaScanner
         {
             // Permission errors etc — treat as hidden so we silently skip.
             return true;
+        }
+    }
+
+    /// <summary>
+    /// (Perf #1) Fast scan using <see cref="FileSystemEnumerable{T}"/> with a
+    /// <c>FindTransform</c> that reads <c>FileSystemEntry</c> data (name, size,
+    /// last-write time, attributes) directly from the underlying Win32
+    /// enumeration record. This avoids a second <c>FileInfo</c> stat per file
+    /// (one for the IsHiddenOrSystem check, one in the MediaItem ctor) — the
+    /// largest cost on big folders or network shares.
+    ///
+    /// Logs <c>scan: N files in Xms</c> on completion so regressions are visible.
+    /// </summary>
+    public static IEnumerable<MediaItem> ScanFast(string folder,
+                                                   bool recursive,
+                                                   bool includeHidden,
+                                                   CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+            yield break;
+
+        var sw = Stopwatch.StartNew();
+        int count = 0;
+
+        var options = new EnumerationOptions
+        {
+            RecurseSubdirectories = recursive,
+            IgnoreInaccessible = true,
+            AttributesToSkip = includeHidden
+                ? FileAttributes.None
+                : FileAttributes.Hidden | FileAttributes.System,
+            // Match wins (.NET defaults to platform default which is fine on Win)
+            ReturnSpecialDirectories = false,
+        };
+
+        // Predicate: only yield files that match a known media extension.
+        // Operates on the FileSystemEntry struct so no extra path string is allocated.
+        bool ShouldInclude(ref FileSystemEntry entry)
+        {
+            if (entry.IsDirectory) return false;
+            // entry.FileName is a ReadOnlySpan<char> over the native record.
+            var name = entry.FileName;
+            int dot = name.LastIndexOf('.');
+            if (dot < 0 || dot == name.Length - 1) return false;
+            // Lowercase the extension into a small stack buffer for the lookup.
+            Span<char> extBuf = stackalloc char[24];
+            int extLen = name.Length - dot;
+            if (extLen > extBuf.Length) return false;
+            for (int i = 0; i < extLen; i++)
+                extBuf[i] = char.ToLowerInvariant(name[dot + i]);
+            var extStr = new string(extBuf[..extLen]);
+            return MediaFormats.AllExtensions.Contains(extStr);
+        }
+
+        // Transform: project the FileSystemEntry into a MediaItem using its
+        // already-populated metadata. No second FileInfo / stat call.
+        MediaItem Transform(ref FileSystemEntry entry)
+        {
+            var fullPath = entry.ToFullPath();
+            var fileName = entry.FileName.ToString();
+            int dot = fileName.LastIndexOf('.');
+            var extension = dot >= 0 ? fileName.Substring(dot).ToLowerInvariant() : string.Empty;
+            return new MediaItem(
+                fullPath,
+                fileName,
+                extension,
+                entry.Length,
+                entry.LastWriteTimeUtc.LocalDateTime,
+                entry.CreationTimeUtc.LocalDateTime);
+        }
+
+        var enumerable = new FileSystemEnumerable<MediaItem>(
+            folder,
+            (ref FileSystemEntry e) => Transform(ref e),
+            options)
+        {
+            ShouldIncludePredicate = (ref FileSystemEntry e) => ShouldInclude(ref e),
+        };
+
+        IEnumerator<MediaItem>? enumerator = null;
+        try
+        {
+            try { enumerator = enumerable.GetEnumerator(); }
+            catch (Exception ex)
+            {
+                CrashLogger.Info($"scan: enumerator init failed: {ex.Message}");
+                yield break;
+            }
+
+            while (true)
+            {
+                if (ct.IsCancellationRequested) yield break;
+                MediaItem? next = null;
+                try
+                {
+                    if (!enumerator.MoveNext()) break;
+                    next = enumerator.Current;
+                }
+                catch (Exception ex)
+                {
+                    // Permission / locked path mid-walk — log and stop cleanly.
+                    CrashLogger.Info($"scan: enumerator faulted: {ex.Message}");
+                    yield break;
+                }
+                count++;
+                yield return next!;
+            }
+        }
+        finally
+        {
+            enumerator?.Dispose();
+            sw.Stop();
+            CrashLogger.Info($"scan: {count} files in {sw.ElapsedMilliseconds}ms (recursive={recursive})");
         }
     }
 }
