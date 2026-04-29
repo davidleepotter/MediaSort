@@ -29,20 +29,33 @@ public partial class KeyboardHelpWindow : Window
     {
         // Navigation
         new() { Category = "Navigation", KeyDisplay = "↑ / ↓ / ← / →", Description = "Move selection in the source list" },
-        new() { Category = "Navigation", KeyDisplay = "Home / End",     Description = "Jump to first/last item" },
+        new() { Category = "Navigation", KeyDisplay = "Home / End",     Description = "Jump to first/last item (Source header also has Top / Bottom buttons)" },
         new() { Category = "Navigation", KeyDisplay = "Page Up/Down",   Description = "Page through the list" },
         new() { Category = "Navigation", KeyDisplay = "Ctrl+F",         Description = "Focus the search/quick-filter box. Esc clears." },
 
         // Sorting / moving
-        new() { Category = "Sorting / moving", KeyDisplay = "Destination hotkey", Description = "Move selected item(s) to that destination" },
+        new() { Category = "Sorting / moving", KeyDisplay = "Destination hotkey", Description = "Move selected item(s) to that destination (no confirm — always instant)" },
         new() { Category = "Sorting / moving", KeyDisplay = "Shift+hotkey…",      Description = "Hold Shift and tap multiple destination hotkeys to queue. Release to send: every queued destination gets a Copy, the LAST one uses the toolbar Action. Esc cancels." },
         new() { Category = "Sorting / moving", KeyDisplay = ".",                  Description = "Repeat last destination (send selection to the last destination you used)" },
         new() { Category = "Sorting / moving", KeyDisplay = "F",                  Description = "Toggle star/favorite on the current selection (persists across sessions)" },
         new() { Category = "Sorting / moving", KeyDisplay = "F2",                 Description = "Rename the selected file. Multi-select opens batch rename." },
         new() { Category = "Sorting / moving", KeyDisplay = "Ctrl+Z",             Description = "Undo last move/copy/delete batch" },
+        new() { Category = "Sorting / moving", KeyDisplay = "Ctrl+H",             Description = "Open History — browse all batches and undo any one of them (with Clear History)" },
         new() { Category = "Sorting / moving", KeyDisplay = "N",                  Description = "Skip — advance to next without moving" },
         new() { Category = "Sorting / moving", KeyDisplay = "Delete",             Description = "Send selected item(s) to Recycle Bin" },
         new() { Category = "Sorting / moving", KeyDisplay = "Ctrl+A",             Description = "Select all visible items (toggles to Unselect All)" },
+
+        // Tags / ratings (UX #14)
+        new() { Category = "Tags & ratings", KeyDisplay = "Ctrl+T",       Description = "Open the batch tag editor for the current selection (rating + tags)" },
+        new() { Category = "Tags & ratings", KeyDisplay = "Tags… button", Description = "Toolbar button — same as Ctrl+T. Set rating Leave/Clear/1–5★ and add/remove/replace tags. Click an existing-tag chip to add it; click ✕ next to a chip to delete that tag from every file in the store." },
+        new() { Category = "Tags & ratings", KeyDisplay = "Min ★ combo",  Description = "Toolbar filter — show only items rated at least this many stars (Any / ≥1 / ≥2 / ≥3 / ≥4 / 5)" },
+        new() { Category = "Tags & ratings", KeyDisplay = "Tag: textbox", Description = "Toolbar filter — show only items whose tags contain this substring (case-insensitive)" },
+
+        // Pane layout (UX #15)
+        new() { Category = "Pane layout", KeyDisplay = "◀ / ▶ in pane header", Description = "Swap this pane (Source / Preview / Destinations) one slot to the left or right" },
+        new() { Category = "Pane layout", KeyDisplay = "✕ in pane header",      Description = "Hide this pane (last visible pane is protected). Restore via Panes▾ in toolbar." },
+        new() { Category = "Pane layout", KeyDisplay = "Panes ▾ button",        Description = "Toolbar menu — toggle Source/Preview/Destinations visibility, or Reset to default layout" },
+        new() { Category = "Pane layout", KeyDisplay = "Drag splitter",           Description = "Drag the 5px gap between two visible panes to resize. Sizes persist per slot across restarts." },
 
         // View / preview
         new() { Category = "View / preview", KeyDisplay = "Space",       Description = "Play/pause video preview" },
@@ -53,7 +66,7 @@ public partial class KeyboardHelpWindow : Window
         new() { Category = "View / preview", KeyDisplay = "? / F1",      Description = "Show this help" },
 
         // Mouse on destination buttons
-        new() { Category = "Destination buttons (mouse)", KeyDisplay = "Click",      Description = "Send the current selection to that destination" },
+        new() { Category = "Destination buttons (mouse)", KeyDisplay = "Click",      Description = "Send the current selection to that destination. Confirms first by default — disable in Settings or via 'Don't ask again' on the prompt. (Hotkey moves never confirm.)" },
         new() { Category = "Destination buttons (mouse)", KeyDisplay = "Ctrl+Click", Description = "Open the destination folder in File Explorer (no move)" },
         new() { Category = "Destination buttons (mouse)", KeyDisplay = "Right-click", Description = "Open menu: Open folder, Use as source, Move up/down, Edit, Remove" },
         new() { Category = "Destination buttons (mouse)", KeyDisplay = "⋮⋮ handle",  Description = "Click and hold the dotted handle on the left, then drag up or down to reorder" },
