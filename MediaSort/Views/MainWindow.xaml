@@ -12,7 +12,8 @@
         Foreground="{DynamicResource PanelForeground}"
         WindowStartupLocation="CenterScreen"
         Opacity="0"
-        KeyDown="Window_KeyDown">
+        KeyDown="Window_KeyDown"
+        KeyUp="Window_KeyUp">
     <Window.Resources>
         <conv:MediaKindToVisibilityConverter x:Key="KindVis"/>
         <conv:ViewModeToVisibilityConverter x:Key="ModeVis"/>

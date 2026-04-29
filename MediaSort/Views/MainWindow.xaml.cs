@@ -67,6 +67,12 @@ public partial class MainWindow : Window
     // without lifting their hand from the keyboard.
     private DestinationButton? _lastDestination;
 
+    // (#9) Multi-destination split: while Shift is held, destination hotkeys queue
+    // up instead of firing immediately. On Shift release the queued list is dispatched
+    // — last entry uses the toolbar Action (typically Move), earlier entries Copy.
+    private readonly List<DestinationButton> _destQueue = new();
+    private List<MediaItem>? _destQueueItems; // captured at queue-start time
+
     // Image preview pan/zoom state
     private bool _imagePanning;
     private System.Windows.Point _imagePanStart;
@@ -2651,10 +2657,32 @@ public partial class MainWindow : Window
             return;
         }
 
+        // (#9) Esc clears any in-progress multi-destination queue.
+        if (e.Key == Key.Escape && _destQueue.Count > 0)
+        {
+            ClearDestinationQueue("Multi-destination queue cancelled.");
+            e.Handled = true;
+            return;
+        }
+
         // Destination hotkeys
         foreach (var dest in Destinations)
         {
             if (dest.HotKey == Key.None) continue;
+
+            // (#9) Shift+<dest hotkey> queues for multi-destination split. We only
+            // intercept when the destination's own modifier set does NOT include Shift,
+            // so a destination explicitly bound to Shift+K still fires normally.
+            bool shiftHeld = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+            bool destOwnsShift = (dest.Modifiers & ModifierKeys.Shift) != 0;
+            if (shiftHeld && !destOwnsShift && dest.HotKey == e.Key &&
+                (Keyboard.Modifiers & ~ModifierKeys.Shift) == dest.Modifiers)
+            {
+                EnqueueDestination(dest);
+                e.Handled = true;
+                return;
+            }
+
             if (dest.HotKey == e.Key && Keyboard.Modifiers == dest.Modifiers)
             {
                 var items = GetSelectedItems();
@@ -2665,6 +2693,77 @@ public partial class MainWindow : Window
                 return;
             }
         }
+    }
+
+    /// <summary>
+    /// (#9) Fires when the user releases a key. We only act on Shift release — if there's
+    /// a queued list of destinations, dispatch them now: every entry except the last as
+    /// Copy, the last as the toolbar action (Move/Copy/Delete).
+    /// </summary>
+    private void Window_KeyUp(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.LeftShift && e.Key != Key.RightShift) return;
+        // Still some Shift down? (one of the two Shift keys held, the other released)
+        if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0) return;
+        if (_destQueue.Count == 0) return;
+        DispatchDestinationQueue();
+    }
+
+    private void EnqueueDestination(DestinationButton dest)
+    {
+        if (_destQueueItems == null)
+            _destQueueItems = GetSelectedItems();
+
+        if (_destQueueItems == null || _destQueueItems.Count == 0)
+        {
+            StatusText.Text = "Select item(s) before queuing destinations.";
+            return;
+        }
+        if (_destQueue.Contains(dest)) return; // ignore duplicate hotkey taps
+        _destQueue.Add(dest);
+
+        // Status bar chip strip: "Multi-dest: K → B → R (release Shift to send, Esc cancels)"
+        var chips = string.Join(" → ", _destQueue.Select(d => d.Name));
+        StatusText.Text = $"Multi-dest [{_destQueueItems.Count} item(s)]: {chips}  (release Shift to send, Esc to cancel)";
+        FlashDestinationBadge(dest, _destQueueItems.Count);
+    }
+
+    private void ClearDestinationQueue(string status)
+    {
+        _destQueue.Clear();
+        _destQueueItems = null;
+        StatusText.Text = status;
+    }
+
+    private void DispatchDestinationQueue()
+    {
+        if (_destQueue.Count == 0 || _destQueueItems == null) { _destQueue.Clear(); _destQueueItems = null; return; }
+
+        var items = _destQueueItems;
+        var queue = _destQueue.ToList();
+        // Reset state up front so re-entry is safe.
+        _destQueue.Clear();
+        _destQueueItems = null;
+
+        // Remember the user's chosen Action; we need to force Copy for all but the last
+        // entry without permanently changing the setting.
+        var savedAction = _settings.Action;
+        try
+        {
+            for (int i = 0; i < queue.Count; i++)
+            {
+                bool isLast = i == queue.Count - 1;
+                _settings.Action = isLast ? savedAction : FileAction.Copy;
+                var dest = queue[i];
+                _lastDestination = dest;
+                DispatchAction(items, dest, FindDestinationElement(dest));
+            }
+        }
+        finally
+        {
+            _settings.Action = savedAction;
+        }
+        StatusText.Text = $"Sent {items.Count} item(s) to {queue.Count} destination(s): {string.Join(", ", queue.Select(d => d.Name))}";
     }
 
     // ----------------- SETTINGS / ABOUT / HELP -----------------

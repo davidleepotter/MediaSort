@@ -64,23 +64,25 @@
                             <TextBlock Text="Sorting / moving" FontWeight="Bold" Margin="0,12,0,4"/>
                             <Grid Margin="12,0">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Destination hotkey" FontFamily="Consolas"/>
                                 <TextBlock Grid.Row="0" Grid.Column="1" Text="Move selected item(s) to that destination"/>
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="." FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Repeat last destination (send selection to the last destination you used)"/>
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="F" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="Toggle star/favorite on the current selection (persists across sessions)"/>
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="F2" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="3" Grid.Column="1" Text="Rename the selected file (single selection only)"/>
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Ctrl+Z" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="4" Grid.Column="1" Text="Undo last move (or batch)"/>
-                                <TextBlock Grid.Row="5" Grid.Column="0" Text="N" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="5" Grid.Column="1" Text="Skip — advance to next without moving"/>
-                                <TextBlock Grid.Row="6" Grid.Column="0" Text="Delete" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="6" Grid.Column="1" Text="Send selected item(s) to Recycle Bin"/>
-                                <TextBlock Grid.Row="7" Grid.Column="0" Text="Ctrl+A" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="7" Grid.Column="1" Text="Select all visible items"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Shift+hotkey…" FontFamily="Consolas" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" Text="Hold Shift and tap multiple destination hotkeys to queue them. Release Shift to send: every queued destination gets a Copy, the LAST one uses the toolbar Action (so Move only happens once, at the end). Esc cancels the queue."/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="." FontFamily="Consolas"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="Repeat last destination (send selection to the last destination you used)"/>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="F" FontFamily="Consolas"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" Text="Toggle star/favorite on the current selection (persists across sessions)"/>
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="F2" FontFamily="Consolas"/>
+                                <TextBlock Grid.Row="4" Grid.Column="1" Text="Rename the selected file (single selection only)"/>
+                                <TextBlock Grid.Row="5" Grid.Column="0" Text="Ctrl+Z" FontFamily="Consolas"/>
+                                <TextBlock Grid.Row="5" Grid.Column="1" Text="Undo last move (or batch)"/>
+                                <TextBlock Grid.Row="6" Grid.Column="0" Text="N" FontFamily="Consolas"/>
+                                <TextBlock Grid.Row="6" Grid.Column="1" Text="Skip — advance to next without moving"/>
+                                <TextBlock Grid.Row="7" Grid.Column="0" Text="Delete" FontFamily="Consolas"/>
+                                <TextBlock Grid.Row="7" Grid.Column="1" Text="Send selected item(s) to Recycle Bin"/>
+                                <TextBlock Grid.Row="8" Grid.Column="0" Text="Ctrl+A" FontFamily="Consolas"/>
+                                <TextBlock Grid.Row="8" Grid.Column="1" Text="Select all visible items"/>
                             </Grid>
 
                             <TextBlock Text="View / preview" FontWeight="Bold" Margin="0,12,0,4"/>
