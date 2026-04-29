@@ -225,7 +225,12 @@
                             </ListBox.ContextMenu>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding FileName}"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <CheckBox VerticalAlignment="Center" Margin="0,0,6,0"
+                                                  IsChecked="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Mode=TwoWay}"
+                                                  ToolTip="Select this item"/>
+                                        <TextBlock Text="{Binding FileName}" VerticalAlignment="Center"/>
+                                    </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
@@ -250,6 +255,16 @@
                             </ListView.ContextMenu>
                             <ListView.View>
                                 <GridView>
+                                    <GridViewColumn Width="32">
+                                        <GridViewColumnHeader Content=""/>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox HorizontalAlignment="Center"
+                                                          IsChecked="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Mode=TwoWay}"
+                                                          ToolTip="Select this item"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
                                     <GridViewColumn Width="180" DisplayMemberBinding="{Binding FileName}">
                                         <GridViewColumnHeader Content="Name" Tag="Name" Click="GridHeader_Click"/>
                                     </GridViewColumn>
@@ -322,6 +337,10 @@
                                                         Visibility="{Binding IsDuplicate, Converter={StaticResource BoolVis}}">
                                                     <TextBlock Text="DUP" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                                 </Border>
+                                                <CheckBox HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4"
+                                                          Background="#CC000000"
+                                                          IsChecked="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Mode=TwoWay}"
+                                                          ToolTip="Select this item"/>
                                             </Grid>
                                         </DockPanel>
                                     </Border>

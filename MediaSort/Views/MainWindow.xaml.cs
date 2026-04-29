@@ -137,7 +137,7 @@ public partial class MainWindow : Window
         }
 
         ApplyViewMode();
-        Title = $"MediaSort v{VersionInfo.GetVersion()}";
+        Title = $"MediaSort v{VersionInfo.GetDisplayVersion()}";
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
