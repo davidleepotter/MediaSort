@@ -138,9 +138,10 @@ public partial class MainWindow : Window
         CrashLogger.Info("startup: _initializing = false (saves now enabled)");
 
         // PHASE 2 — slow stuff off the UI thread so the window can paint immediately.
-        // (a) Initialize LibVLC on a background thread (loads native plugins from disk).
-        // (b) Scan the source folder on a background thread (can be thousands of files).
-        _ = InitializeVlcAsync();
+        // (#4) LibVLC is no longer eagerly initialized at startup. Loading the native
+        // plugins is the single largest contributor to cold-start time (~300-800 ms
+        // depending on disk). We now defer it until the user previews their first
+        // video, via EnsureVlcInitializedAsync(). The folder scan still runs now.
 
         if (!string.IsNullOrWhiteSpace(_settings.SourceFolder) && Directory.Exists(_settings.SourceFolder))
         {
@@ -150,8 +151,78 @@ public partial class MainWindow : Window
         }
     }
 
+    // (#4) Lazy LibVLC init. The single Task is cached so concurrent video previews
+    // share one initialization. Returns true on success, false if init failed.
+    private Task<bool>? _vlcInitTask;
+
+    /// <summary>
+    /// (#4) Triggered by UpdatePreview for a video item. If LibVLC isn't ready yet,
+    /// kicks off (or awaits the in-flight) lazy init and shows a brief "Initializing
+    /// video player…" status. Once ready, plays the media. If the user clicks away
+    /// to a different item before init completes, the new selection wins — we check
+    /// _pendingPreviewItem (or current selection) before calling Play.
+    /// </summary>
+    private async Task StartVideoPreviewAsync(MediaItem item)
+    {
+        // Optimistic UI: show the controls bar; if init fails we'll hide them again.
+        PreviewVideo.Visibility = Visibility.Visible;
+        VideoControls.Visibility = Visibility.Visible;
+        PreviewEmpty.Visibility = Visibility.Collapsed;
+
+        bool needInit = _vlcInitTask == null && (_mediaPlayer == null || _libVlc == null);
+        if (needInit)
+            StatusText.Text = "Initializing video player…";
+
+        bool ok = await EnsureVlcInitializedAsync();
+        if (!ok || _mediaPlayer == null || _libVlc == null)
+        {
+            PreviewEmpty.Text = "Video playback unavailable (LibVLC failed to initialize).";
+            PreviewEmpty.Visibility = Visibility.Visible;
+            PreviewVideo.Visibility = Visibility.Collapsed;
+            VideoControls.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        // Bail out if the user has navigated away while LibVLC was loading.
+        var currentSel = GetSelectedItems().FirstOrDefault();
+        if (currentSel != null && !ReferenceEquals(currentSel, item)) return;
+        if (needInit) StatusText.Text = "Ready";
+
+        try
+        {
+            // Don't call _mediaPlayer.Stop() here — LibVLCSharp's Play(newMedia) replaces
+            // the current media internally, and Stop() is synchronous and can block.
+            try { _videoTimer?.Stop(); } catch { }
+            using var media = new Media(_libVlc, new Uri(item.FullPath));
+            _mediaPlayer.Play(media);
+            ApplyAudioPreviewState(); // (#20) carry mute / volume into the new media
+            _videoTimer?.Start();
+
+            PopulateExif(item);
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Preview error: {ex.Message}";
+            PreviewEmpty.Text = $"Preview error: {ex.Message}";
+            PreviewEmpty.Visibility = Visibility.Visible;
+            PreviewVideo.Visibility = Visibility.Collapsed;
+            VideoControls.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    /// <summary>
+    /// (#4) Ensures LibVLC + MediaPlayer + video timer are ready. Safe to call repeatedly
+    /// — the work runs at most once per session. Returns true on success.
+    /// </summary>
+    private Task<bool> EnsureVlcInitializedAsync()
+    {
+        if (_vlcInitTask != null) return _vlcInitTask;
+        _vlcInitTask = InitializeVlcAsync();
+        return _vlcInitTask;
+    }
+
     /// <summary>Initializes LibVLC off the UI thread so it doesn't delay the first paint.</summary>
-    private async Task InitializeVlcAsync()
+    private async Task<bool> InitializeVlcAsync()
     {
         try
         {
@@ -173,11 +244,13 @@ public partial class MainWindow : Window
                 Interval = TimeSpan.FromMilliseconds(250)
             };
             _videoTimer.Tick += VideoTimer_Tick;
+            return true;
         }
         catch (Exception ex)
         {
             StatusText.Text = $"Video playback unavailable: {ex.Message}";
             CrashLogger.Log(ex, "vlc-init");
+            return false;
         }
     }
 
@@ -1151,30 +1224,7 @@ public partial class MainWindow : Window
             {
                 PreviewImage.Source = null;
                 PreviewImage.Visibility = Visibility.Collapsed;
-
-                if (_mediaPlayer == null || _libVlc == null)
-                {
-                    PreviewEmpty.Text = "Video playback unavailable (LibVLC failed to initialize).";
-                    PreviewEmpty.Visibility = Visibility.Visible;
-                    PreviewVideo.Visibility = Visibility.Collapsed;
-                    VideoControls.Visibility = Visibility.Collapsed;
-                    return;
-                }
-
-                PreviewVideo.Visibility = Visibility.Visible;
-                VideoControls.Visibility = Visibility.Visible;
-                PreviewEmpty.Visibility = Visibility.Collapsed;
-
-                // Don't call _mediaPlayer.Stop() here — LibVLCSharp's Play(newMedia)
-                // already replaces the current media internally, and Stop() is a
-                // synchronous, blocking call that can hang the UI thread.
-                try { _videoTimer?.Stop(); } catch { }
-                using var media = new Media(_libVlc, new Uri(item.FullPath));
-                _mediaPlayer.Play(media);
-                ApplyAudioPreviewState(); // (#20) carry mute / volume into the new media
-                _videoTimer?.Start();
-
-                PopulateExif(item); // shows file info even for videos (no EXIF, but file size etc)
+                _ = StartVideoPreviewAsync(item); // (#4) lazy-init LibVLC if needed
             }
             else
             {
