@@ -244,11 +244,15 @@ public partial class SettingsWindow : Window
     {
         try
         {
-            var (bytes, count) = MediaSort.Services.ThumbnailCache.GetDiskStats();
-            double mb = bytes / (1024.0 * 1024.0);
-            ThumbCacheStatusText.Text = count == 0
+            var (dBytes, dCount) = MediaSort.Services.ThumbnailCache.GetDiskStats();
+            var (mBytes, mCount) = MediaSort.Services.ThumbnailCache.GetMemoryStats();
+            double dMb = dBytes / (1024.0 * 1024.0);
+            double mMb = mBytes / (1024.0 * 1024.0);
+            double diskCapMb = MediaSort.Services.ThumbnailCache.MaxDiskBytes / (1024.0 * 1024.0);
+            double memCapMb  = MediaSort.Services.ThumbnailCache.MaxMemoryBytes / (1024.0 * 1024.0);
+            ThumbCacheStatusText.Text = (dCount == 0 && mCount == 0)
                 ? "Thumbnail cache is empty."
-                : $"On disk: {count} thumbnail(s), {mb:0.0} MB.";
+                : $"Memory: {mCount} ({mMb:0.0} / {memCapMb:0} MB)   Disk: {dCount} ({dMb:0.0} / {diskCapMb:0} MB)";
         }
         catch
         {
