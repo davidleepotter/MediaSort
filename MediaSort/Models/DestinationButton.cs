@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace MediaSort.Models;
 
@@ -14,6 +15,7 @@ public class DestinationButton : INotifyPropertyChanged
     private string _subfolderTemplate = "";
     private string _renameTemplate = "";
     private MediaSort.Models.FileAction? _actionOverride;
+    private string _accentColor = "";
     private int _itemCount;
     private string _flashBadge = "";
     private double _flashOpacity = 0;
@@ -73,6 +75,62 @@ public class DestinationButton : INotifyPropertyChanged
     {
         get => _actionOverride;
         set { _actionOverride = value; OnPropertyChanged(); OnPropertyChanged(nameof(BadgeText)); }
+    }
+
+    /// <summary>
+    /// (#10) Optional per-destination tint color (hex string like "#FFAA00").
+    /// Empty / null / unparseable = no tint strip rendered. The DestButton template
+    /// reads <see cref="AccentBrush"/> and <see cref="HasAccent"/> to draw a 4-px
+    /// vertical strip on the left edge so destinations are visually distinguishable
+    /// at a glance.
+    /// </summary>
+    public string AccentColor
+    {
+        get => _accentColor;
+        set
+        {
+            var v = (value ?? "").Trim();
+            if (_accentColor == v) return;
+            _accentColor = v;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(AccentBrush));
+            OnPropertyChanged(nameof(HasAccent));
+        }
+    }
+
+    /// <summary>
+    /// Parsed brush for <see cref="AccentColor"/>. Returns Transparent when the
+    /// color string is empty or invalid so the binding never throws and the strip
+    /// just disappears.
+    /// </summary>
+    public System.Windows.Media.Brush AccentBrush
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_accentColor)) return System.Windows.Media.Brushes.Transparent;
+            try
+            {
+                var c = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(_accentColor)!;
+                return new System.Windows.Media.SolidColorBrush(c);
+            }
+            catch { return System.Windows.Media.Brushes.Transparent; }
+        }
+    }
+
+    /// <summary>True when AccentColor is a non-empty parseable hex string. Used
+    /// to collapse the strip when no tint is set.</summary>
+    public bool HasAccent
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_accentColor)) return false;
+            try
+            {
+                System.Windows.Media.ColorConverter.ConvertFromString(_accentColor);
+                return true;
+            }
+            catch { return false; }
+        }
     }
 
     /// <summary>Number of files currently in the destination folder. Refreshed lazily.</summary>

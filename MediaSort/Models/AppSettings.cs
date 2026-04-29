@@ -65,6 +65,8 @@ public class SerializableDestination
     public string RenameTemplate { get; set; } = "";
     /// <summary>(#17) Per-destination action override. "" = inherit toolbar, otherwise "Move"/"Copy"/"Delete".</summary>
     public string ActionOverride { get; set; } = "";
+    /// <summary>(#10) Per-destination tint color (hex like "#FFAA00"). Empty = no tint strip.</summary>
+    public string AccentColor { get; set; } = "";
 }
 
 public class PerFolderState

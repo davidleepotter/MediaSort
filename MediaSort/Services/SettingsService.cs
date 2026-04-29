@@ -70,7 +70,8 @@ public static class SettingsService
         KindFilter = d.KindFilter,
         SubfolderTemplate = d.SubfolderTemplate,
         RenameTemplate = d.RenameTemplate,
-        ActionOverride = d.ActionOverride.HasValue ? d.ActionOverride.Value.ToString() : ""
+        ActionOverride = d.ActionOverride.HasValue ? d.ActionOverride.Value.ToString() : "",
+        AccentColor = d.AccentColor ?? ""
     };
 
     public static DestinationButton FromSerializable(SerializableDestination s)
@@ -81,7 +82,8 @@ public static class SettingsService
             FolderPath = s.FolderPath,
             KindFilter = s.KindFilter ?? "",
             SubfolderTemplate = s.SubfolderTemplate ?? "",
-            RenameTemplate = s.RenameTemplate ?? ""
+            RenameTemplate = s.RenameTemplate ?? "",
+            AccentColor = s.AccentColor ?? ""
         };
         if (Enum.TryParse<Key>(s.HotKey, out var k)) d.HotKey = k;
         if (Enum.TryParse<ModifierKeys>(s.Modifiers, out var m)) d.Modifiers = m;

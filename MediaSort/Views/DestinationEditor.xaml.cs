@@ -1,8 +1,12 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using MediaSort.Models;
 using MediaSort.Services;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using Color = System.Windows.Media.Color;
+using ColorConverter = System.Windows.Media.ColorConverter;
 
 namespace MediaSort.Views;
 
@@ -35,6 +39,63 @@ public partial class DestinationEditor : Window
             FileAction.Delete => 3,
             _ => 0,
         };
+
+        // (#10) Per-destination tint color (empty = no tint)
+        AccentBox.Text = dest.AccentColor ?? "";
+        UpdateAccentSwatch();
+    }
+
+    private void AccentBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateAccentSwatch();
+
+    private void UpdateAccentSwatch()
+    {
+        if (AccentSwatch == null) return;
+        var t = AccentBox?.Text?.Trim() ?? "";
+        if (string.IsNullOrEmpty(t))
+        {
+            AccentSwatch.Background = System.Windows.Media.Brushes.Transparent;
+            return;
+        }
+        try
+        {
+            var c = (Color)ColorConverter.ConvertFromString(t);
+            AccentSwatch.Background = new SolidColorBrush(c);
+        }
+        catch
+        {
+            AccentSwatch.Background = System.Windows.Media.Brushes.Transparent;
+        }
+    }
+
+    private void PickColor_Click(object sender, RoutedEventArgs e)
+    {
+        using var dlg = new System.Windows.Forms.ColorDialog
+        {
+            FullOpen = true,
+            AnyColor = true,
+            AllowFullOpen = true
+        };
+        // Seed with current value if valid
+        var t = AccentBox.Text?.Trim() ?? "";
+        if (!string.IsNullOrEmpty(t))
+        {
+            try
+            {
+                var c = (Color)ColorConverter.ConvertFromString(t);
+                dlg.Color = System.Drawing.Color.FromArgb(c.A, c.R, c.G, c.B);
+            }
+            catch { /* ignore parse errors */ }
+        }
+        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        {
+            var c = dlg.Color;
+            AccentBox.Text = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+        }
+    }
+
+    private void ClearColor_Click(object sender, RoutedEventArgs e)
+    {
+        AccentBox.Text = "";
     }
 
     private Key _pendingKey;
@@ -111,6 +172,8 @@ public partial class DestinationEditor : Window
             3 => FileAction.Delete,
             _ => (FileAction?)null,
         };
+        // (#10) Per-destination tint color
+        _dest.AccentColor = AccentBox.Text?.Trim() ?? "";
         DialogResult = true;
         Close();
     }

@@ -3,13 +3,15 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Edit Destination"
         Icon="pack://application:,,,/Assets/AppIcon.ico"
-        Height="540" Width="560"
+        Height="600" Width="560"
         Background="{DynamicResource WindowBackground}"
         Foreground="{DynamicResource PanelForeground}"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
     <Grid Margin="16">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -118,7 +120,31 @@
                    Text="Use this for &quot;archive&quot;-style destinations that should always Copy, or &quot;trash&quot; destinations that should always Delete, regardless of the toolbar."
                    TextWrapping="Wrap" Margin="0,0,0,8"/>
 
-        <StackPanel Grid.Row="12" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+        <!-- (#10) Per-destination tint color. Empty = no tint. Renders as a 4px strip on the destination tile. -->
+        <TextBlock Grid.Row="11" Grid.Column="0" Text="Tint color" VerticalAlignment="Center"
+                   Foreground="{DynamicResource PanelForeground}"/>
+        <Grid Grid.Row="11" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0" x:Name="AccentBox" Padding="4"
+                     Background="{DynamicResource InputBackground}"
+                     Foreground="{DynamicResource PanelForeground}"
+                     BorderBrush="{DynamicResource ButtonBorder}"
+                     TextChanged="AccentBox_TextChanged"
+                     ToolTip="Hex color (e.g. #2D7BD4) used to tint this destination tile. Leave blank for no tint."/>
+            <Border Grid.Column="1" x:Name="AccentSwatch" Width="30" Height="22" Margin="6,0,0,0"
+                    BorderBrush="{DynamicResource ButtonBorder}" BorderThickness="1" CornerRadius="3"/>
+            <Button Grid.Column="2" Content="Pick..." Style="{StaticResource ToolButton}"
+                    Click="PickColor_Click" Margin="6,0,0,0" ToolTip="Open color picker"/>
+            <Button Grid.Column="3" Content="Clear" Style="{StaticResource ToolButton}"
+                    Click="ClearColor_Click" Margin="4,0,0,0" ToolTip="Remove the tint"/>
+        </Grid>
+
+        <StackPanel Grid.Row="13" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
             <Button Content="Cancel" Style="{StaticResource ToolButton}" Click="Cancel_Click" Width="90" ToolTip="Discard changes and close"/>
             <Button Content="OK" Style="{StaticResource ToolButton}" Click="Ok_Click" Width="90" Margin="6,0,0,0" ToolTip="Save the destination and close"/>
         </StackPanel>
