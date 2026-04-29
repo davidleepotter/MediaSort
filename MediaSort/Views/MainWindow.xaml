@@ -397,7 +397,7 @@
                                                     <TextBlock Text="DUP" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                                 </Border>
                                                 <CheckBox HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4"
-                                                          Background="#CC000000"
+                                                          Style="{StaticResource ThumbTileCheckBox}"
                                                           IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                           ToolTip="Select this item"/>
                                                 <TextBlock Text="{Binding StarGlyph}" Foreground="#F5C518"

@@ -82,6 +82,62 @@
                 <Setter Property="VerticalContentAlignment" Value="Center"/>
             </Style>
 
+            <!-- ThumbTileCheckBox: high-contrast checkbox for the thumbnail tiles.
+                 The default Aero CheckBox glyph is dark blue/gray on white, which
+                 disappears on top of the dark image overlay. This template draws
+                 a black background box with a thick white check so it stays
+                 visible at a glance on any thumbnail. -->
+            <Style x:Key="ThumbTileCheckBox" TargetType="CheckBox">
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Background" Value="#CC000000"/>
+                <Setter Property="BorderBrush" Value="White"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Width" Value="18"/>
+                <Setter Property="Height" Value="18"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <Grid>
+                                <Border x:Name="Box"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="2"
+                                        SnapsToDevicePixels="True"/>
+                                <!-- White check glyph: visible on the dark background. -->
+                                <Path x:Name="Check"
+                                      Stroke="White"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      Data="M 3 9 L 7 13 L 14 5"
+                                      Visibility="Collapsed"
+                                      SnapsToDevicePixels="True"/>
+                                <!-- Indeterminate state: white horizontal bar. -->
+                                <Rectangle x:Name="Indeterminate"
+                                           Fill="White" Width="10" Height="2"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Visibility="Collapsed"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="Box" Property="Background" Value="#E62D7BD4"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="{x:Null}">
+                                    <Setter TargetName="Indeterminate" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Box" Property="BorderBrush" Value="#CCFFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- ListBoxItem: container transparent so DataTemplate background shows -->
             <Style TargetType="ListBoxItem">
                 <Setter Property="Background" Value="Transparent"/>
