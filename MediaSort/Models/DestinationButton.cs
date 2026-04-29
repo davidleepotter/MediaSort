@@ -76,9 +76,54 @@ public class DestinationButton : INotifyPropertyChanged
             if ((Modifiers & ModifierKeys.Control) != 0) s += "Ctrl+";
             if ((Modifiers & ModifierKeys.Alt) != 0) s += "Alt+";
             if ((Modifiers & ModifierKeys.Shift) != 0) s += "Shift+";
-            s += HotKey.ToString();
+            s += FormatKey(HotKey);
             return s;
         }
+    }
+
+    /// <summary>
+    /// Render a WPF Key as a human-friendly label.
+    /// D0–D9 → "0"–"9", NumPad0–NumPad9 → "Num 0"–"Num 9",
+    /// common Oem* keys → their printed character.
+    /// </summary>
+    public static string FormatKey(Key k)
+    {
+        // Top-row digits
+        if (k >= Key.D0 && k <= Key.D9) return ((int)(k - Key.D0)).ToString();
+        // Numeric keypad
+        if (k >= Key.NumPad0 && k <= Key.NumPad9) return "Num " + ((int)(k - Key.NumPad0)).ToString();
+        // Function keys read fine as F1–F24 already.
+        return k switch
+        {
+            Key.OemQuestion    => "?",
+            Key.OemPeriod      => ".",
+            Key.OemComma       => ",",
+            Key.OemSemicolon   => ";",
+            Key.OemQuotes      => "'",
+            Key.OemMinus       => "-",
+            Key.OemPlus        => "=",
+            Key.OemTilde       => "`",
+            Key.OemBackslash   => "\\",
+            Key.OemPipe        => "|",
+            Key.OemOpenBrackets  => "[",
+            Key.OemCloseBrackets => "]",
+            Key.Add       => "Num +",
+            Key.Subtract  => "Num -",
+            Key.Multiply  => "Num *",
+            Key.Divide    => "Num /",
+            Key.Decimal   => "Num .",
+            Key.Space     => "Space",
+            Key.Return    => "Enter",
+            Key.Escape    => "Esc",
+            Key.Back      => "Backspace",
+            Key.PageUp    => "PgUp",
+            Key.PageDown  => "PgDn",
+            Key.Up        => "↑",
+            Key.Down      => "↓",
+            Key.Left      => "←",
+            Key.Right     => "→",
+            _ => k.ToString()
+        };
     }
 
     public string BadgeText

@@ -41,7 +41,7 @@ public partial class DestinationEditor : Window
         if ((mods & ModifierKeys.Control) != 0) s += "Ctrl+";
         if ((mods & ModifierKeys.Alt) != 0) s += "Alt+";
         if ((mods & ModifierKeys.Shift) != 0) s += "Shift+";
-        s += key.ToString();
+        s += MediaSort.Models.DestinationButton.FormatKey(key);
         HotkeyBox.Text = s;
     }
 
