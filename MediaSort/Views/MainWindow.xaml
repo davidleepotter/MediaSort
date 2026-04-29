@@ -277,7 +277,8 @@
                     Style="{StaticResource PaneFrameBorder}"
                     Background="{DynamicResource PanelBackground}">
                 <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
+                    <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4"
+                            BorderBrush="{DynamicResource SourceAccentStripe}" BorderThickness="0,3,0,0">
                         <DockPanel LastChildFill="True">
                             <TextBlock DockPanel.Dock="Left" Text="Source" FontWeight="Bold"
                                        VerticalAlignment="Center"
@@ -548,7 +549,8 @@
                     Style="{StaticResource PaneFrameBorder}"
                     Background="{DynamicResource PreviewBackground}">
                 <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
+                    <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4"
+                            BorderBrush="{DynamicResource PreviewAccentStripe}" BorderThickness="0,3,0,0">
                         <DockPanel LastChildFill="True">
                             <TextBlock DockPanel.Dock="Left" x:Name="PreviewTitle" Text="Preview" FontWeight="Bold"
                                        VerticalAlignment="Center"
@@ -640,7 +642,8 @@
                     Style="{StaticResource PaneFrameBorder}"
                     Background="{DynamicResource PanelBackground}">
                 <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
+                    <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4"
+                            BorderBrush="{DynamicResource DestinationAccentStripe}" BorderThickness="0,3,0,0">
                         <DockPanel LastChildFill="True">
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                                         VerticalAlignment="Center">

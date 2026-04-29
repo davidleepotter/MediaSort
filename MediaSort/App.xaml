@@ -22,6 +22,13 @@
             <SolidColorBrush x:Key="SplitterBrush"      Color="#0A0A0A"/>
             <SolidColorBrush x:Key="EmptyForeground"    Color="#666666"/>
 
+            <!-- Pane-header accent stripes — 3px colored bar across the top
+                 of each pane header. Reinforces the function-grouping color
+                 vocabulary (purple=source, teal=preview, blue=destinations). -->
+            <SolidColorBrush x:Key="SourceAccentStripe"      Color="#7B5599"/>
+            <SolidColorBrush x:Key="PreviewAccentStripe"     Color="#5599A3"/>
+            <SolidColorBrush x:Key="DestinationAccentStripe" Color="#5588C8"/>
+
             <!-- ============================================================
                  Implicit (un-keyed) styles must be declared BEFORE keyed
                  styles that reference them via BasedOn={StaticResource ...}.
@@ -1043,6 +1050,25 @@
                             <GradientStop Color="#3E3528" Offset="0"/>
                             <GradientStop Color="#2F291F" Offset="0.5"/>
                             <GradientStop Color="#221E16" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Filter chip: small pill button used in the active-filters row.
+                 Each chip shows the filter and a trailing ✕ to clear it. -->
+            <Style x:Key="FilterChipButton" TargetType="Button" BasedOn="{StaticResource TintedToolButton}">
+                <Setter Property="MinWidth" Value="0"/>
+                <Setter Property="Padding" Value="8,2"/>
+                <Setter Property="Margin" Value="0,0,4,4"/>
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="ToolTip" Value="Click to clear this filter"/>
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#2C3848" Offset="0"/>
+                            <GradientStop Color="#222B38" Offset="0.5"/>
+                            <GradientStop Color="#181F28" Offset="1"/>
                         </LinearGradientBrush>
                     </Setter.Value>
                 </Setter>
