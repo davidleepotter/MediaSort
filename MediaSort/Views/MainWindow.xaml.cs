@@ -885,30 +885,36 @@ public partial class MainWindow : Window
         bool recursive = RecursiveCheck.IsChecked == true;
         bool includeHidden = _settings.IncludeHiddenFiles;
 
-        // Show a non-modal progress dialog after a brief delay so small folders don't
-        // flash a popup. The dialog ticks a running count from the scan thread and is
-        // closed in `finally` regardless of how the scan ended.
-        ProgressDialog? scanDialog = null;
-        var dialogCts = CancellationTokenSource.CreateLinkedTokenSource(scanToken);
-        _ = Task.Delay(250, dialogCts.Token).ContinueWith(t =>
+        // Create a non-modal progress dialog up-front on the UI thread but keep it
+        // hidden. A DispatcherTimer reveals it 250ms later — small folders that
+        // finish before then never flash a popup. The scan thread updates its
+        // detail text via Dispatcher.BeginInvoke; cleanup happens in `finally`.
+        var scanDialog = new ProgressDialog("Scanning folder…", folder)
         {
-            if (t.IsCanceled || scanToken.IsCancellationRequested) return;
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                if (scanToken.IsCancellationRequested) return;
-                scanDialog = new ProgressDialog("Scanning folder…", folder)
-                {
-                    Owner = this,
-                };
-                scanDialog.ReportProgress(0, 0); // indeterminate
-                // Wire dialog Cancel -> cancel our scan token.
-                scanDialog.Token.Register(() =>
-                {
-                    try { _scanCts?.Cancel(); } catch { }
-                });
-                scanDialog.Show();
-            }));
-        }, TaskScheduler.Default);
+            Owner = this,
+            ShowInTaskbar = false,
+            Visibility = Visibility.Hidden,
+        };
+        scanDialog.ReportProgress(0, 0); // indeterminate bar
+        scanDialog.Token.Register(() =>
+        {
+            // Dialog Cancel button → cancel scan.
+            try { _scanCts?.Cancel(); } catch { }
+        });
+        // Show the (hidden) window so we can flip Visibility later without
+        // hitting WPF's "window has been closed" rules. Show then hide.
+        scanDialog.Show();
+        scanDialog.Hide();
+
+        var revealTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        revealTimer.Tick += (_, _) =>
+        {
+            revealTimer.Stop();
+            if (scanToken.IsCancellationRequested) return;
+            try { scanDialog.Show(); }
+            catch (Exception ex) { CrashLogger.Log(ex, "scan-popup-show"); }
+        };
+        revealTimer.Start();
 
         // Heavy folder enumeration on a background thread — huge folders can take seconds
         // and would otherwise freeze the UI right after launch. Now cancellation-aware (#23),
@@ -931,7 +937,7 @@ public partial class MainWindow : Window
                         var imgN = images; var vidN = videos;
                         Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            scanDialog?.SetDetail($"Found {imgN:N0} image(s), {vidN:N0} video(s)…");
+                            scanDialog.SetDetail($"Found {imgN:N0} image(s), {vidN:N0} video(s)…");
                         }));
                     }
                 }
@@ -942,22 +948,18 @@ public partial class MainWindow : Window
         {
             // A newer scan started — silently abandon this one. The newer call already
             // cleared collections and updated status text.
-            try { dialogCts.Cancel(); } catch { }
-            try { scanDialog?.Close(); } catch { }
             return;
         }
         catch (Exception ex)
         {
             CrashLogger.Log(ex, $"scan:{folder}");
             StatusText.Text = $"Scan failed: {ex.Message}";
-            try { dialogCts.Cancel(); } catch { }
-            try { scanDialog?.Close(); } catch { }
             return;
         }
         finally
         {
-            try { dialogCts.Cancel(); } catch { }
-            try { scanDialog?.Close(); } catch { }
+            revealTimer.Stop();
+            try { scanDialog.Close(); } catch { }
         }
 
         // If we were cancelled while the result list was being materialized, bail.

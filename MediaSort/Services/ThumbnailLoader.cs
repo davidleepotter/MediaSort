@@ -206,6 +206,32 @@ public static class ThumbnailLoader
     {
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
 
+        // The Shell IShellItemImageFactory is documented to require an STA apartment
+        // when invoked from arbitrary threads. Probe pool threads default to MTA,
+        // and the call silently returns nothing for many video file types in MTA.
+        // If we're already on STA (UI thread), call directly; otherwise spin up
+        // a one-shot STA thread that runs CoInitialize, does the work, returns,
+        // and tears itself down.
+        if (System.Threading.Thread.CurrentThread.GetApartmentState() == System.Threading.ApartmentState.STA)
+            return LoadShellThumbnailCore(path, decodePixelWidth);
+
+        BitmapSource? result = null;
+        var t = new System.Threading.Thread(() =>
+        {
+            try { result = LoadShellThumbnailCore(path, decodePixelWidth); }
+            catch (Exception ex) { CrashLogger.Info($"shell-thumb-sta-fail {ex.GetType().Name}: {ex.Message}"); }
+        });
+        t.SetApartmentState(System.Threading.ApartmentState.STA);
+        t.IsBackground = true;
+        t.Start();
+        // 8s upper bound — video thumb providers occasionally pull a frame from
+        // a slow codec but should never hang an entire scan.
+        t.Join(TimeSpan.FromSeconds(8));
+        return result;
+    }
+
+    private static BitmapSource? LoadShellThumbnailCore(string path, int decodePixelWidth)
+    {
         IntPtr hBitmap = IntPtr.Zero;
         try
         {
