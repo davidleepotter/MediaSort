@@ -209,9 +209,16 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" x:Name="StatusText" Text="Ready" Foreground="{DynamicResource MutedForeground}"/>
-                <TextBlock Grid.Column="1" x:Name="StatsText" Text="" Foreground="{DynamicResource MutedForeground}"/>
+                <!-- (#11) Session statistics. Click for breakdown / reset. -->
+                <TextBlock Grid.Column="1" x:Name="SessionStatsText" Text="Session: 0 files"
+                           Foreground="{DynamicResource MutedForeground}"
+                           Margin="12,0,12,0" Cursor="Hand"
+                           ToolTip="Session totals (moved · copied · deleted · bytes). Click for breakdown."
+                           MouseLeftButtonUp="SessionStatsText_MouseLeftButtonUp"/>
+                <TextBlock Grid.Column="2" x:Name="StatsText" Text="" Foreground="{DynamicResource MutedForeground}"/>
             </Grid>
         </Border>
 

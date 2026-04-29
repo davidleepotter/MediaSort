@@ -1,0 +1,94 @@
+<Window x:Class="MediaSort.Views.SessionStatsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Session statistics"
+        Icon="pack://application:,,,/Assets/AppIcon.ico"
+        Height="320" Width="420"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource PanelForeground}"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="This session" FontSize="16" FontWeight="Bold"
+                   Foreground="{DynamicResource PanelForeground}" Margin="0,0,0,4"/>
+
+        <TextBlock Grid.Row="1" x:Name="StartedText" FontSize="11"
+                   Foreground="{DynamicResource MutedForeground}" Margin="0,0,0,12"/>
+
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Action" FontWeight="Bold"
+                       Foreground="{DynamicResource MutedForeground}" Margin="0,0,0,6"/>
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="Files" FontWeight="Bold"
+                       Foreground="{DynamicResource MutedForeground}" Margin="0,0,0,6"/>
+            <TextBlock Grid.Row="0" Grid.Column="2" Text="Size" FontWeight="Bold"
+                       Foreground="{DynamicResource MutedForeground}" Margin="0,0,0,6"/>
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Moved"
+                       Foreground="{DynamicResource PanelForeground}" Margin="0,0,0,4"/>
+            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="MovedCountText"
+                       Foreground="{DynamicResource PanelForeground}" Margin="0,0,0,4"/>
+            <TextBlock Grid.Row="1" Grid.Column="2" x:Name="MovedBytesText"
+                       Foreground="{DynamicResource PanelForeground}" Margin="0,0,0,4"/>
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Copied"
+                       Foreground="{DynamicResource PanelForeground}" Margin="0,0,0,4"/>
+            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="CopiedCountText"
+                       Foreground="{DynamicResource PanelForeground}" Margin="0,0,0,4"/>
+            <TextBlock Grid.Row="2" Grid.Column="2" x:Name="CopiedBytesText"
+                       Foreground="{DynamicResource PanelForeground}" Margin="0,0,0,4"/>
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Deleted"
+                       Foreground="{DynamicResource PanelForeground}" Margin="0,0,0,4"/>
+            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="DeletedCountText"
+                       Foreground="{DynamicResource PanelForeground}" Margin="0,0,0,4"/>
+            <TextBlock Grid.Row="3" Grid.Column="2" x:Name="DeletedBytesText"
+                       Foreground="{DynamicResource PanelForeground}" Margin="0,0,0,4"/>
+
+            <Border Grid.Row="4" Grid.ColumnSpan="3"
+                    BorderBrush="{DynamicResource BorderBrushColor}" BorderThickness="0,1,0,0"
+                    Margin="0,6,0,0" Padding="0,6,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Total" FontWeight="Bold"
+                               Foreground="{DynamicResource PanelForeground}"/>
+                    <TextBlock Grid.Column="1" x:Name="TotalCountText" FontWeight="Bold"
+                               Foreground="{DynamicResource PanelForeground}"/>
+                    <TextBlock Grid.Column="2" x:Name="TotalBytesText" FontWeight="Bold"
+                               Foreground="{DynamicResource PanelForeground}"/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Reset" Style="{StaticResource ToolButton}" Click="Reset_Click"
+                    Width="90" ToolTip="Set all session counters back to zero"/>
+            <Button Content="Close" Style="{StaticResource ToolButton}" Click="Close_Click"
+                    Width="90" Margin="6,0,0,0" IsDefault="True" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

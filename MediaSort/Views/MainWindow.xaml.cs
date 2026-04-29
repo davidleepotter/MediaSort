@@ -60,6 +60,8 @@ public partial class MainWindow : Window
     private DispatcherTimer? _previewDebounceTimer;
     private MediaItem? _pendingPreviewItem;
     private readonly MoveHistoryService _history = new();
+    // (#11) Session-scoped statistics for the status-bar widget.
+    private readonly SessionStats _sessionStats = new();
     private CancellationTokenSource? _probeCts;
     // Separate CTS so we can cancel an in-flight folder enumeration when the user
     // picks a new source folder mid-scan (huge folders / network shares).
@@ -115,6 +117,17 @@ public partial class MainWindow : Window
         ListView_Details.ItemsSource = MediaItems;
         ListView_Thumbs.ItemsSource = MediaItems;
         DestinationsPanel.ItemsSource = Destinations;
+
+        // (#11) Reflect SessionStats changes into the status-bar widget. INPC
+        // raises Summary on every Record* call so we just refresh that one binding.
+        _sessionStats.PropertyChanged += (_, ev) =>
+        {
+            if (ev.PropertyName == nameof(SessionStats.Summary) || ev.PropertyName == null)
+            {
+                if (SessionStatsText != null) SessionStatsText.Text = _sessionStats.Summary;
+            }
+        };
+        SessionStatsText.Text = _sessionStats.Summary;
 
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
@@ -740,6 +753,16 @@ public partial class MainWindow : Window
                 ? "Clear the current selection (Ctrl+A)"
                 : "Select every visible item in the source list (Ctrl+A)";
         }
+    }
+
+    /// <summary>(#11) Click handler for the session-stats text in the status bar.
+    /// Opens a themed popup with per-action breakdown and a Reset button.</summary>
+    private void SessionStatsText_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        var dlg = new SessionStatsDialog(_sessionStats) { Owner = this };
+        dlg.ShowDialog();
+        // After Reset the Summary will already have refreshed via INPC, but be explicit:
+        SessionStatsText.Text = _sessionStats.Summary;
     }
 
     private static string FormatBytes(long b)
@@ -2517,7 +2540,11 @@ public partial class MainWindow : Window
         foreach (var item in items.ToList())
         {
             var rec = CopyWithPolicy(item.FullPath, dest, ref _conflictPolicyForBatch, ref _applyToAllForBatch);
-            if (rec != null) copied++;
+            if (rec != null)
+            {
+                copied++;
+                _sessionStats.RecordCopy(item.SizeBytes); // (#11)
+            }
         }
 
         if (copied > 0)
@@ -2565,6 +2592,7 @@ public partial class MainWindow : Window
                     NewPath = "(recycle bin)",
                     Action = "Trash"
                 });
+                _sessionStats.RecordDelete(item.SizeBytes); // (#11)
                 _allItems.Remove(item);
                 MediaItems.Remove(item);
             }
@@ -2773,6 +2801,7 @@ public partial class MainWindow : Window
             var rec = MoveWithPolicy(item.FullPath, dest, ref _conflictPolicyForBatch, ref _applyToAllForBatch);
             if (rec == null) continue; // user cancelled or skipped
             batch.Add(rec);
+            _sessionStats.RecordMove(item.SizeBytes); // (#11)
             // remove from collections
             _allItems.Remove(item);
             MediaItems.Remove(item);
@@ -3122,6 +3151,7 @@ public partial class MainWindow : Window
                     NewPath = "(recycle bin)",
                     Action = "Trash"
                 });
+                _sessionStats.RecordDelete(item.SizeBytes); // (#11)
                 _allItems.Remove(item);
                 MediaItems.Remove(item);
             }
