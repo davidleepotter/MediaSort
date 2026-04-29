@@ -175,6 +175,50 @@ public class TagStore
             .ToList();
     }
 
+    /// <summary>Permanently strip a tag from every entry in the store. Also
+    /// updates the in-memory <see cref="MediaItem.Tags"/> list on every supplied
+    /// live item so the UI reflects the deletion immediately. Returns the number
+    /// of stored entries that were modified.</summary>
+    public int DeleteTagGlobally(string tag, IEnumerable<MediaItem>? liveItems = null)
+    {
+        if (string.IsNullOrWhiteSpace(tag)) return 0;
+        var t = tag.Trim();
+        int touched = 0;
+        lock (_lock)
+        {
+            foreach (var kvp in _byPath.ToList())
+            {
+                var e = kvp.Value;
+                if (e.Tags == null || e.Tags.Count == 0) continue;
+                int before = e.Tags.Count;
+                e.Tags = e.Tags
+                    .Where(x => !string.Equals(x, t, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                if (e.Tags.Count != before)
+                {
+                    touched++;
+                    CleanIfEmpty(kvp.Key, e);
+                }
+            }
+            if (touched > 0) _dirty = true;
+        }
+        if (liveItems != null)
+        {
+            foreach (var item in liveItems)
+            {
+                if (item?.Tags == null || item.Tags.Count == 0) continue;
+                if (!item.Tags.Any(x => string.Equals(x, t, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+                // Reassigning the Tags property fires PropertyChanged for
+                // Tags / TagsDisplay / HasTags via the setter.
+                item.Tags = item.Tags
+                    .Where(x => !string.Equals(x, t, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+        }
+        return touched;
+    }
+
     /// <summary>Re-key an entry after a rename or move.</summary>
     public void RenamePath(string oldPath, string newPath)
     {

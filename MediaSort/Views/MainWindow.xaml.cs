@@ -62,6 +62,9 @@ public partial class MainWindow : Window
     private readonly MoveHistoryService _history = new();
     private readonly TagStore _tags = new();
     public TagStore TagStoreRef => _tags; // BatchTagDialog handle
+    /// <summary>Read-only handle to the full source list so dialogs (e.g.
+    /// BatchTagDialog's global tag delete) can sync in-memory tag state.</summary>
+    public IReadOnlyList<MediaItem> AllItemsRef => _allItems;
     // (#11) Session-scoped statistics for the status-bar widget.
     private readonly SessionStats _sessionStats = new();
     private CancellationTokenSource? _probeCts;

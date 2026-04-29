@@ -29,21 +29,7 @@ public partial class BatchTagDialog : Window
         // Pre-populate the existing-tags chip list with the union of tags
         // already on the selection (most useful) followed by other tags from
         // the store the user might want to reuse.
-        var fromSelection = _items
-            .SelectMany(i => i.Tags ?? new List<string>())
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .Select(t => t.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var fromStore = _store.AllTags()
-            .Where(t => !fromSelection.Contains(t, StringComparer.OrdinalIgnoreCase))
-            .ToList();
-
-        var combined = new List<string>(fromSelection);
-        combined.AddRange(fromStore);
-        ExistingTagsList.ItemsSource = combined;
+        RefreshExistingTagsList();
 
         // If the selection has a uniform existing rating, hint at it via the
         // matching radio so the user can keep it without clicking "Leave".
@@ -84,19 +70,88 @@ public partial class BatchTagDialog : Window
             .ToList();
     }
 
+    /// <summary>Rebuild the chip list from the current selection + store. Called
+    /// at construction and after a global tag delete.</summary>
+    private void RefreshExistingTagsList()
+    {
+        var fromSelection = _items
+            .SelectMany(i => i.Tags ?? new List<string>())
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var fromStore = _store.AllTags()
+            .Where(t => !fromSelection.Contains(t, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        var combined = new List<string>(fromSelection);
+        combined.AddRange(fromStore);
+        ExistingTagsList.ItemsSource = combined;
+    }
+
     private void ExistingTag_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is System.Windows.Controls.Button b && b.Content is string tag)
-        {
-            var existing = ParseTags();
-            if (existing.Any(t => string.Equals(t, tag, StringComparison.OrdinalIgnoreCase)))
-                return;
-            TagsInput.Text = string.IsNullOrWhiteSpace(TagsInput.Text)
-                ? tag
-                : TagsInput.Text.TrimEnd(' ', ',') + ", " + tag;
-            TagsInput.CaretIndex = TagsInput.Text.Length;
-        }
+        // Prefer Tag (set in XAML) so this is robust to chip layout changes.
+        var tag = (sender as System.Windows.Controls.Button)?.Tag as string
+               ?? ((sender as System.Windows.Controls.Button)?.Content as string);
+        if (string.IsNullOrWhiteSpace(tag)) return;
+
+        var existing = ParseTags();
+        if (existing.Any(t => string.Equals(t, tag, StringComparison.OrdinalIgnoreCase)))
+            return;
+        TagsInput.Text = string.IsNullOrWhiteSpace(TagsInput.Text)
+            ? tag
+            : TagsInput.Text.TrimEnd(' ', ',') + ", " + tag;
+        TagsInput.CaretIndex = TagsInput.Text.Length;
     }
+
+    /// <summary>Permanently remove this tag from EVERY file in the tag store
+    /// (not just the current selection). Confirms first; the change is
+    /// persisted immediately and live MediaItems are kept in sync so any
+    /// active filter / list view refreshes.</summary>
+    private void DeleteTag_Click(object sender, RoutedEventArgs e)
+    {
+        var tag = (sender as System.Windows.Controls.Button)?.Tag as string;
+        if (string.IsNullOrWhiteSpace(tag)) return;
+
+        var (ok, _) = ConfirmDialog.ShowWithSuppress(
+            owner: this,
+            heading: $"Delete tag \u201c{tag}\u201d?",
+            message: $"This removes the tag \u201c{tag}\u201d from every file in the tag store, not just the {_items.Count} item(s) currently selected. This cannot be undone.",
+            okText: "Delete",
+            cancelText: "Cancel");
+        if (!ok) return;
+
+        // Sync the in-memory list on MainWindow so any visible chips/filters
+        // re-render. Falls back to just the dialog's selection if the owner
+        // isn't a MainWindow (e.g., during tests).
+        IEnumerable<MediaItem> live = _items;
+        if (Owner is MainWindow mw)
+            live = mw.AllItemsRef;
+
+        int touched = _store.DeleteTagGlobally(tag, live);
+        _store.SaveIfDirty();
+        RefreshExistingTagsList();
+
+        // Also drop from the input box if present.
+        if (!string.IsNullOrWhiteSpace(TagsInput.Text))
+        {
+            var kept = ParseTags()
+                .Where(t => !string.Equals(t, tag, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            TagsInput.Text = string.Join(", ", kept);
+        }
+
+        // Mark dialog dirty so caller re-runs ApplyFilter even if the user cancels
+        // the rest of the dialog — the global delete already persisted.
+        _globalChangesMade = true;
+    }
+
+    /// <summary>True if a global tag delete happened; even on Cancel the parent
+    /// should re-evaluate filters because the change has already persisted.</summary>
+    private bool _globalChangesMade;
 
     private void Apply_Click(object sender, RoutedEventArgs e)
     {
@@ -132,7 +187,9 @@ public partial class BatchTagDialog : Window
 
     private void Cancel_Click(object sender, RoutedEventArgs e)
     {
-        DialogResult = false;
+        // If the user only used "Delete tag" then clicked Cancel, return true
+        // anyway so MainWindow re-applies filters.
+        DialogResult = _globalChangesMade ? true : false;
         Close();
     }
 }

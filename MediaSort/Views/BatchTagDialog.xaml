@@ -89,7 +89,8 @@
                 BorderBrush="{DynamicResource BorderBrushColor}" BorderThickness="1"
                 Background="{DynamicResource PanelBackground}" Margin="0,8,0,0">
             <DockPanel LastChildFill="True">
-                <TextBlock DockPanel.Dock="Top" Text="Existing tags across selection (click to add)"
+                <TextBlock DockPanel.Dock="Top"
+                           Text="Existing tags (click name to add to input · ✕ deletes the tag from every file)"
                            Foreground="{DynamicResource MutedForeground}" FontSize="11"
                            Margin="6,4,6,4"/>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -101,10 +102,20 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button Content="{Binding}" Style="{StaticResource ToolButton}"
-                                        Margin="0,0,6,6" Padding="10,2"
-                                        Click="ExistingTag_Click"
-                                        ToolTip="Click to append this tag to the input above"/>
+                                <!-- Chip = [tag name] [✕]. Both buttons share Tag={Binding}
+                                     so the click handlers can identify which tag was clicked. -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,6,6">
+                                    <Button Content="{Binding}" Tag="{Binding}"
+                                            Style="{StaticResource ToolButton}"
+                                            Padding="10,2"
+                                            Click="ExistingTag_Click"
+                                            ToolTip="Click to append this tag to the input above"/>
+                                    <Button Content="✕" Tag="{Binding}"
+                                            Style="{StaticResource ToolButton}"
+                                            Padding="6,2" Margin="-1,0,0,0"
+                                            Click="DeleteTag_Click"
+                                            ToolTip="Permanently remove this tag from every file in the store"/>
+                                </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
