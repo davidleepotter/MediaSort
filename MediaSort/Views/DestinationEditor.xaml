@@ -49,7 +49,7 @@
                  Foreground="{DynamicResource PanelForeground}"
                  BorderBrush="{DynamicResource ButtonBorder}"
                  ToolTip="Files sent to this destination are moved into this folder"/>
-        <Button Grid.Row="1" Grid.Column="2" Content="Browse..." Style="{StaticResource ToolButton}"
+        <Button Grid.Row="1" Grid.Column="2" Content="Browse..." Style="{StaticResource SourceToolButton}"
                 Click="Browse_Click" Margin="0,0,0,8" ToolTip="Pick the destination folder"/>
 
         <TextBlock Grid.Row="2" Grid.Column="0" Text="Hotkey" VerticalAlignment="Center"
@@ -138,15 +138,15 @@
                      ToolTip="Hex color (e.g. #2D7BD4) used to tint this destination tile. Leave blank for no tint."/>
             <Border Grid.Column="1" x:Name="AccentSwatch" Width="30" Height="22" Margin="6,0,0,0"
                     BorderBrush="{DynamicResource ButtonBorder}" BorderThickness="1" CornerRadius="3"/>
-            <Button Grid.Column="2" Content="Pick..." Style="{StaticResource ToolButton}"
+            <Button Grid.Column="2" Content="Pick..." Style="{StaticResource SourceToolButton}"
                     Click="PickColor_Click" Margin="6,0,0,0" ToolTip="Open color picker"/>
-            <Button Grid.Column="3" Content="Clear" Style="{StaticResource ToolButton}"
+            <Button Grid.Column="3" Content="Clear" Style="{StaticResource DangerToolButton}"
                     Click="ClearColor_Click" Margin="4,0,0,0" ToolTip="Remove the tint"/>
         </Grid>
 
         <StackPanel Grid.Row="13" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
             <Button Content="Cancel" Style="{StaticResource ToolButton}" Click="Cancel_Click" Width="90" ToolTip="Discard changes and close"/>
-            <Button Content="OK" Style="{StaticResource ToolButton}" Click="Ok_Click" Width="90" Margin="6,0,0,0" ToolTip="Save the destination and close"/>
+            <Button Content="OK" Style="{StaticResource PrimaryToolButton}" Click="Ok_Click" Width="90" Margin="6,0,0,0" ToolTip="Save the destination and close"/>
         </StackPanel>
     </Grid>
 </Window>

@@ -85,7 +85,7 @@
         </Grid>
 
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="Reset" Style="{StaticResource ToolButton}" Click="Reset_Click"
+            <Button Content="Reset" Style="{StaticResource DangerToolButton}" Click="Reset_Click"
                     Width="90" ToolTip="Set all session counters back to zero"/>
             <Button Content="Close" Style="{StaticResource ToolButton}" Click="Close_Click"
                     Width="90" Margin="6,0,0,0" IsDefault="True" IsCancel="True"/>

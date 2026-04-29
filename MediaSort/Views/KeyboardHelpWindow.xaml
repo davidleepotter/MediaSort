@@ -64,7 +64,7 @@
                                        IsHitTestVisible="False" VerticalAlignment="Center"
                                        Margin="10,0,0,0" Opacity="0.55"
                                        Foreground="{DynamicResource MutedForeground}"/>
-                            <Button Grid.Column="2" Content="Copy as Markdown" Style="{StaticResource ToolButton}"
+                            <Button Grid.Column="2" Content="Copy as Markdown" Style="{StaticResource UtilityToolButton}"
                                     Click="CopyMarkdown_Click" Margin="8,0,0,0"
                                     ToolTip="Copy the visible shortcut list to the clipboard as a Markdown table"/>
                         </Grid>

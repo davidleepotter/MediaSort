@@ -111,7 +111,7 @@
                                             Click="ExistingTag_Click"
                                             ToolTip="Click to append this tag to the input above"/>
                                     <Button Content="✕" Tag="{Binding}"
-                                            Style="{StaticResource ToolButton}"
+                                            Style="{StaticResource DangerToolButton}"
                                             Padding="6,2" Margin="-1,0,0,0"
                                             Click="DeleteTag_Click"
                                             ToolTip="Permanently remove this tag from every file in the store"/>
@@ -129,6 +129,7 @@
                     MinWidth="90" Padding="14,4" Margin="6,0,0,0"
                     Click="Cancel_Click"/>
             <Button DockPanel.Dock="Right" Content="Apply" IsDefault="True"
+                    Style="{StaticResource PrimaryToolButton}"
                     MinWidth="90" Padding="14,4"
                     Click="Apply_Click"/>
         </DockPanel>

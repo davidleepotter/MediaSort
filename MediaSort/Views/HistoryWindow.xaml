@@ -67,12 +67,12 @@
 
         <DockPanel Grid.Row="5" Margin="0,12,0,0" LastChildFill="False">
             <Button DockPanel.Dock="Left" Content="Open Log File"
-                    Style="{StaticResource ToolButton}" Click="OpenLog_Click"
+                    Style="{StaticResource UtilityToolButton}" Click="OpenLog_Click"
                     MinWidth="110" Padding="14,4"
                     ToolTip="Opens the CSV move-history log in Notepad."/>
             <Button DockPanel.Dock="Left" x:Name="ClearHistoryButton"
                     Content="Clear History"
-                    Style="{StaticResource ToolButton}" Click="ClearHistory_Click"
+                    Style="{StaticResource DangerToolButton}" Click="ClearHistory_Click"
                     MinWidth="110" Padding="14,4" Margin="6,0,0,0"
                     ToolTip="Drop all undo batches from memory. The CSV audit log on disk is preserved."/>
             <Button DockPanel.Dock="Right" Content="Close"
@@ -81,7 +81,7 @@
                     IsCancel="True"/>
             <Button DockPanel.Dock="Right" x:Name="UndoSelectedButton"
                     Content="Undo Selected Batch"
-                    Style="{StaticResource ToolButton}" Click="UndoSelected_Click"
+                    Style="{StaticResource PrimaryToolButton}" Click="UndoSelected_Click"
                     MinWidth="160" Padding="14,4" IsEnabled="False"
                     ToolTip="Restore every file in the selected batch back to its source folder."/>
         </DockPanel>
