@@ -76,15 +76,23 @@ public partial class SettingsWindow : Window
             combo.ItemsSource = familyNames;
         }
 
-        DestNameFontCombo.Text  = _settings.DestNameFontFamily  ?? "";
-        DestKeyFontCombo.Text   = _settings.DestKeyFontFamily   ?? "";
-        DestPathFontCombo.Text  = _settings.DestPathFontFamily  ?? "";
-        DestBadgeFontCombo.Text = _settings.DestBadgeFontFamily ?? "";
+        // Empty means "use system default" — show "Segoe UI" so the field isn't
+        // blank and the user sees the actual font being used.
+        DestNameFontCombo.Text  = DisplayFontName(_settings.DestNameFontFamily);
+        DestKeyFontCombo.Text   = DisplayFontName(_settings.DestKeyFontFamily);
+        DestPathFontCombo.Text  = DisplayFontName(_settings.DestPathFontFamily);
+        DestBadgeFontCombo.Text = DisplayFontName(_settings.DestBadgeFontFamily);
 
         DestNameSizeBox.Text  = FormatSize(_settings.DestNameFontSize,  12);
         DestKeySizeBox.Text   = FormatSize(_settings.DestKeyFontSize,   10);
         DestPathSizeBox.Text  = FormatSize(_settings.DestPathFontSize,  10);
         DestBadgeSizeBox.Text = FormatSize(_settings.DestBadgeFontSize, 10);
+    }
+
+    private static string DisplayFontName(string? stored)
+    {
+        var s = (stored ?? "").Trim();
+        return string.IsNullOrEmpty(s) ? "Segoe UI" : s;
     }
 
     private static string FormatSize(double value, double fallback)
