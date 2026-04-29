@@ -2607,7 +2607,7 @@ public partial class MainWindow : Window
         }
         if (sel.Count > 1)
         {
-            StatusText.Text = $"Rename only works on one file at a time — {sel.Count} selected.";
+            BatchRenameSelected(sel);
             return;
         }
 
@@ -2652,6 +2652,45 @@ public partial class MainWindow : Window
     }
 
     private void Rename_Click(object sender, RoutedEventArgs e) => RenameSelected();
+
+    /// <summary>
+    /// Multi-file rename via the BatchRenameDialog. Applies the user's pattern to every
+    /// selected item, validates collisions, then renames each file in place.
+    /// </summary>
+    private void BatchRenameSelected(List<MediaItem> items)
+    {
+        var dlg = new BatchRenameDialog(items) { Owner = this };
+        if (dlg.ShowDialog() != true || dlg.Plan.Count == 0) return;
+
+        int ok = 0, fail = 0;
+        foreach (var (oldPath, newPath) in dlg.Plan)
+        {
+            var item = items.FirstOrDefault(m => string.Equals(m.FullPath, oldPath, StringComparison.OrdinalIgnoreCase));
+            if (item == null) continue;
+            try
+            {
+                bool wasFav = item.IsFavorite;
+                File.Move(oldPath, newPath);
+                item.UpdateAfterRename(newPath);
+                if (wasFav)
+                {
+                    _settings.Favorites.RemoveAll(p => string.Equals(p, oldPath, StringComparison.OrdinalIgnoreCase));
+                    if (!_settings.Favorites.Contains(newPath, StringComparer.OrdinalIgnoreCase))
+                        _settings.Favorites.Add(newPath);
+                }
+                ok++;
+            }
+            catch (Exception ex)
+            {
+                fail++;
+                CrashLogger.Info($"batch-rename-fail {oldPath} → {newPath}: {ex.Message}");
+            }
+        }
+        if (fail > 0) SaveSettings(); else if (ok > 0) SaveSettings();
+        StatusText.Text = fail == 0
+            ? $"Renamed {ok} file{(ok == 1 ? "" : "s")}."
+            : $"Renamed {ok}, {fail} failed (see crash.log).";
+    }
 
     // ----------------- MOVE ANIMATION -----------------
 
@@ -2986,7 +3025,7 @@ public partial class MainWindow : Window
             }
         }
 
-        // (#6) F2 = inline rename on the single selected file. Disabled when multi-select.
+        // (#6) F2 = rename. Single selection → simple rename dialog. Multi-selection → batch rename dialog with pattern tokens.
         if (e.Key == Key.F2 && Keyboard.Modifiers == ModifierKeys.None)
         {
             RenameSelected();
