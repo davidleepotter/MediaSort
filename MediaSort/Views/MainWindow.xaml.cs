@@ -1080,6 +1080,36 @@ public partial class MainWindow : Window
             }));
         }
         catch (Exception ex) { CrashLogger.Log(ex, $"video-probe:{item.FullPath}"); }
+
+        if (ct.IsCancellationRequested) return;
+
+        // Video thumbnail via Windows Shell (same source as Explorer's preview).
+        // Cached identically to image thumbnails so a second scan is instant.
+        try
+        {
+            const int ThumbDecodeWidth = 128;
+            BitmapSource? thumb = ThumbnailCache.TryGetMemory(item.FullPath, ThumbDecodeWidth)
+                                  ?? ThumbnailCache.TryGetDisk(item.FullPath, ThumbDecodeWidth);
+            if (thumb == null)
+            {
+                thumb = ThumbnailLoader.LoadShellThumbnail(item.FullPath, ThumbDecodeWidth);
+                if (thumb != null)
+                {
+                    try { ThumbnailCache.Put(item.FullPath, ThumbDecodeWidth, thumb); }
+                    catch (Exception ex) { CrashLogger.Log(ex, $"video-thumb-cache-put:{item.FullPath}"); }
+                }
+            }
+
+            if (thumb != null && !ct.IsCancellationRequested)
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (ct.IsCancellationRequested) return;
+                    item.Thumbnail = thumb;
+                }));
+            }
+        }
+        catch (Exception ex) { CrashLogger.Log(ex, $"video-thumb:{item.FullPath}"); }
     }
 
     // ----------------- VIEW MODE -----------------

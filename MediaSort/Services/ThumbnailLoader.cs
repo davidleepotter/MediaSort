@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using MediaSort.Models;
 using SDImage = System.Drawing.Image;
@@ -190,6 +193,103 @@ public static class ThumbnailLoader
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Extract a thumbnail for a video (or any file Explorer can produce a preview for)
+    /// using the Windows Shell IShellItemImageFactory. This is the same pipeline
+    /// Explorer uses, so it works for every codec the OS knows about (built-in or
+    /// installed pack) without us hauling in ffmpeg.
+    /// Returns a frozen BitmapSource, or null if the shell couldn't produce one.
+    /// </summary>
+    public static BitmapSource? LoadShellThumbnail(string path, int decodePixelWidth = 256)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
+
+        IntPtr hBitmap = IntPtr.Zero;
+        try
+        {
+            var iidShellItem = typeof(IShellItemImageFactory).GUID;
+            int hr = SHCreateItemFromParsingName(path, IntPtr.Zero, ref iidShellItem, out var factory);
+            if (hr != 0 || factory == null) return null;
+
+            try
+            {
+                int size = decodePixelWidth > 0 ? decodePixelWidth : 256;
+                var sz = new SIZE { cx = size, cy = size };
+                // ResizeToFit + InMemory: scale to fit the box, do not extract from disk cache
+                // only — generate one if missing. ThumbnailOnly would forbid full extraction.
+                const SIIGBF flags = SIIGBF.ResizeToFit | SIIGBF.InMemory | SIIGBF.BiggerSizeOk;
+                hr = factory.GetImage(sz, flags, out hBitmap);
+                if (hr != 0 || hBitmap == IntPtr.Zero) return null;
+
+                var src = Imaging.CreateBitmapSourceFromHBitmap(
+                    hBitmap,
+                    IntPtr.Zero,
+                    Int32Rect.Empty,
+                    BitmapSizeOptions.FromEmptyOptions());
+                if (src == null) return null;
+                if (src.CanFreeze) src.Freeze();
+                return src.PixelWidth > 0 ? src : null;
+            }
+            finally
+            {
+                Marshal.ReleaseComObject(factory);
+            }
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Info($"shell-thumb-fail {ex.GetType().Name}: {ex.Message} ({path})");
+            return null;
+        }
+        finally
+        {
+            if (hBitmap != IntPtr.Zero)
+            {
+                try { DeleteObject(hBitmap); } catch { /* best-effort */ }
+            }
+        }
+    }
+
+    // ---- Win32 / Shell interop for LoadShellThumbnail ----
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+    private static extern int SHCreateItemFromParsingName(
+        [MarshalAs(UnmanagedType.LPWStr)] string pszPath,
+        IntPtr pbc,
+        ref Guid riid,
+        [MarshalAs(UnmanagedType.Interface)] out IShellItemImageFactory ppv);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DeleteObject(IntPtr hObject);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SIZE { public int cx; public int cy; }
+
+    [Flags]
+    private enum SIIGBF
+    {
+        ResizeToFit = 0x00,
+        BiggerSizeOk = 0x01,
+        MemoryOnly = 0x02,
+        IconOnly = 0x04,
+        ThumbnailOnly = 0x08,
+        InCacheOnly = 0x10,
+        CropToSquare = 0x20,
+        WideThumbnails = 0x40,
+        IconBackground = 0x80,
+        ScaleUp = 0x100,
+        InMemory = MemoryOnly
+    }
+
+    [ComImport]
+    [Guid("bcc18b79-ba16-442f-80c4-8a59c30c463b")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IShellItemImageFactory
+    {
+        [PreserveSig]
+        int GetImage(SIZE size, SIIGBF flags, out IntPtr phbm);
     }
 
     /// <summary>
