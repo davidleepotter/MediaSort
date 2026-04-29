@@ -4065,8 +4065,10 @@ public partial class MainWindow : Window
             if (e.Key == Key.A)
             {
                 ActiveSelector?.Items?.OfType<object>().ToList(); // ensure containers
-                if (ActiveSelector is ListBox lb) { lb.SelectAll(); e.Handled = true; UpdateStats(); return; }
-                if (ActiveSelector is ListView lv) { lv.SelectAll(); e.Handled = true; UpdateStats(); return; }
+                // Delegate to SelectAll_Click which already toggles select <-> unselect
+                SelectAll_Click(this, new RoutedEventArgs());
+                e.Handled = true;
+                return;
             }
         }
 
