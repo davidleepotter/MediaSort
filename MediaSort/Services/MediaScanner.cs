@@ -118,6 +118,10 @@ public static class MediaScanner
             ReturnSpecialDirectories = false,
         };
 
+        // Alternate lookup so we can probe the FrozenSet with a
+        // ReadOnlySpan<char> directly — zero allocation per file.
+        var extLookup = MediaFormats.AllExtensionsSet.GetAlternateLookup<ReadOnlySpan<char>>();
+
         // Predicate: only yield files that match a known media extension.
         // Operates on the FileSystemEntry struct so no extra path string is allocated.
         bool ShouldInclude(ref FileSystemEntry entry)
@@ -127,14 +131,9 @@ public static class MediaScanner
             var name = entry.FileName;
             int dot = name.LastIndexOf('.');
             if (dot < 0 || dot == name.Length - 1) return false;
-            // Lowercase the extension into a small stack buffer for the lookup.
-            Span<char> extBuf = stackalloc char[24];
-            int extLen = name.Length - dot;
-            if (extLen > extBuf.Length) return false;
-            for (int i = 0; i < extLen; i++)
-                extBuf[i] = char.ToLowerInvariant(name[dot + i]);
-            var extStr = new string(extBuf[..extLen]);
-            return MediaFormats.AllExtensions.Contains(extStr);
+            // FrozenSet uses OrdinalIgnoreCase, so no lowercase pass needed.
+            // Single O(1) hash probe over the span, no string allocation.
+            return extLookup.Contains(name[dot..]);
         }
 
         // Transform: project the FileSystemEntry into a MediaItem using its

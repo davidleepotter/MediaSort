@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Collections.Generic;
 
 namespace MediaSort.Models;
@@ -54,5 +55,25 @@ public static class MediaFormats
             foreach (var x in RawExtensions) yield return x;
             foreach (var x in VideoExtensions) yield return x;
         }
+    }
+
+    /// <summary>
+    /// (Perf #1) Flat O(1) lookup combining all media extensions, optimized
+    /// for read-heavy scan workloads. Used by
+    /// <see cref="Services.MediaScanner.ScanFast"/> so the per-file extension
+    /// check is a single hash probe instead of a linear scan over
+    /// <see cref="AllExtensions"/> (which is an IEnumerable that defeats the
+    /// underlying HashSet O(1) Contains).
+    /// </summary>
+    public static readonly FrozenSet<string> AllExtensionsSet =
+        BuildAllExtensionsSet();
+
+    private static FrozenSet<string> BuildAllExtensionsSet()
+    {
+        var s = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var x in ImageExtensions) s.Add(x);
+        foreach (var x in RawExtensions) s.Add(x);
+        foreach (var x in VideoExtensions) s.Add(x);
+        return s.ToFrozenSet(System.StringComparer.OrdinalIgnoreCase);
     }
 }
