@@ -102,4 +102,20 @@ public partial class SettingsWindow : Window
         DialogResult = false;
         Close();
     }
+
+    private void SaveDebugLog_Click(object sender, RoutedEventArgs e)
+    {
+        // Delegate to MainWindow which holds the live state (items, destinations, etc.)
+        if (Owner is MainWindow main)
+        {
+            main.SaveDebugLog();
+        }
+        else
+        {
+            System.Windows.MessageBox.Show(this,
+                "Could not save debug log: main window unavailable.",
+                "Save Debug Log",
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
 }

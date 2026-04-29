@@ -167,6 +167,14 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
+
+                <TextBlock Text="Diagnostics" FontSize="16" FontWeight="Bold" Margin="0,16,0,8"
+                           Foreground="{DynamicResource PanelForeground}"/>
+                <TextBlock Text="Bundle the crash log, current state, and settings into a single text file you can share when reporting an issue."
+                           Foreground="{DynamicResource MutedForeground}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <Button Content="Save Debug Log…" Style="{StaticResource ToolButton}"
+                        HorizontalAlignment="Left" Click="SaveDebugLog_Click"
+                        ToolTip="Save a debug log file you can attach to a bug report"/>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

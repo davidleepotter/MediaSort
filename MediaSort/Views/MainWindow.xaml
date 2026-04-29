@@ -88,9 +88,6 @@
 
                     <Button Content="Settings" Style="{StaticResource ToolButton}" Click="Settings_Click"
                             ToolTip="Open the Settings dialog (Ctrl+,)"/>
-                    <Button Content="Save Debug Log" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
-                            Click="SaveDebugLog_Click"
-                            ToolTip="Bundle the crash log + system info into a single text file you can share"/>
                     <Button Content="?" Style="{StaticResource ToolButton}" Width="28" ToolTip="Keyboard shortcuts"
                             Click="Help_Click" Margin="6,0,0,0"/>
                     <Button Content="About" Style="{StaticResource ToolButton}" Click="About_Click"
@@ -455,7 +452,8 @@
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                                                 <Button Content="↑" Width="22" Margin="1,0" Click="MoveDestUp_Click" Tag="{Binding}" ToolTip="Move up"/>
                                                 <Button Content="↓" Width="22" Margin="1,0" Click="MoveDestDown_Click" Tag="{Binding}" ToolTip="Move down"/>
-                                                <Button Content="📂" Width="28" Margin="2,0" Click="OpenDestFolder_Click" Tag="{Binding}" ToolTip="Open folder"/>
+                                                <Button Content="📂" Width="28" Margin="2,0" Click="OpenDestFolder_Click" Tag="{Binding}" ToolTip="Open folder in Explorer"/>
+                                                <Button Content="➜" Width="28" Margin="2,0" Click="UseDestAsSource_Click" Tag="{Binding}" ToolTip="Open this destination as the source folder"/>
                                                 <Button Content="✎" Width="28" Margin="2,0" Click="EditDestination_Click" Tag="{Binding}" ToolTip="Edit"/>
                                                 <Button Content="✕" Width="28" Margin="2,0" Click="RemoveDestination_Click" Tag="{Binding}" ToolTip="Remove"/>
                                             </StackPanel>

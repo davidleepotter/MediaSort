@@ -441,6 +441,171 @@
             </Style>
 
             <!-- ============================================================
+                 ContextMenu / MenuItem / Separator / ToolTip / GroupBox
+                 (right-click menus and tooltips - default WPF templates
+                 ignore our brushes and render Aero-white in dark mode)
+                 ============================================================ -->
+
+            <Style TargetType="ContextMenu">
+                <Setter Property="Background" Value="{DynamicResource PanelBackground}"/>
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushColor}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="HasDropShadow" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ContextMenu">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    SnapsToDevicePixels="True">
+                                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style TargetType="MenuItem">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="MenuItem">
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    SnapsToDevicePixels="True">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="22"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="14"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter x:Name="Icon" Grid.Column="0"
+                                                      ContentSource="Icon"
+                                                      VerticalAlignment="Center"
+                                                      HorizontalAlignment="Center"
+                                                      Margin="4,0,0,0"/>
+                                    <Path x:Name="GlyphPanel" Grid.Column="0"
+                                          Visibility="Collapsed"
+                                          VerticalAlignment="Center" HorizontalAlignment="Center"
+                                          Data="M 0 5 L 3 9 L 9 0"
+                                          Stroke="{DynamicResource PanelForeground}"
+                                          StrokeThickness="2"/>
+                                    <ContentPresenter Grid.Column="1"
+                                                      ContentSource="Header"
+                                                      RecognizesAccessKey="True"
+                                                      VerticalAlignment="Center"
+                                                      Margin="6,4,12,4"/>
+                                    <TextBlock Grid.Column="2" Text="{TemplateBinding InputGestureText}"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource MutedForeground}"
+                                               Margin="0,4,8,4"/>
+                                    <Path x:Name="SubmenuArrow" Grid.Column="3"
+                                          Visibility="Collapsed"
+                                          VerticalAlignment="Center" HorizontalAlignment="Center"
+                                          Data="M 0 0 L 4 4 L 0 8 Z"
+                                          Fill="{DynamicResource PanelForeground}"/>
+                                    <Popup x:Name="PART_Popup" Grid.Column="0"
+                                           AllowsTransparency="True"
+                                           Placement="Right"
+                                           IsOpen="{TemplateBinding IsSubmenuOpen}"
+                                           Focusable="False"
+                                           PopupAnimation="Fade">
+                                        <Border Background="{DynamicResource PanelBackground}"
+                                                BorderBrush="{DynamicResource BorderBrushColor}"
+                                                BorderThickness="1">
+                                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="Role" Value="SubmenuHeader">
+                                    <Setter TargetName="SubmenuArrow" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="GlyphPanel" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="Icon" Property="Visibility" Value="Collapsed"/>
+                                </Trigger>
+                                <Trigger Property="IsHighlighted" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentForeground}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style TargetType="Separator">
+                <Setter Property="Background" Value="{DynamicResource BorderBrushColor}"/>
+                <Setter Property="Margin" Value="6,3"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Separator">
+                            <Border Background="{TemplateBinding Background}" Height="1" SnapsToDevicePixels="True"/>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style TargetType="ToolTip">
+                <Setter Property="Background" Value="{DynamicResource PanelBackground}"/>
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushColor}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="6,3"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="HasDropShadow" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToolTip">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    Padding="{TemplateBinding Padding}"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style TargetType="GroupBox">
+                <Setter Property="Background" Value="{DynamicResource PanelBackground}"/>
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushColor}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="8"/>
+            </Style>
+
+            <Style TargetType="Label">
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+            </Style>
+
+            <Style TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+            </Style>
+
+            <Style TargetType="RadioButton">
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+            </Style>
+
+            <!-- ============================================================
                  Keyed styles (referenced by Style="{StaticResource ...}")
                  ============================================================ -->
 

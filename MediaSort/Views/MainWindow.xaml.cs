@@ -1138,6 +1138,27 @@ public partial class MainWindow : Window
         }
     }
 
+    // Open a destination folder and make it the current source folder so the
+    // user can sort within / out of an already-organized destination.
+    private void UseDestAsSource_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement fe || fe.Tag is not DestinationButton dest) return;
+
+        var folder = dest.FolderPath;
+        if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+        {
+            MessageBox.Show($"Folder does not exist:\n\n{folder}", "Use as Source",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        CrashLogger.Info($"use-dest-as-source: '{dest.Name}' -> {folder}");
+        SetSourceFolder(folder);
+        _settings.SourceFolder = folder;
+        SaveSettings();
+        StatusText.Text = $"Source folder switched to '{dest.Name}' ({folder})";
+    }
+
     private void RefreshDestinationCounts()
     {
         foreach (var d in Destinations)
@@ -1838,7 +1859,9 @@ public partial class MainWindow : Window
         dlg.ShowDialog();
     }
 
-    private void SaveDebugLog_Click(object sender, RoutedEventArgs e)
+    private void SaveDebugLog_Click(object sender, RoutedEventArgs e) => SaveDebugLog();
+
+    internal void SaveDebugLog()
     {
         var sfd = new Microsoft.Win32.SaveFileDialog
         {
