@@ -1022,6 +1022,45 @@
                 </Setter>
             </Style>
 
+            <!-- Source location: Pick Source Folder, Recent▾ (purple tint). -->
+            <Style x:Key="SourceToolButton" TargetType="Button" BasedOn="{StaticResource TintedToolButton}">
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#3A2E42" Offset="0"/>
+                            <GradientStop Color="#2C2432" Offset="0.5"/>
+                            <GradientStop Color="#1F1924" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Utility / reload: Refresh, Regen Thumbnails (warm bronze tint). -->
+            <Style x:Key="UtilityToolButton" TargetType="Button" BasedOn="{StaticResource TintedToolButton}">
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#3E3528" Offset="0"/>
+                            <GradientStop Color="#2F291F" Offset="0.5"/>
+                            <GradientStop Color="#221E16" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Info / meta: Settings, ?, About (cool slate tint). -->
+            <Style x:Key="InfoToolButton" TargetType="Button" BasedOn="{StaticResource TintedToolButton}">
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#34383E" Offset="0"/>
+                            <GradientStop Color="#272A30" Offset="0.5"/>
+                            <GradientStop Color="#1B1D22" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- ============================================================
                  3D DestButton: accent-tinted gradient + drop shadow for a
                  raised, glossy look. Pressed removes shadow + inverts gradient.

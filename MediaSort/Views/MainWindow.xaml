@@ -74,9 +74,9 @@
                 BorderThickness="0,0,0,1">
             <StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="6,4,6,2">
-                    <Button Content="Pick Source Folder..." Style="{StaticResource ToolButton}" Click="PickSource_Click"
+                    <Button Content="Pick Source Folder..." Style="{StaticResource SourceToolButton}" Click="PickSource_Click"
                             ToolTip="Choose the folder MediaSort will scan for media"/>
-                    <Button x:Name="RecentSourceButton" Content="Recent ▾" Style="{StaticResource ToolButton}"
+                    <Button x:Name="RecentSourceButton" Content="Recent ▾" Style="{StaticResource SourceToolButton}"
                             Margin="4,0,0,0" Click="RecentSource_Click"
                             ToolTip="Switch to a recently-used source folder"/>
                     <TextBlock x:Name="SourcePathText" Text="(no source folder)"
@@ -119,7 +119,7 @@
                         <ComboBoxItem Content="Created"/>
                     </ComboBox>
                     <Button x:Name="SortDirButton" Content="▲" Width="30"
-                            Style="{StaticResource ToolButton}"
+                            Style="{StaticResource NavToolButton}"
                             Margin="4,0,0,0" Click="SortDir_Click"
                             ToolTip="Toggle sort direction"/>
 
@@ -129,14 +129,14 @@
                               Checked="Recursive_Changed" Unchecked="Recursive_Changed"
                               ToolTip="Include subfolders when scanning the source folder"/>
 
-                    <Button Content="Refresh" Style="{StaticResource ToolButton}" Margin="12,0,0,0" Click="Refresh_Click"
+                    <Button Content="Refresh" Style="{StaticResource UtilityToolButton}" Margin="12,0,0,0" Click="Refresh_Click"
                             ToolTip="Re-scan the source folder for new or changed files (F5)"/>
-                    <Button Content="Regen Thumbnails" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                    <Button Content="Regen Thumbnails" Style="{StaticResource UtilityToolButton}" Margin="6,0,0,0"
                             Click="RegenThumbnails_Click"
                             ToolTip="Force-regenerate thumbnails for all items in the source list"/>
                     <Separator Margin="6,0"/>
 
-                    <Button Content="Settings" Style="{StaticResource ToolButton}" Click="Settings_Click"
+                    <Button Content="Settings" Style="{StaticResource InfoToolButton}" Click="Settings_Click"
                             ToolTip="Open the Settings dialog (Ctrl+,)"/>
                     <!-- Panes▾ — toggle visibility / restore-default-layout for the three main panes. -->
                     <Button x:Name="PanesMenuButton" Content="Panes ▾" Style="{StaticResource PaneToolButton}"
@@ -156,9 +156,9 @@
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
-                    <Button Content="?" Style="{StaticResource ToolButton}" Width="28" ToolTip="Keyboard shortcuts"
+                    <Button Content="?" Style="{StaticResource InfoToolButton}" Width="28" ToolTip="Keyboard shortcuts"
                             Click="Help_Click" Margin="6,0,0,0"/>
-                    <Button Content="About" Style="{StaticResource ToolButton}" Click="About_Click"
+                    <Button Content="About" Style="{StaticResource InfoToolButton}" Click="About_Click"
                             ToolTip="Show app version and credits"/>
                 </StackPanel>
 
