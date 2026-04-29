@@ -2580,6 +2580,8 @@ public partial class MainWindow : Window
     private DestinationButton? _dragHandleItem;
     private System.Windows.UIElement? _dragHandleSource;
     private bool _dragHandleReordering;
+    private FrameworkElement? _dragHandleVisual;
+    private double _dragHandleOriginalOpacity = 1.0;
 
     private void DragHandle_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -2587,6 +2589,21 @@ public partial class MainWindow : Window
         _dragHandleItem = dest;
         _dragHandleSource = fe;
         _dragHandleReordering = true;
+
+        // Visual cue: dim the row container being dragged so the user can clearly
+        // see which tile is moving as they drag the handle.
+        if (DestinationsPanel != null)
+        {
+            int idx = Destinations.IndexOf(dest);
+            if (idx >= 0 && DestinationsPanel.ItemContainerGenerator.ContainerFromIndex(idx)
+                is FrameworkElement container)
+            {
+                _dragHandleVisual = container;
+                _dragHandleOriginalOpacity = container.Opacity;
+                container.Opacity = 0.55;
+            }
+        }
+
         try { fe.CaptureMouse(); } catch { }
         fe.MouseMove += DragHandle_MouseMove;
         fe.PreviewMouseLeftButtonUp += DragHandle_PreviewMouseLeftButtonUp;
@@ -2602,9 +2619,13 @@ public partial class MainWindow : Window
         // Convert cursor to DestinationsPanel coordinate space.
         var pos = e.GetPosition(DestinationsPanel);
 
-        // Walk every materialized row container and find the one whose vertical midpoint
-        // the cursor has crossed. This works whether the panel virtualizes or not because
-        // we only care about currently-visible containers.
+        // Multi-column wrap layout: tiles can be side-by-side. To pick the right
+        // drop target we look for a tile whose RECTANGLE (not just Y midpoint)
+        // contains the cursor. If none does (cursor in a gap or outside), we fall
+        // back to nearest-by-center distance among materialized containers.
+        int bestIdx = -1;
+        double bestDistSq = double.MaxValue;
+
         for (int i = 0; i < Destinations.Count; i++)
         {
             if (DestinationsPanel.ItemContainerGenerator.ContainerFromIndex(i)
@@ -2612,25 +2633,51 @@ public partial class MainWindow : Window
             try
             {
                 var topLeft = container.TranslatePoint(new System.Windows.Point(0, 0), DestinationsPanel);
-                var midY = topLeft.Y + (container.ActualHeight / 2.0);
-                if (pos.Y < midY)
+                double w = container.ActualWidth, h = container.ActualHeight;
+                if (w <= 0 || h <= 0) continue;
+
+                // Direct hit — cursor is inside this tile's rect: use it.
+                if (pos.X >= topLeft.X && pos.X <= topLeft.X + w &&
+                    pos.Y >= topLeft.Y && pos.Y <= topLeft.Y + h)
                 {
-                    int currentIdx = Destinations.IndexOf(_dragHandleItem);
-                    if (currentIdx >= 0 && currentIdx != i)
-                    {
-                        Destinations.Move(currentIdx, i);
-                    }
-                    return;
+                    bestIdx = i;
+                    break;
+                }
+
+                // Otherwise track closest tile by center distance.
+                double cx = topLeft.X + w / 2.0;
+                double cy = topLeft.Y + h / 2.0;
+                double dx = pos.X - cx, dy = pos.Y - cy;
+                double dsq = dx * dx + dy * dy;
+                if (dsq < bestDistSq)
+                {
+                    bestDistSq = dsq;
+                    bestIdx = i;
                 }
             }
             catch { /* container may not be laid out yet */ }
         }
 
-        // Past the last midpoint — drop at the bottom.
-        int lastIdx = Destinations.Count - 1;
-        int curIdx = Destinations.IndexOf(_dragHandleItem);
-        if (curIdx >= 0 && curIdx != lastIdx)
-            Destinations.Move(curIdx, lastIdx);
+        if (bestIdx < 0) return;
+        int currentIdx = Destinations.IndexOf(_dragHandleItem);
+        if (currentIdx >= 0 && currentIdx != bestIdx)
+        {
+            Destinations.Move(currentIdx, bestIdx);
+            // After Move the container reference for the dragged item changes;
+            // re-acquire it so the dim-overlay tracks the new position.
+            if (_dragHandleVisual != null)
+            {
+                _dragHandleVisual.Opacity = _dragHandleOriginalOpacity;
+                _dragHandleVisual = null;
+            }
+            if (DestinationsPanel.ItemContainerGenerator.ContainerFromIndex(bestIdx)
+                is FrameworkElement newContainer)
+            {
+                _dragHandleOriginalOpacity = newContainer.Opacity;
+                newContainer.Opacity = 0.55;
+                _dragHandleVisual = newContainer;
+            }
+        }
     }
 
     private void DragHandle_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -2649,6 +2696,12 @@ public partial class MainWindow : Window
             fe.PreviewMouseLeftButtonUp -= DragHandle_PreviewMouseLeftButtonUp;
             fe.LostMouseCapture -= DragHandle_LostMouseCapture;
             try { fe.ReleaseMouseCapture(); } catch { }
+        }
+        // Restore the dimmed tile to its original opacity.
+        if (_dragHandleVisual != null)
+        {
+            try { _dragHandleVisual.Opacity = _dragHandleOriginalOpacity; } catch { }
+            _dragHandleVisual = null;
         }
         _dragHandleSource = null;
         _dragHandleItem = null;
