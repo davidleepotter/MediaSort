@@ -102,6 +102,9 @@ public class AppSettings
 
     // ---- Memory ----
     public List<PerFolderState> FolderStates { get; set; } = new();
+
+    /// <summary>Most-recently-used source folders, newest first. Capped at 10 entries.</summary>
+    public List<string> RecentSourceFolders { get; set; } = new();
 }
 
 public enum ConflictPolicySetting

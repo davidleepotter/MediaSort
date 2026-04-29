@@ -34,6 +34,9 @@
                 <StackPanel Orientation="Horizontal" Margin="6,4,6,2">
                     <Button Content="Pick Source Folder..." Style="{StaticResource ToolButton}" Click="PickSource_Click"
                             ToolTip="Choose the folder MediaSort will scan for media"/>
+                    <Button x:Name="RecentSourceButton" Content="Recent ▾" Style="{StaticResource ToolButton}"
+                            Margin="4,0,0,0" Click="RecentSource_Click"
+                            ToolTip="Switch to a recently-used source folder"/>
                     <TextBlock x:Name="SourcePathText" Text="(no source folder)"
                                VerticalAlignment="Center" Margin="10,0"
                                Foreground="{DynamicResource MutedForeground}"

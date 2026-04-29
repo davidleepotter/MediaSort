@@ -121,6 +121,8 @@ public partial class MainWindow : Window
         if (!string.IsNullOrWhiteSpace(_settings.SourceFolder) && Directory.Exists(_settings.SourceFolder))
         {
             await SetSourceFolderAsync(_settings.SourceFolder);
+            PushRecentSource(_settings.SourceFolder);
+            SaveSettings();
         }
     }
 
@@ -443,8 +445,108 @@ public partial class MainWindow : Window
         {
             SetSourceFolder(dlg.SelectedPath);
             _settings.SourceFolder = dlg.SelectedPath;
+            PushRecentSource(dlg.SelectedPath);
             SaveSettings();
         }
+    }
+
+    // --- Recent source folders ---
+
+    private const int RecentSourceMax = 10;
+
+    /// <summary>
+    /// Bumps a folder to the top of the recent list, dedupes (case-insensitive),
+    /// and caps the list at RecentSourceMax entries. Caller is responsible for
+    /// calling SaveSettings() when convenient.
+    /// </summary>
+    private void PushRecentSource(string folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder)) return;
+        var list = _settings.RecentSourceFolders;
+        // Remove any existing entry for this folder (case-insensitive on Windows paths).
+        for (int i = list.Count - 1; i >= 0; i--)
+        {
+            if (string.Equals(list[i], folder, StringComparison.OrdinalIgnoreCase))
+                list.RemoveAt(i);
+        }
+        list.Insert(0, folder);
+        while (list.Count > RecentSourceMax) list.RemoveAt(list.Count - 1);
+    }
+
+    private void RecentSource_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button btn) return;
+
+        var menu = new ContextMenu
+        {
+            PlacementTarget = btn,
+            Placement = PlacementMode.Bottom,
+        };
+
+        var recents = _settings.RecentSourceFolders;
+        if (recents.Count == 0)
+        {
+            menu.Items.Add(new MenuItem
+            {
+                Header = "(no recent folders)",
+                IsEnabled = false
+            });
+        }
+        else
+        {
+            int i = 1;
+            foreach (var path in recents.ToList()) // copy so handlers can mutate the list
+            {
+                var exists = Directory.Exists(path);
+                var item = new MenuItem
+                {
+                    Header = $"_{i++}  {path}",
+                    ToolTip = exists ? path : $"{path}  (missing)",
+                    IsEnabled = exists
+                };
+                var captured = path;
+                item.Click += (_, _) =>
+                {
+                    SetSourceFolder(captured);
+                    _settings.SourceFolder = captured;
+                    PushRecentSource(captured);
+                    SaveSettings();
+                    StatusText.Text = $"Source folder: {captured}";
+                };
+                menu.Items.Add(item);
+            }
+
+            menu.Items.Add(new Separator());
+
+            var clear = new MenuItem { Header = "Clear recent list" };
+            clear.Click += (_, _) =>
+            {
+                _settings.RecentSourceFolders.Clear();
+                SaveSettings();
+                StatusText.Text = "Recent source folders cleared.";
+            };
+            menu.Items.Add(clear);
+
+            // Prune entries whose folder no longer exists
+            var pruneMissing = new MenuItem
+            {
+                Header = "Remove missing entries",
+                IsEnabled = recents.Any(p => !Directory.Exists(p))
+            };
+            pruneMissing.Click += (_, _) =>
+            {
+                int before = _settings.RecentSourceFolders.Count;
+                _settings.RecentSourceFolders.RemoveAll(p => !Directory.Exists(p));
+                int removed = before - _settings.RecentSourceFolders.Count;
+                SaveSettings();
+                StatusText.Text = removed > 0
+                    ? $"Removed {removed} missing folder(s) from Recent."
+                    : "No missing folders to remove.";
+            };
+            menu.Items.Add(pruneMissing);
+        }
+
+        menu.IsOpen = true;
     }
 
     private void Refresh_Click(object sender, RoutedEventArgs e)
@@ -1155,6 +1257,7 @@ public partial class MainWindow : Window
         CrashLogger.Info($"use-dest-as-source: '{dest.Name}' -> {folder}");
         SetSourceFolder(folder);
         _settings.SourceFolder = folder;
+        PushRecentSource(folder);
         SaveSettings();
         StatusText.Text = $"Source folder switched to '{dest.Name}' ({folder})";
     }
