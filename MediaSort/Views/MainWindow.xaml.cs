@@ -2972,38 +2972,151 @@ public partial class MainWindow : Window
 
     // ----------------- DUPLICATES -----------------
 
+    /// <summary>
+    /// Find near-duplicate images using a perceptual hash (pHash) and surface the
+    /// results in the modal <see cref="DuplicatesDialog"/>. The dialog lets the
+    /// user pick which copy to keep in each group; on Apply we move the
+    /// non-kept items to the chosen destination using the regular MoveItemsTo
+    /// pipeline so animations, conflict prompts, undo and the +N flash all work
+    /// the same as a normal hot-key move.
+    ///
+    /// Hashing runs on a worker thread behind a ProgressDialog so the UI stays
+    /// responsive on big folders. Already-hashed items are skipped on subsequent
+    /// invocations.
+    /// </summary>
     private async void FindDuplicates_Click(object sender, RoutedEventArgs e)
     {
         var images = _allItems.Where(m => m.Kind == MediaKind.Image).ToList();
         if (images.Count < 2) { StatusText.Text = "Need at least 2 images to compare."; return; }
 
-        StatusText.Text = "Hashing images...";
-        await Task.Run(() =>
-        {
-            foreach (var m in images.Where(m => string.IsNullOrEmpty(m.PerceptualHash)))
-            {
-                var h = PerceptualHasher.Hash(m.FullPath);
-                Dispatcher.Invoke(() => m.PerceptualHash = h);
-            }
-        });
-
-        // Pairwise compare
-        int dupCount = 0;
+        // Reset DUP badges from any previous run before we recompute.
         foreach (var m in images) m.IsDuplicate = false;
-        for (int i = 0; i < images.Count; i++)
+
+        var toHash = images.Where(m => string.IsNullOrEmpty(m.PerceptualHash)).ToList();
+
+        // Show the progress dialog immediately so the user sees feedback even on
+        // small batches that finish before the first ReportProgress tick.
+        var progress = new ProgressDialog("Finding duplicates…",
+                                          $"Hashing {toHash.Count} image(s)")
         {
-            for (int j = i + 1; j < images.Count; j++)
+            Owner = this
+        };
+        var ct = progress.Token;
+
+        // Drive the hashing on a worker thread so we can pump progress updates
+        // into the dialog. We use Task.Run + the thread pool here (not
+        // Parallel.ForEach) because perceptual hashing decodes JPEGs and we
+        // already cap CPU elsewhere via BelowNormal threads.
+        var hashTask = Task.Run(() =>
+        {
+            int done = 0;
+            int total = toHash.Count;
+            foreach (var m in toHash)
             {
-                if (PerceptualHasher.Distance(images[i].PerceptualHash, images[j].PerceptualHash) <= 6)
+                if (ct.IsCancellationRequested) break;
+                try
                 {
-                    if (!images[i].IsDuplicate) { images[i].IsDuplicate = true; dupCount++; }
-                    if (!images[j].IsDuplicate) { images[j].IsDuplicate = true; dupCount++; }
+                    var h = PerceptualHasher.Hash(m.FullPath);
+                    Dispatcher.Invoke(() => m.PerceptualHash = h);
                 }
+                catch { /* unreadable file: leave hash empty so it just won't match anything */ }
+                done++;
+                int snapshotDone = done;
+                progress.ReportProgress(snapshotDone, total);
+                progress.SetDetail($"Hashed {snapshotDone} / {total} · {Path.GetFileName(m.FullPath)}");
+            }
+        }, ct);
+
+        progress.ShowDialog();    // blocks until dialog closes (Cancel) or we close it below
+        try { await hashTask; } catch { }
+        // If the user cancelled, the dialog's Closed handler already cancelled the token.
+        if (progress.Token.IsCancellationRequested && hashTask.Status != TaskStatus.RanToCompletion)
+        {
+            // Dialog already closed when Cancel was clicked. Nothing else to clean up.
+            StatusText.Text = "Find duplicates cancelled.";
+            return;
+        }
+
+        // The progress dialog auto-closed only on Cancel; if hashing completed naturally
+        // we need to close it ourselves. WPF's ShowDialog already returned by now if the
+        // user hit Cancel. If hashing finished first the dialog is still open, so close it.
+        if (progress.IsVisible) progress.Close();
+
+        // Build duplicate groups via union-find: every pair within Hamming distance 6
+        // becomes a single component, so a chain a~b~c collapses into one group even
+        // when a and c are not directly within threshold.
+        var groups = BuildDuplicateGroups(images, threshold: 6);
+
+        if (groups.Count == 0)
+        {
+            StatusText.Text = "No near-duplicates found.";
+            return;
+        }
+
+        // Light up DUP badges in the source list so the visual cue is consistent
+        // with what the dialog shows.
+        foreach (var g in groups)
+            foreach (var m in g.Members)
+                m.IsDuplicate = true;
+
+        var dlg = new DuplicatesDialog(groups, Destinations) { Owner = this };
+        var result = dlg.ShowDialog();
+
+        if (result != true || !dlg.ApplyRequested || dlg.ChosenDestination == null || dlg.ItemsToMove.Count == 0)
+        {
+            StatusText.Text = $"Found {groups.Count} duplicate group(s) · DUP badges shown in Thumbnails view.";
+            return;
+        }
+
+        // Apply: hand the non-kept items off to the standard move pipeline. It already
+        // handles destination kind filters, conflict prompts, animations, undo, and the
+        // +N flash badge.
+        MoveItemsTo(dlg.ItemsToMove, dlg.ChosenDestination, FindDestinationElement(dlg.ChosenDestination));
+        StatusText.Text = $"Moved {dlg.ItemsToMove.Count} duplicate(s) to {dlg.ChosenDestination.Name}.";
+    }
+
+    /// <summary>
+    /// Cluster items whose perceptual hashes are within <paramref name="threshold"/>
+    /// Hamming distance into groups using a simple union-find. Singletons are
+    /// dropped — we only return groups of 2+. Items missing a hash never match
+    /// anything.
+    /// </summary>
+    private static List<DuplicateGroup> BuildDuplicateGroups(List<MediaItem> images, int threshold)
+    {
+        int n = images.Count;
+        var parent = Enumerable.Range(0, n).ToArray();
+        int Find(int x)
+        {
+            while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+            return x;
+        }
+        void Union(int a, int b)
+        {
+            int ra = Find(a), rb = Find(b);
+            if (ra != rb) parent[ra] = rb;
+        }
+
+        for (int i = 0; i < n; i++)
+        {
+            if (string.IsNullOrEmpty(images[i].PerceptualHash)) continue;
+            for (int j = i + 1; j < n; j++)
+            {
+                if (string.IsNullOrEmpty(images[j].PerceptualHash)) continue;
+                if (PerceptualHasher.Distance(images[i].PerceptualHash, images[j].PerceptualHash) <= threshold)
+                    Union(i, j);
             }
         }
-        StatusText.Text = dupCount > 0
-            ? $"Flagged {dupCount} potential duplicate(s) — see DUP badge in Thumbnails view"
-            : "No near-duplicates found";
+
+        var buckets = new Dictionary<int, List<MediaItem>>();
+        for (int i = 0; i < n; i++)
+        {
+            if (string.IsNullOrEmpty(images[i].PerceptualHash)) continue;
+            int root = Find(i);
+            if (!buckets.TryGetValue(root, out var list)) buckets[root] = list = new List<MediaItem>();
+            list.Add(images[i]);
+        }
+
+        return buckets.Values.Where(g => g.Count >= 2).Select(g => new DuplicateGroup(g)).ToList();
     }
 
     // ----------------- CONTEXT MENU ACTIONS -----------------
