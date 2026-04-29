@@ -1298,15 +1298,25 @@ public partial class MainWindow : Window
         try
         {
             if (_mediaPlayer == null) return;
-            if (_mediaPlayer.IsPlaying)
+
+            var st = _mediaPlayer.State;
+
+            // Currently playing → pause (use SetPause for unambiguous behavior).
+            if (st == VLCState.Playing)
             {
-                _mediaPlayer.Pause();
+                _mediaPlayer.SetPause(true);
                 return;
             }
 
-            // Once a video reaches Ended/Stopped state, calling Play() with no args
-            // is a no-op in LibVLC — we must reload the current Media to restart.
-            var st = _mediaPlayer.State;
+            // Paused → resume in place. SetPause(false) is the deterministic API
+            // for unpausing in LibVLCSharp; Play() is unreliable here.
+            if (st == VLCState.Paused)
+            {
+                _mediaPlayer.SetPause(false);
+                return;
+            }
+
+            // Ended / Stopped / Error / fresh player → reload current item from start.
             if (st == VLCState.Ended || st == VLCState.Stopped || st == VLCState.Error || st == VLCState.NothingSpecial)
             {
                 var sel = GetSelectedItems().FirstOrDefault();
@@ -1320,7 +1330,7 @@ public partial class MainWindow : Window
                 }
             }
 
-            // Paused → resume.
+            // Buffering / Opening / other transient → nudge with Play().
             _mediaPlayer.Play();
         }
         catch { }
