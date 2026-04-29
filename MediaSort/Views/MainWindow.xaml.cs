@@ -3237,13 +3237,22 @@ public partial class MainWindow : Window
 
         if (items.Count > 1)
         {
-            var confirm = MessageBox.Show(
-                this,
-                $"Rotate {items.Count} images?",
-                "Rotate",
-                MessageBoxButton.OKCancel,
-                MessageBoxImage.Question);
-            if (confirm != MessageBoxResult.OK) return;
+            var direction_label = direction switch
+            {
+                ImageRotator.RotationDirection.Clockwise90 => "90\u00B0 clockwise",
+                ImageRotator.RotationDirection.Counterclockwise90 => "90\u00B0 counter-clockwise",
+                ImageRotator.RotationDirection.Rotate180 => "180\u00B0",
+                _ => ""
+            };
+            if (!ConfirmDialog.Show(
+                    this,
+                    "Rotate images",
+                    $"Rotate {items.Count} selected image(s) {direction_label}?\n\nThis modifies the files on disk.",
+                    okText: "Rotate",
+                    cancelText: "Cancel"))
+            {
+                return;
+            }
         }
 
         int ok = 0, fail = 0;
