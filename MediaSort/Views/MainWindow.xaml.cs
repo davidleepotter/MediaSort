@@ -890,6 +890,13 @@ public partial class MainWindow : Window
         // this throw) by simply skipping the popup — scan continues normally.
         ProgressDialog? scanDialog = null;
         DispatcherTimer? revealTimer = null;
+        // We register a callback on the dialog's cancel token to cancel the scan.
+        // The registration MUST be disposed before we Close() the dialog ourselves,
+        // because ProgressDialog.OnClosed cancels its own token — without disposing,
+        // our normal cleanup would erroneously cancel the just-completed scan and
+        // make the result list look invalid (this caused the v1.0.77+ regression
+        // where the source list was empty at startup).
+        CancellationTokenRegistration scanCancelReg = default;
         try
         {
             // Owner is only safe to set if the main window has actually been shown.
@@ -901,7 +908,7 @@ public partial class MainWindow : Window
             if (canOwn) scanDialog.Owner = this;
             scanDialog.ReportProgress(0, 0); // indeterminate bar
             var dlgRef = scanDialog;
-            scanDialog.Token.Register(() =>
+            scanCancelReg = scanDialog.Token.Register(() =>
             {
                 try { _scanCts?.Cancel(); } catch { }
             });
@@ -973,6 +980,11 @@ public partial class MainWindow : Window
         finally
         {
             try { revealTimer?.Stop(); } catch { }
+            // CRITICAL: dispose the cancel registration BEFORE closing the dialog.
+            // Otherwise ProgressDialog.OnClosed -> its CTS.Cancel() fires our
+            // registered callback which cancels _scanCts, making the next
+            // IsCancellationRequested check think the user cancelled the scan.
+            try { scanCancelReg.Dispose(); } catch { }
             try { scanDialog?.Close(); } catch { }
         }
 
