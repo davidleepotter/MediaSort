@@ -63,6 +63,9 @@ public partial class MainWindow : Window
     // Separate CTS so we can cancel an in-flight folder enumeration when the user
     // picks a new source folder mid-scan (huge folders / network shares).
     private CancellationTokenSource? _scanCts;
+    // (#8) Last destination dispatched to, so the user can repeat-fire it with `.`
+    // without lifting their hand from the keyboard.
+    private DestinationButton? _lastDestination;
 
     // Image preview pan/zoom state
     private bool _imagePanning;
@@ -1447,6 +1450,7 @@ public partial class MainWindow : Window
 
             var items = GetSelectedItems();
             if (items.Count == 0) { StatusText.Text = "No item selected."; return; }
+            _lastDestination = dest; // (#8) remember for `.` repeat
             DispatchAction(items, dest, fe);
         }
     }
@@ -2388,6 +2392,32 @@ public partial class MainWindow : Window
             }
         }
 
+        // (#8) `.` (or numpad `.`) repeats the last destination action. Skipped if
+        // a destination already binds OemPeriod / Decimal as its own hotkey — their
+        // own hotkey wins.
+        if ((e.Key == Key.OemPeriod || e.Key == Key.Decimal) && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            bool ownedByDest = Destinations.Any(d =>
+                (d.HotKey == Key.OemPeriod || d.HotKey == Key.Decimal) && d.Modifiers == ModifierKeys.None);
+            if (!ownedByDest)
+            {
+                if (_lastDestination == null)
+                {
+                    StatusText.Text = "No previous destination to repeat. Send to a destination first, then press `.` to repeat.";
+                }
+                else
+                {
+                    var items = GetSelectedItems();
+                    if (items.Count > 0)
+                    {
+                        DispatchAction(items, _lastDestination, FindDestinationElement(_lastDestination));
+                    }
+                }
+                e.Handled = true;
+                return;
+            }
+        }
+
         // Destination hotkeys
         foreach (var dest in Destinations)
         {
@@ -2396,6 +2426,7 @@ public partial class MainWindow : Window
             {
                 var items = GetSelectedItems();
                 if (items.Count == 0) return;
+                _lastDestination = dest;
                 DispatchAction(items, dest, FindDestinationElement(dest));
                 e.Handled = true;
                 return;
