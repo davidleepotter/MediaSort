@@ -8,7 +8,7 @@
         Title="MediaSort"
         Icon="pack://application:,,,/Assets/AppIcon.ico"
         Height="820" Width="1480"
-        Background="{DynamicResource WindowBackground}"
+        Background="#181818"
         Foreground="{DynamicResource PanelForeground}"
         WindowStartupLocation="CenterScreen"
         AllowDrop="True"

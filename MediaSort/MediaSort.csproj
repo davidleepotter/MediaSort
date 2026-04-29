@@ -21,7 +21,7 @@
   <ItemGroup>
     <Resource Include="Assets\AppIcon.ico" />
     <Resource Include="Assets\AppIcon.png" />
-    <SplashScreen Include="Assets\Splash.png" />
+    <Resource Include="Assets\Splash.png" />
   </ItemGroup>
 
   <ItemGroup>
