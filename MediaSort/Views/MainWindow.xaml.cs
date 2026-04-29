@@ -1461,7 +1461,27 @@ public partial class MainWindow : Window
 
     private MoveHistoryService.MoveRecord? DoCopy(string sourcePath, string targetFolder, string? rename, ConflictPolicy policy)
     {
-        var r = FileMover.CopyToFolder(sourcePath, targetFolder, policy, rename);
+        MoveResult r;
+        // Mirror DoMove's large-file path: spin up a progress dialog with a real
+        // progress bar + Cancel button when the source is >= 50 MB, so the UI
+        // stays responsive on big copies (especially cross-volume).
+        try
+        {
+            var fi = new System.IO.FileInfo(sourcePath);
+            if (fi.Exists && fi.Length >= FileMoverProgress.LargeFileThreshold)
+            {
+                r = MoveOrCopyWithProgressDialog(sourcePath, targetFolder, policy, rename, isCopy: true);
+            }
+            else
+            {
+                r = FileMover.CopyToFolder(sourcePath, targetFolder, policy, rename);
+            }
+        }
+        catch
+        {
+            r = FileMover.CopyToFolder(sourcePath, targetFolder, policy, rename);
+        }
+
         if (r.Outcome == MoveOutcome.Moved)
         {
             return new MoveHistoryService.MoveRecord
