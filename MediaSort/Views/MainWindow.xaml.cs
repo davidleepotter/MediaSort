@@ -208,6 +208,19 @@ public partial class MainWindow : Window
         Title = $"MediaSort v{VersionInfo.GetDisplayVersion()}";
         StatusText.Text = "Ready";
 
+        // Restore persisted splitter widths. 0 = use the default from XAML.
+        // Clamp to MinWidth so a previously narrow window can't lock us out.
+        if (_settings.LeftPanelWidth > 0 && LeftPanelColumn != null)
+        {
+            var w = Math.Max(_settings.LeftPanelWidth, LeftPanelColumn.MinWidth);
+            LeftPanelColumn.Width = new GridLength(w, GridUnitType.Pixel);
+        }
+        if (_settings.RightPanelWidth > 0 && RightPanelColumn != null)
+        {
+            var w = Math.Max(_settings.RightPanelWidth, RightPanelColumn.MinWidth);
+            RightPanelColumn.Width = new GridLength(w, GridUnitType.Pixel);
+        }
+
         // Done with initial UI population — allow SaveSettings to run again.
         _initializing = false;
         CrashLogger.Info("startup: _initializing = false (saves now enabled)");
@@ -1085,9 +1098,11 @@ public partial class MainWindow : Window
 
         // Video thumbnail via Windows Shell (same source as Explorer's preview).
         // Cached identically to image thumbnails so a second scan is instant.
+        // Use 256px so the shell extracts a real video frame instead of scaling
+        // up the generic 128px file icon.
         try
         {
-            const int ThumbDecodeWidth = 128;
+            const int ThumbDecodeWidth = 256;
             BitmapSource? thumb = ThumbnailCache.TryGetMemory(item.FullPath, ThumbDecodeWidth)
                                   ?? ThumbnailCache.TryGetDisk(item.FullPath, ThumbDecodeWidth);
             if (thumb == null)
@@ -3207,6 +3222,25 @@ public partial class MainWindow : Window
         var size = Math.Max(60, Math.Min(240, _settings.ThumbnailSize));
         Resources["ThumbTileSize"] = (double)size;
         Resources["ThumbTileHeight"] = (double)(size + 20);
+    }
+
+    /// <summary>
+    /// Persist the source / destinations panel widths whenever the user finishes
+    /// dragging either GridSplitter. Only fires after _initializing flips to false,
+    /// so the XAML defaults aren't immediately overwritten on startup.
+    /// </summary>
+    private void PanelSplitter_DragCompleted(object sender, DragCompletedEventArgs e)
+    {
+        if (_initializing || _settings == null) return;
+        try
+        {
+            if (LeftPanelColumn != null && LeftPanelColumn.ActualWidth > 0)
+                _settings.LeftPanelWidth = LeftPanelColumn.ActualWidth;
+            if (RightPanelColumn != null && RightPanelColumn.ActualWidth > 0)
+                _settings.RightPanelWidth = RightPanelColumn.ActualWidth;
+            SaveSettings();
+        }
+        catch (Exception ex) { CrashLogger.Log(ex, "splitter-save"); }
     }
 
     private void About_Click(object sender, RoutedEventArgs e)

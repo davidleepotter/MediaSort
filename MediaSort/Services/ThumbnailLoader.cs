@@ -215,13 +215,20 @@ public static class ThumbnailLoader
 
             try
             {
+                // Ask for a generous size so the Shell extracts a real frame rather
+                // than scaling up an icon. We omit MemoryOnly (which forbids extraction)
+                // and omit ThumbnailOnly (which forbids icon fallback for unknown
+                // formats). The returned image is the same one Explorer would show.
                 int size = decodePixelWidth > 0 ? decodePixelWidth : 256;
+                if (size < 256) size = 256; // smaller sizes can return cached icons only
                 var sz = new SIZE { cx = size, cy = size };
-                // ResizeToFit + InMemory: scale to fit the box, do not extract from disk cache
-                // only — generate one if missing. ThumbnailOnly would forbid full extraction.
-                const SIIGBF flags = SIIGBF.ResizeToFit | SIIGBF.InMemory | SIIGBF.BiggerSizeOk;
+                const SIIGBF flags = SIIGBF.ResizeToFit | SIIGBF.BiggerSizeOk;
                 hr = factory.GetImage(sz, flags, out hBitmap);
-                if (hr != 0 || hBitmap == IntPtr.Zero) return null;
+                if (hr != 0 || hBitmap == IntPtr.Zero)
+                {
+                    CrashLogger.Info($"shell-thumb: GetImage hr=0x{hr:X8} ({path})");
+                    return null;
+                }
 
                 var src = Imaging.CreateBitmapSourceFromHBitmap(
                     hBitmap,
@@ -230,7 +237,9 @@ public static class ThumbnailLoader
                     BitmapSizeOptions.FromEmptyOptions());
                 if (src == null) return null;
                 if (src.CanFreeze) src.Freeze();
-                return src.PixelWidth > 0 ? src : null;
+                if (src.PixelWidth <= 0) return null;
+                CrashLogger.Info($"shell-thumb ok {src.PixelWidth}x{src.PixelHeight} ({System.IO.Path.GetFileName(path)})");
+                return src;
             }
             finally
             {

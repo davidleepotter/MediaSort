@@ -119,6 +119,12 @@ public class AppSettings
     public int VideoVolume { get; set; } = 60;
     /// <summary>When true, the video player is muted regardless of VideoVolume.</summary>
     public bool VideoMuted { get; set; } = false;
+
+    // ---- Layout: persisted splitter sizes ----
+    /// <summary>Width in pixels of the left source-list panel. 0 = use default.</summary>
+    public double LeftPanelWidth { get; set; } = 0;
+    /// <summary>Width in pixels of the right destinations panel. 0 = use default.</summary>
+    public double RightPanelWidth { get; set; } = 0;
 }
 
 public enum ConflictPolicySetting

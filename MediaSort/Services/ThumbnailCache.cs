@@ -21,7 +21,9 @@ public static class ThumbnailCache
     private const int MaxMemoryEntries = 600;
 
     // Bumped if the cache key/format changes — older PNG sidecars become misses.
-    private const string CacheVersion = "v1";
+    // v2: video thumbnails now extracted via Shell at 256px; v1 cached generic
+    //     video icons must be invalidated.
+    private const string CacheVersion = "v2";
 
     private static readonly object _lock = new();
     private static readonly LinkedList<string> _lru = new();

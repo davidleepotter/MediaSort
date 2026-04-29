@@ -175,11 +175,11 @@
 
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="380" MinWidth="220"/>
+                <ColumnDefinition x:Name="LeftPanelColumn" Width="380" MinWidth="220"/>
                 <ColumnDefinition Width="5"/>
                 <ColumnDefinition Width="*" MinWidth="300"/>
                 <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="340" MinWidth="240"/>
+                <ColumnDefinition x:Name="RightPanelColumn" Width="340" MinWidth="240"/>
             </Grid.ColumnDefinitions>
 
             <!-- LEFT: Source list -->
@@ -379,7 +379,8 @@
             </Border>
 
             <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
-                          Background="{DynamicResource SplitterBrush}"/>
+                          Background="{DynamicResource SplitterBrush}"
+                          DragCompleted="PanelSplitter_DragCompleted"/>
 
             <!-- CENTER: Preview -->
             <Border Grid.Column="2" Background="{DynamicResource PreviewBackground}">
@@ -441,7 +442,8 @@
             </Border>
 
             <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
-                          Background="{DynamicResource SplitterBrush}"/>
+                          Background="{DynamicResource SplitterBrush}"
+                          DragCompleted="PanelSplitter_DragCompleted"/>
 
             <!-- RIGHT: Destinations + EXIF -->
             <Border Grid.Column="4"
