@@ -14,6 +14,8 @@ public class DestinationButton : INotifyPropertyChanged
     private string _subfolderTemplate = "";
     private string _renameTemplate = "";
     private int _itemCount;
+    private string _flashBadge = "";
+    private double _flashOpacity = 0;
 
     public string Name
     {
@@ -140,6 +142,22 @@ public class DestinationButton : INotifyPropertyChanged
     public string DisplayLabel => string.IsNullOrWhiteSpace(Name)
         ? $"[{HotKeyDisplay}]"
         : $"{Name}  [{HotKeyDisplay}]";
+
+    /// <summary>
+    /// Transient "+N" badge shown on the destination after a successful move.
+    /// MainWindow sets this and animates FlashOpacity 0⁡1⁡0 over a short window.
+    /// </summary>
+    public string FlashBadge
+    {
+        get => _flashBadge;
+        set { _flashBadge = value ?? ""; OnPropertyChanged(); }
+    }
+
+    public double FlashOpacity
+    {
+        get => _flashOpacity;
+        set { _flashOpacity = value; OnPropertyChanged(); }
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged([CallerMemberName] string? p = null)

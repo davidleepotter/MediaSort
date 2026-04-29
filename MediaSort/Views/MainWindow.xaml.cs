@@ -1609,6 +1609,10 @@ public partial class MainWindow : Window
             UndoButton.IsEnabled = _history.CanUndo;
             StatusText.Text = $"Moved {batch.Count} file(s) to {dest.Name}";
             RefreshDestinationCounts();
+            // Flash a transient "+N" badge on the destination so the user gets a clear
+            // confirmation that the batch landed there, even if the fly-to animation
+            // is short or off-screen.
+            FlashDestinationBadge(dest, batch.Count);
         }
 
         if (MediaItems.Count > 0)
@@ -2024,6 +2028,60 @@ public partial class MainWindow : Window
     {
         if (DestinationsPanel == null) return null;
         return DestinationsPanel.ItemContainerGenerator.ContainerFromItem(dest) as FrameworkElement;
+    }
+
+    /// <summary>
+    /// Pulse a "+N" badge on the given destination so the user sees confirmation
+    /// the batch landed. Sets DestinationButton.FlashBadge and animates FlashOpacity
+    /// 0→1→0 over ~1.5s. Multiple rapid moves stack the count instead of fighting
+    /// each other.
+    /// </summary>
+    private void FlashDestinationBadge(DestinationButton dest, int count)
+    {
+        if (dest == null || count <= 0) return;
+        try
+        {
+            // Stack the count if a flash is already mid-animation.
+            int existing = 0;
+            if (!string.IsNullOrEmpty(dest.FlashBadge) &&
+                dest.FlashBadge.StartsWith("+") &&
+                int.TryParse(dest.FlashBadge.Substring(1), out var parsed))
+            {
+                existing = parsed;
+            }
+            dest.FlashBadge = $"+{existing + count}";
+            dest.FlashOpacity = 0;
+
+            // Use a DispatcherTimer-driven tween on the model property so the binding
+            // pipes it straight to the overlay Border.Opacity. Avoids needing the
+            // visual element handle.
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            const double fadeInMs = 180;
+            const double holdMs   = 900;
+            const double fadeOutMs = 450;
+            const double totalMs = fadeInMs + holdMs + fadeOutMs;
+
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+            timer.Tick += (s, e) =>
+            {
+                var t = sw.Elapsed.TotalMilliseconds;
+                double op;
+                if (t < fadeInMs)        op = t / fadeInMs;
+                else if (t < fadeInMs + holdMs) op = 1.0;
+                else if (t < totalMs)    op = 1.0 - ((t - fadeInMs - holdMs) / fadeOutMs);
+                else                     op = 0.0;
+                if (op < 0) op = 0; if (op > 1) op = 1;
+                dest.FlashOpacity = op;
+                if (t >= totalMs)
+                {
+                    timer.Stop();
+                    dest.FlashOpacity = 0;
+                    dest.FlashBadge = "";
+                }
+            };
+            timer.Start();
+        }
+        catch { /* non-critical UI sugar */ }
     }
 
     private ImageSource? CaptureItemVisual(MediaItem item, FrameworkElement? sourceElement)
