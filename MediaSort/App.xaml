@@ -1152,86 +1152,81 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
                             <Grid>
-                                <!-- Two rows: tab (top, 14px) + body (rest). Tab row is
-                                     left-aligned with a fixed-width inner Border so it looks
-                                     like a folder index tab, not a full banner. -->
+                                <!-- Two rows: tab (8px, just enough to read as a tab) + body. -->
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="14"/>
+                                    <RowDefinition Height="8"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
-                                <!-- ===== TAB (top-left index tab) ===== -->
-                                <!-- Shadow under the tab so it sits above the body lip. -->
-                                <Border x:Name="TabShadow"
-                                        Grid.Row="0"
-                                        Background="{TemplateBinding Background}"
-                                        CornerRadius="5,5,0,0"
-                                        Width="96" HorizontalAlignment="Left"
-                                        Margin="2,1,0,0">
-                                    <Border.Effect>
-                                        <DropShadowEffect Color="Black"
-                                                          Direction="270"
-                                                          ShadowDepth="1"
-                                                          BlurRadius="3"
-                                                          Opacity="0.35"/>
-                                    </Border.Effect>
-                                </Border>
-                                <!-- Tab fill: darker variant of the accent for visual
-                                     hierarchy (uses a black overlay so it works for any
-                                     AccentBrush color). -->
-                                <Border x:Name="Tab"
-                                        Grid.Row="0"
-                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                        BorderThickness="1,1,1,0"
-                                        CornerRadius="5,5,0,0"
-                                        Width="96" HorizontalAlignment="Left"
-                                        Margin="2,1,0,0"
-                                        SnapsToDevicePixels="True">
-                                    <Border.Background>
+                                <!-- ===== TAB =====
+                                     Trapezoid: vertical left edge, slight diagonal right edge
+                                     so it flows into the body instead of meeting it at 90°.
+                                     Filled with the same Background as the body, then a subtle
+                                     dark overlay supplies just enough shading to read as a tab.
+                                     60px wide, anchored top-left with a 4px inset. -->
+                                <Path x:Name="Tab"
+                                      Grid.Row="0"
+                                      HorizontalAlignment="Left"
+                                      Margin="4,0,0,0"
+                                      Fill="{TemplateBinding Background}"
+                                      Stretch="None"
+                                      Data="M 0,3 Q 0,0 3,0 L 54,0 Q 57,0 60,3 L 64,8 L 0,8 Z"
+                                      SnapsToDevicePixels="True"/>
+                                <!-- Subtle dark overlay on tab so it reads slightly recessed -->
+                                <Path x:Name="TabShade"
+                                      Grid.Row="0"
+                                      HorizontalAlignment="Left"
+                                      Margin="4,0,0,0"
+                                      Stretch="None"
+                                      Data="M 0,3 Q 0,0 3,0 L 54,0 Q 57,0 60,3 L 64,8 L 0,8 Z"
+                                      IsHitTestVisible="False">
+                                    <Path.Fill>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#33000000" Offset="0"/>
-                                            <GradientStop Color="#55000000" Offset="1"/>
+                                            <GradientStop Color="#10000000" Offset="0"/>
+                                            <GradientStop Color="#22000000" Offset="1"/>
                                         </LinearGradientBrush>
-                                    </Border.Background>
-                                </Border>
-                                <!-- Tab top-edge highlight bevel -->
-                                <Border x:Name="TabHighlight"
-                                        Grid.Row="0"
-                                        BorderThickness="1,1,0,0"
-                                        BorderBrush="#55FFFFFF"
-                                        CornerRadius="5,5,0,0"
-                                        Width="94" HorizontalAlignment="Left"
-                                        Margin="3,2,0,0"
-                                        IsHitTestVisible="False"/>
+                                    </Path.Fill>
+                                </Path>
+                                <!-- Hairline highlight along the tab's top edge -->
+                                <Path x:Name="TabHighlight"
+                                      Grid.Row="0"
+                                      HorizontalAlignment="Left"
+                                      Margin="4,0,0,0"
+                                      Stroke="#33FFFFFF"
+                                      StrokeThickness="1"
+                                      Stretch="None"
+                                      Data="M 1,3 Q 1,1 3,1 L 54,1 Q 56,1 58,3"
+                                      IsHitTestVisible="False"/>
 
-                                <!-- ===== BODY (the folder) ===== -->
+                                <!-- ===== BODY ===== -->
                                 <!-- Drop shadow halo for the raised look. -->
                                 <Border x:Name="BodyShadow"
                                         Grid.Row="1"
                                         Background="{TemplateBinding Background}"
-                                        CornerRadius="3,5,5,5"
+                                        CornerRadius="2,3,3,3"
                                         Margin="0,0,0,3">
                                     <Border.Effect>
                                         <DropShadowEffect Color="Black"
                                                           Direction="270"
                                                           ShadowDepth="2"
                                                           BlurRadius="5"
-                                                          Opacity="0.45"/>
+                                                          Opacity="0.40"/>
                                     </Border.Effect>
                                 </Border>
-                                <!-- Body fill with glossy gradient overlay -->
+                                <!-- Body fill with very subtle gradient overlay (less glossy
+                                     than before, more like cardstock) -->
                                 <Border x:Name="Body"
                                         Grid.Row="1"
                                         BorderBrush="{TemplateBinding BorderBrush}"
                                         BorderThickness="{TemplateBinding BorderThickness}"
-                                        CornerRadius="3,5,5,5"
+                                        CornerRadius="2,3,3,3"
                                         Margin="0,0,0,3"
                                         SnapsToDevicePixels="True">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#55FFFFFF" Offset="0"/>
-                                            <GradientStop Color="#00FFFFFF" Offset="0.5"/>
-                                            <GradientStop Color="#33000000" Offset="1"/>
+                                            <GradientStop Color="#22FFFFFF" Offset="0"/>
+                                            <GradientStop Color="#00FFFFFF" Offset="0.4"/>
+                                            <GradientStop Color="#22000000" Offset="1"/>
                                         </LinearGradientBrush>
                                     </Border.Background>
                                 </Border>
@@ -1239,25 +1234,14 @@
                                 <Border x:Name="BodyHighlight"
                                         Grid.Row="1"
                                         BorderThickness="1,1,0,0"
-                                        BorderBrush="#66FFFFFF"
-                                        CornerRadius="3,5,5,5"
+                                        BorderBrush="#44FFFFFF"
+                                        CornerRadius="2,3,3,3"
                                         Margin="1,1,1,4"
                                         IsHitTestVisible="False"/>
-                                <!-- Folder lip line: thin horizontal hairline ~5px below
-                                     the top of the body, suggesting the folder's front edge. -->
-                                <Border x:Name="BodyLip"
-                                        Grid.Row="1"
-                                        Height="1"
-                                        Background="#33000000"
-                                        VerticalAlignment="Top"
-                                        Margin="6,5,6,0"
-                                        IsHitTestVisible="False"/>
 
-                                <!-- Content sits in the body row. We wrap the ContentPresenter
-                                     in a Border that supplies a fixed inset (4 left, 8 top) to
-                                     clear the folder lip and inner edge, then the user-tunable
-                                     Padding (Compact/Normal/Large preset) adds on top of that. -->
-                                <Border Grid.Row="1" Margin="4,8,0,0" Padding="{TemplateBinding Padding}">
+                                <!-- Content sits in the body row with a baseline inset on top
+                                     of the user-tunable Padding (Compact/Normal/Large preset). -->
+                                <Border Grid.Row="1" Margin="4,6,0,0" Padding="{TemplateBinding Padding}">
                                     <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                                       VerticalAlignment="Center"
                                                       RecognizesAccessKey="True"/>
@@ -1268,22 +1252,21 @@
                                     <Setter TargetName="Body" Property="Background">
                                         <Setter.Value>
                                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                <GradientStop Color="#80FFFFFF" Offset="0"/>
-                                                <GradientStop Color="#10FFFFFF" Offset="0.5"/>
-                                                <GradientStop Color="#22000000" Offset="1"/>
+                                                <GradientStop Color="#44FFFFFF" Offset="0"/>
+                                                <GradientStop Color="#00FFFFFF" Offset="0.4"/>
+                                                <GradientStop Color="#11000000" Offset="1"/>
                                             </LinearGradientBrush>
                                         </Setter.Value>
                                     </Setter>
-                                    <Setter TargetName="Tab" Property="Background">
+                                    <Setter TargetName="TabShade" Property="Fill">
                                         <Setter.Value>
                                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                <GradientStop Color="#22000000" Offset="0"/>
-                                                <GradientStop Color="#44000000" Offset="1"/>
+                                                <GradientStop Color="#06000000" Offset="0"/>
+                                                <GradientStop Color="#15000000" Offset="1"/>
                                             </LinearGradientBrush>
                                         </Setter.Value>
                                     </Setter>
-                                    <Setter TargetName="BodyHighlight" Property="BorderBrush" Value="#99FFFFFF"/>
-                                    <Setter TargetName="TabHighlight" Property="BorderBrush" Value="#88FFFFFF"/>
+                                    <Setter TargetName="BodyHighlight" Property="BorderBrush" Value="#77FFFFFF"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <!-- Remove drop shadow + push down 2px -->
@@ -1291,21 +1274,20 @@
                                     <Setter TargetName="BodyShadow" Property="Margin" Value="0,2,0,1"/>
                                     <Setter TargetName="Body" Property="Margin" Value="0,2,0,1"/>
                                     <Setter TargetName="BodyHighlight" Property="Margin" Value="1,3,1,2"/>
-                                    <Setter TargetName="TabShadow" Property="Effect" Value="{x:Null}"/>
-                                    <Setter TargetName="TabShadow" Property="Margin" Value="2,3,0,0"/>
-                                    <Setter TargetName="Tab" Property="Margin" Value="2,3,0,0"/>
-                                    <Setter TargetName="TabHighlight" Property="Margin" Value="3,4,0,0"/>
+                                    <Setter TargetName="Tab" Property="Margin" Value="4,2,0,0"/>
+                                    <Setter TargetName="TabShade" Property="Margin" Value="4,2,0,0"/>
+                                    <Setter TargetName="TabHighlight" Property="Margin" Value="4,2,0,0"/>
                                     <Setter TargetName="Body" Property="Background">
                                         <Setter.Value>
                                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                <GradientStop Color="#44000000" Offset="0"/>
+                                                <GradientStop Color="#33000000" Offset="0"/>
                                                 <GradientStop Color="#10000000" Offset="0.5"/>
-                                                <GradientStop Color="#33FFFFFF" Offset="1"/>
+                                                <GradientStop Color="#22FFFFFF" Offset="1"/>
                                             </LinearGradientBrush>
                                         </Setter.Value>
                                     </Setter>
                                     <Setter TargetName="BodyHighlight" Property="BorderThickness" Value="0,0,1,1"/>
-                                    <Setter TargetName="BodyHighlight" Property="BorderBrush" Value="#55FFFFFF"/>
+                                    <Setter TargetName="BodyHighlight" Property="BorderBrush" Value="#33FFFFFF"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.5"/>
