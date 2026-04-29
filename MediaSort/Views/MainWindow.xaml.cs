@@ -1701,12 +1701,16 @@ public partial class MainWindow : Window
     {
         MoveResult r;
         // Mirror DoMove's large-file path: spin up a progress dialog with a real
-        // progress bar + Cancel button when the source is >= 50 MB, so the UI
-        // stays responsive on big copies (especially cross-volume).
+        // progress bar + Cancel button when the source is >= threshold, so the UI
+        // stays responsive on big copies. (#3) On cross-volume copies use the lower
+        // CrossVolumeThreshold (default 5 MB) since the I/O is inherently slow.
         try
         {
             var fi = new System.IO.FileInfo(sourcePath);
-            if (fi.Exists && fi.Length >= FileMoverProgress.LargeFileThreshold)
+            long threshold = IsCrossVolume(sourcePath, targetFolder)
+                ? FileMoverProgress.CrossVolumeThreshold
+                : FileMoverProgress.LargeFileThreshold;
+            if (fi.Exists && fi.Length >= threshold)
             {
                 r = MoveOrCopyWithProgressDialog(sourcePath, targetFolder, policy, rename, isCopy: true);
             }
@@ -1875,10 +1879,15 @@ public partial class MainWindow : Window
         MoveResult r;
         // Large-file path: spin up a progress dialog and use the chunked mover so the
         // UI stays responsive and the user can cancel a 4 GB cross-volume copy.
+        // (#3) Cross-volume moves are physically copies, so even "medium" files (≥5 MB) deserve
+        // the progress dialog — otherwise the UI freezes on slow USB / network targets.
         try
         {
             var fi = new System.IO.FileInfo(sourcePath);
-            if (fi.Exists && fi.Length >= FileMoverProgress.LargeFileThreshold)
+            long threshold = IsCrossVolume(sourcePath, targetFolder)
+                ? FileMoverProgress.CrossVolumeThreshold
+                : FileMoverProgress.LargeFileThreshold;
+            if (fi.Exists && fi.Length >= threshold)
             {
                 r = MoveOrCopyWithProgressDialog(sourcePath, targetFolder, policy, rename, isCopy: false);
             }
@@ -1913,6 +1922,23 @@ public partial class MainWindow : Window
     /// Run a chunked move/copy on a worker thread while a modal ProgressDialog reports
     /// percent and supports cancel. Returns the final MoveResult.
     /// </summary>
+    /// <summary>
+    /// (#3) True when the source and destination live on different volumes. Used to drop
+    /// the threshold for the chunked progress-dialog path — cross-volume "moves" are
+    /// physically copies, so even mid-sized files can stall the UI on slow drives.
+    /// </summary>
+    private static bool IsCrossVolume(string sourcePath, string destFolder)
+    {
+        try
+        {
+            var srcRoot = System.IO.Path.GetPathRoot(System.IO.Path.GetFullPath(sourcePath));
+            var dstRoot = System.IO.Path.GetPathRoot(System.IO.Path.GetFullPath(destFolder));
+            if (string.IsNullOrEmpty(srcRoot) || string.IsNullOrEmpty(dstRoot)) return false;
+            return !string.Equals(srcRoot, dstRoot, StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
+    }
+
     private MoveResult MoveOrCopyWithProgressDialog(string sourcePath, string targetFolder,
         ConflictPolicy policy, string? rename, bool isCopy)
     {

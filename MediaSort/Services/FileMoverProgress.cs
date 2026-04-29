@@ -13,6 +13,13 @@ public static class FileMoverProgress
     /// <summary>Files larger than this trigger the progress dialog (50 MB).</summary>
     public const long LargeFileThreshold = 50L * 1024 * 1024;
 
+    /// <summary>
+    /// (#3) Lower threshold used when source and destination are on different volumes,
+    /// where any operation is physically a copy. Default 5 MB — below this the I/O is
+    /// fast enough that the bare File.Copy/Move path is fine.
+    /// </summary>
+    public const long CrossVolumeThreshold = 5L * 1024 * 1024;
+
     public static MoveResult MoveWithProgress(string sourceFile, string destFolder,
         ConflictPolicy policy, string? renameTemplate,
         IProgress<(long done, long total)>? progress, CancellationToken ct)
