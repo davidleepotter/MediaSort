@@ -228,6 +228,9 @@
                                         <CheckBox VerticalAlignment="Center" Margin="0,0,6,0"
                                                   IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                   ToolTip="Select this item"/>
+                                        <TextBlock Text="{Binding StarGlyph}" Foreground="#F5C518"
+                                                   FontWeight="Bold" VerticalAlignment="Center"
+                                                   Margin="0,0,4,0"/>
                                         <TextBlock Text="{Binding FileName}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </DataTemplate>
@@ -263,6 +266,15 @@
                                                 <CheckBox HorizontalAlignment="Center"
                                                           IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                           ToolTip="Select this item"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Width="24">
+                                        <GridViewColumnHeader Content="★" ToolTip="Favorite"/>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding StarGlyph}" Foreground="#F5C518"
+                                                           FontWeight="Bold" HorizontalAlignment="Center"/>
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -340,6 +352,11 @@
                                                           Background="#CC000000"
                                                           IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                           ToolTip="Select this item"/>
+                                                <TextBlock Text="{Binding StarGlyph}" Foreground="#F5C518"
+                                                           FontWeight="Bold" FontSize="18"
+                                                           HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                           Margin="4"
+                                                           Effect="{x:Null}"/>
                                             </Grid>
                                         </DockPanel>
                                     </Border>

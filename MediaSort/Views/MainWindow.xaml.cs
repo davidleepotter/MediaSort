@@ -734,6 +734,16 @@ public partial class MainWindow : Window
         // If we were cancelled while the result list was being materialized, bail.
         if (scanToken.IsCancellationRequested) return;
 
+        // (#11) Re-apply favorites flag from persisted set.
+        if (_settings.Favorites.Count > 0)
+        {
+            var favSet = new HashSet<string>(_settings.Favorites, StringComparer.OrdinalIgnoreCase);
+            foreach (var it in items)
+            {
+                if (favSet.Contains(it.FullPath)) it.IsFavorite = true;
+            }
+        }
+
         _allItems.AddRange(items);
         ApplyFilter(); // also applies sort
 
@@ -2200,6 +2210,39 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// (#11) Toggle the favorite/star flag on each currently-selected item. If at least one
+    /// is unfavorited, all become favorited; otherwise all become unfavorited ("toggle to a
+    /// consistent state" feels right when batches are mixed).
+    /// </summary>
+    private void ToggleFavoriteOnSelection()
+    {
+        var sel = GetSelectedItems();
+        if (sel.Count == 0) { StatusText.Text = "Select an item first to star it."; return; }
+
+        bool anyUnfav = sel.Any(i => !i.IsFavorite);
+        bool newState = anyUnfav; // promote all to true if any are off
+
+        var favSet = new HashSet<string>(_settings.Favorites, StringComparer.OrdinalIgnoreCase);
+        foreach (var it in sel)
+        {
+            it.IsFavorite = newState;
+            if (newState) favSet.Add(it.FullPath);
+            else          favSet.Remove(it.FullPath);
+        }
+
+        // Cap at a sane size so settings.json doesn't grow forever if the user goes wild.
+        const int MaxFavorites = 5000;
+        var list = favSet.ToList();
+        if (list.Count > MaxFavorites) list = list.GetRange(list.Count - MaxFavorites, MaxFavorites);
+        _settings.Favorites = list;
+        SaveSettings();
+
+        StatusText.Text = newState
+            ? $"Starred {sel.Count} file(s)"
+            : $"Removed star from {sel.Count} file(s)";
+    }
+
+    /// <summary>
     /// Pulse a "+N" badge on the given destination so the user sees confirmation
     /// the batch landed. Sets DestinationButton.FlashBadge and animates FlashOpacity
     /// 0→1→0 over ~1.5s. Multiple rapid moves stack the count instead of fighting
@@ -2387,6 +2430,19 @@ public partial class MainWindow : Window
             if (idx >= 0 && idx < MediaItems.Count && MediaItems[idx].Kind == MediaKind.Video)
             {
                 VideoTogglePlay_Click(this, new RoutedEventArgs());
+                e.Handled = true;
+                return;
+            }
+        }
+
+        // (#11) F toggles favorite/star on the current selection. Skipped if a destination
+        // already binds F as its own hotkey.
+        if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            bool ownedByDest = Destinations.Any(d => d.HotKey == Key.F && d.Modifiers == ModifierKeys.None);
+            if (!ownedByDest)
+            {
+                ToggleFavoriteOnSelection();
                 e.Handled = true;
                 return;
             }

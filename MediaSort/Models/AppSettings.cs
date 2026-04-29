@@ -108,6 +108,9 @@ public class AppSettings
 
     /// <summary>Most-recently-used source folders, newest first. Capped at 10 entries.</summary>
     public List<string> RecentSourceFolders { get; set; } = new();
+
+    /// <summary>Full paths of items the user has starred/favorited (#11).</summary>
+    public List<string> Favorites { get; set; } = new();
 }
 
 public enum ConflictPolicySetting

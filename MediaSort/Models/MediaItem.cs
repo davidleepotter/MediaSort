@@ -22,6 +22,7 @@ public class MediaItem : INotifyPropertyChanged
     private string _perceptualHash = "";
     private bool _isDuplicate;
     private bool _isSelected;
+    private bool _isFavorite;
 
     public string FullPath { get; }
     public string FileName { get; }
@@ -126,6 +127,25 @@ public class MediaItem : INotifyPropertyChanged
         get => _isSelected;
         set { if (_isSelected == value) return; _isSelected = value; OnPropertyChanged(); }
     }
+
+    /// <summary>
+    /// User-toggled favorite/star marker. Persisted across sessions in AppSettings.Favorites.
+    /// Press F to toggle on the selection.
+    /// </summary>
+    public bool IsFavorite
+    {
+        get => _isFavorite;
+        set
+        {
+            if (_isFavorite == value) return;
+            _isFavorite = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(StarGlyph));
+        }
+    }
+
+    /// <summary>Star glyph for binding (★ when favorited, empty otherwise).</summary>
+    public string StarGlyph => IsFavorite ? "★" : "";
 
     public MediaItem(string fullPath)
     {
