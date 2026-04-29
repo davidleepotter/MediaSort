@@ -218,13 +218,25 @@ public class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
         // Recompute itemsPerRow from finalSize so wrap matches what the user sees.
         _itemsPerRow = Math.Max(1, (int)Math.Floor(finalSize.Width / Math.Max(1, _itemSize.Width)));
 
-        int firstVisibleRow = (int)Math.Floor(_offset.Y / _itemSize.Height);
-        int firstIndex = Math.Max(0, firstVisibleRow * _itemsPerRow);
-
+        // Each child's grid cell must be derived from ITS OWN item index, not from
+        // its position in InternalChildren. After the user scrolls and we recycle
+        // off-screen containers, the order of InternalChildren no longer matches
+        // the visible row order: the generator may reuse a container that was at
+        // index 0 to display item index 50, etc. Looking up the item index via
+        // ItemContainerGenerator.IndexFromGeneratorPosition gives us the truth.
+        var generator = ItemContainerGenerator;
         for (int i = 0; i < InternalChildren.Count; i++)
         {
             var child = InternalChildren[i];
-            int itemIndex = firstIndex + i;
+            int itemIndex = generator.IndexFromGeneratorPosition(new GeneratorPosition(i, 0));
+            if (itemIndex < 0)
+            {
+                // Container exists but generator can't map it (shouldn't happen for
+                // realized items). Hide it offscreen so it doesn't paint at (0,0)
+                // on top of real tiles.
+                child.Arrange(new Rect(-_itemSize.Width, -_itemSize.Height, 0, 0));
+                continue;
+            }
             int row = itemIndex / _itemsPerRow;
             int col = itemIndex % _itemsPerRow;
             double x = col * _itemSize.Width;
