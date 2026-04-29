@@ -1499,13 +1499,10 @@ public partial class MainWindow : Window
             }
         }
 
-        // Animation (only for first item — single-select case looks best)
-        if (items.Count == 1)
-        {
-            var sourceElement = GetSelectedItemElement();
-            var destEl = destinationElement ?? FindDestinationElement(dest);
-            TryPlayMoveAnimation(items[0], sourceElement, destEl);
-        }
+        // Animation — works for both single and multi-select.
+        // Capture source positions/visuals BEFORE the move so containers still exist.
+        var destElForAnim = destinationElement ?? FindDestinationElement(dest);
+        TryPlayMoveAnimationsForBatch(items, destElForAnim);
 
         // Release file handles
         StopVideo();
@@ -1778,6 +1775,46 @@ public partial class MainWindow : Window
         return selector.ItemContainerGenerator.ContainerFromItem(selector.SelectedItem) as FrameworkElement;
     }
 
+    private FrameworkElement? GetItemElement(MediaItem item)
+    {
+        var selector = ActiveSelector;
+        if (selector == null || item == null) return null;
+        return selector.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+    }
+
+    // Caps how many ghost copies fly at once when many files are selected
+    // (visual clarity + perf). Extra items still move; they just don't animate.
+    private const int MaxAnimatedGhosts = 12;
+
+    private void TryPlayMoveAnimationsForBatch(List<MediaItem> items, FrameworkElement? destElement)
+    {
+        if (items == null || items.Count == 0) return;
+        if (destElement == null) return;
+
+        // Snapshot source element + visual NOW, before any items are removed from the list.
+        // Limit to first N selected to keep the overlay readable when user selects 100 files.
+        var snapshots = new List<(MediaItem item, FrameworkElement? src, ImageSource? visual)>();
+        int limit = Math.Min(items.Count, MaxAnimatedGhosts);
+        for (int i = 0; i < limit; i++)
+        {
+            var it = items[i];
+            var srcEl = GetItemElement(it);
+            // Fall back to currently-selected element when the item container isn't realized
+            // (e.g. virtualized off-screen). Better to fly from selection than skip.
+            if (srcEl == null && i == 0) srcEl = GetSelectedItemElement();
+            var vis = CaptureItemVisual(it, srcEl);
+            snapshots.Add((it, srcEl, vis));
+        }
+
+        for (int i = 0; i < snapshots.Count; i++)
+        {
+            var snap = snapshots[i];
+            // Stagger ghosts so they fan out instead of stacking on a single point.
+            var delayMs = i * 35;
+            TryPlayMoveAnimation(snap.item, snap.src, destElement, snap.visual, delayMs);
+        }
+    }
+
     private FrameworkElement? FindDestinationElement(DestinationButton dest)
     {
         if (DestinationsPanel == null) return null;
@@ -1811,7 +1848,9 @@ public partial class MainWindow : Window
 
     private void TryPlayMoveAnimation(MediaItem item,
                                       FrameworkElement? sourceElement,
-                                      FrameworkElement? destElement)
+                                      FrameworkElement? destElement,
+                                      ImageSource? prebuiltVisual = null,
+                                      int startDelayMs = 0)
     {
         try
         {
@@ -1820,7 +1859,7 @@ public partial class MainWindow : Window
             if (sourceElement.ActualWidth <= 0 || sourceElement.ActualHeight <= 0) return;
             if (destElement.ActualWidth <= 0 || destElement.ActualHeight <= 0) return;
 
-            var visual = CaptureItemVisual(item, sourceElement);
+            var visual = prebuiltVisual ?? CaptureItemVisual(item, sourceElement);
             if (visual == null) return;
 
             var srcTopLeft = sourceElement.TranslatePoint(new System.Windows.Point(0, 0), AnimationOverlay);
@@ -1854,6 +1893,7 @@ public partial class MainWindow : Window
 
             var duration = TimeSpan.FromMilliseconds(Math.Max(60, _settings.AnimationDurationMs));
             var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
+            var startDelay = startDelayMs > 0 ? TimeSpan.FromMilliseconds(startDelayMs) : (TimeSpan?)null;
 
             var leftAnim = new DoubleAnimation(srcTopLeft.X, dstTopLeft.X, duration) { EasingFunction = ease };
             var topAnim = new DoubleAnimation(srcTopLeft.Y, dstTopLeft.Y, duration) { EasingFunction = ease };
@@ -1861,6 +1901,15 @@ public partial class MainWindow : Window
             var heightAnim = new DoubleAnimation(srcH, dstH, duration) { EasingFunction = ease };
             var opacityAnim = new DoubleAnimation(0.95, 0.0, duration)
             { EasingFunction = ease, BeginTime = TimeSpan.FromMilliseconds(duration.TotalMilliseconds * 0.4) };
+
+            if (startDelay.HasValue)
+            {
+                leftAnim.BeginTime = startDelay;
+                topAnim.BeginTime = startDelay;
+                widthAnim.BeginTime = startDelay;
+                heightAnim.BeginTime = startDelay;
+                opacityAnim.BeginTime = startDelay.Value + opacityAnim.BeginTime!.Value;
+            }
 
             opacityAnim.Completed += (_, _) => AnimationOverlay.Children.Remove(ghost);
 
