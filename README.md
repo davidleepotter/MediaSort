@@ -56,4 +56,4 @@ The version number is stored in `MediaSort/MediaSort.csproj` (`<Version>`, `<Fil
 
 ## License / Copyright
 
-Copyright © David Potter
+Copyright © Delos Technologies
