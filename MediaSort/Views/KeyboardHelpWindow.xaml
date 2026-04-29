@@ -44,106 +44,66 @@
                     Background="{DynamicResource PanelBackground}">
 
                 <Grid>
-                    <!-- ========== KEYBOARD SHORTCUTS ========== -->
-                    <ScrollViewer x:Name="ShortcutsView" VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
-                            <TextBlock Text="Navigation" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <Grid Margin="12,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="↑ / ↓ / ← / →" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Move selection in the source list"/>
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Home / End" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Jump to first/last item"/>
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Page Up/Down" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="Page through the list"/>
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Ctrl+F" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="3" Grid.Column="1" Text="Focus the search box"/>
-                            </Grid>
+                    <!-- ========== KEYBOARD SHORTCUTS (data-driven, searchable) ========== -->
+                    <DockPanel x:Name="ShortcutsView">
+                        <!-- Filter row + result count -->
+                        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" x:Name="FilterBox" Padding="6,4"
+                                     Background="{DynamicResource InputBackground}"
+                                     Foreground="{DynamicResource PanelForeground}"
+                                     BorderBrush="{DynamicResource ButtonBorder}"
+                                     TextChanged="FilterBox_TextChanged"
+                                     PreviewKeyDown="FilterBox_PreviewKeyDown"
+                                     ToolTip="Filter by key, action, or category. Esc to clear."/>
+                            <TextBlock Grid.Column="1" x:Name="FilterPlaceholder" Text="Type to filter…"
+                                       IsHitTestVisible="False" VerticalAlignment="Center"
+                                       Margin="10,0,0,0" Opacity="0.55"
+                                       Foreground="{DynamicResource MutedForeground}"/>
+                            <Button Grid.Column="2" Content="Copy as Markdown" Style="{StaticResource ToolButton}"
+                                    Click="CopyMarkdown_Click" Margin="8,0,0,0"
+                                    ToolTip="Copy the visible shortcut list to the clipboard as a Markdown table"/>
+                        </Grid>
+                        <TextBlock DockPanel.Dock="Top" x:Name="FilterCountText" Margin="0,0,0,8"
+                                   FontSize="11" Foreground="{DynamicResource MutedForeground}"/>
 
-                            <TextBlock Text="Sorting / moving" FontWeight="Bold" Margin="0,12,0,4"/>
-                            <Grid Margin="12,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Destination hotkey" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Move selected item(s) to that destination"/>
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Shift+hotkey…" FontFamily="Consolas" TextWrapping="Wrap"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" Text="Hold Shift and tap multiple destination hotkeys to queue them. Release Shift to send: every queued destination gets a Copy, the LAST one uses the toolbar Action (so Move only happens once, at the end). Esc cancels the queue."/>
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="." FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="Repeat last destination (send selection to the last destination you used)"/>
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="F" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="3" Grid.Column="1" Text="Toggle star/favorite on the current selection (persists across sessions)"/>
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="F2" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="4" Grid.Column="1" Text="Rename the selected file (single selection only)"/>
-                                <TextBlock Grid.Row="5" Grid.Column="0" Text="Ctrl+Z" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="5" Grid.Column="1" Text="Undo last move (or batch)"/>
-                                <TextBlock Grid.Row="6" Grid.Column="0" Text="N" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="6" Grid.Column="1" Text="Skip — advance to next without moving"/>
-                                <TextBlock Grid.Row="7" Grid.Column="0" Text="Delete" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="7" Grid.Column="1" Text="Send selected item(s) to Recycle Bin"/>
-                                <TextBlock Grid.Row="8" Grid.Column="0" Text="Ctrl+A" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="8" Grid.Column="1" Text="Select all visible items"/>
-                            </Grid>
-
-                            <TextBlock Text="View / preview" FontWeight="Bold" Margin="0,12,0,4"/>
-                            <Grid Margin="12,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Space" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Play/pause video preview"/>
-                                <TextBlock Grid.Row="5" Grid.Column="0" Text="M" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="5" Grid.Column="1" Text="Mute / unmute audio (volume slider in the video controls bar)"/>
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Mouse wheel" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Zoom image preview"/>
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Click + drag" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="Pan zoomed image"/>
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="0" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="3" Grid.Column="1" Text="Reset image zoom to fit"/>
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="? / F1" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="4" Grid.Column="1" Text="Show this help"/>
-                            </Grid>
-
-                            <TextBlock Text="Mouse on destination buttons" FontWeight="Bold" Margin="0,12,0,4"/>
-                            <Grid Margin="12,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Click" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Send the current selection to that destination"/>
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+Click" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Open the destination folder in File Explorer (no move)"/>
-                            </Grid>
-
-                            <TextBlock Text="Right-click menu (source list)" FontWeight="Bold" Margin="0,12,0,4"/>
-                            <Grid Margin="12,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Open in Explorer"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Reveal the file in File Explorer"/>
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Copy full path"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Copy the file path(s) to the clipboard"/>
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Rename..."/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="Rename file (single) or batch-rename multiple selections (also F2)"/>
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Rotate ▸" TextWrapping="Wrap"/>
-                                <TextBlock Grid.Row="3" Grid.Column="1" TextWrapping="Wrap"
-                                           Text="Rotate the selected image(s) 90° clockwise, 90° counter-clockwise, or 180°. Modifies the file on disk; thumbnails refresh automatically."/>
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Send to Recycle Bin"/>
-                                <TextBlock Grid.Row="4" Grid.Column="1" Text="Move selected file(s) to the Windows Recycle Bin (also Delete key)"/>
-                            </Grid>
-
-                            <TextBlock Text="Other" FontWeight="Bold" Margin="0,12,0,4"/>
-                            <Grid Margin="12,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl+," FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Open Settings"/>
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="F5" FontFamily="Consolas"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Refresh source list"/>
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Find Duplicates" TextWrapping="Wrap"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" TextWrapping="Wrap"
-                                           Text="Toolbar button — perceptual-hash scan finds visually similar images. Adjust the match threshold in Settings (strict / normal / loose / very loose)."/>
-                            </Grid>
-                        </StackPanel>
-                    </ScrollViewer>
+                        <!-- Grouped, filtered list of shortcut entries. Bound from code-behind. -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="ShortcutsList">
+                                <ItemsControl.GroupStyle>
+                                    <GroupStyle>
+                                        <GroupStyle.HeaderTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="13"
+                                                           Margin="0,10,0,4"
+                                                           Foreground="{DynamicResource PanelForeground}"/>
+                                            </DataTemplate>
+                                        </GroupStyle.HeaderTemplate>
+                                    </GroupStyle>
+                                </ItemsControl.GroupStyle>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="12,1">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="160"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding KeyDisplay}"
+                                                       FontFamily="Consolas" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource PanelForeground}"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Description}"
+                                                       TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource PanelForeground}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
 
                     <!-- ========== DESTINATIONS & FLOW ========== -->
                     <ScrollViewer x:Name="FlowView" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">

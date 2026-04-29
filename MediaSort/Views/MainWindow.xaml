@@ -194,6 +194,8 @@
                             Click="Undo_Click" ToolTip="Undo last move or batch (Ctrl+Z)" IsEnabled="False"/>
                     <Button Content="Skip (N)" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="Skip_Click" ToolTip="Advance to next without moving"/>
+                    <Button Content="✎ Rename" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            Click="Rename_Click" ToolTip="Rename selected file (F2). Multi-select opens batch rename."/>
                     <Button Content="🗑 Trash" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
                             Click="Trash_Click" ToolTip="Send selected to Recycle Bin (Del)"/>
                 </StackPanel>
@@ -238,7 +240,19 @@
                     BorderThickness="0,0,1,0">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4">
-                        <TextBlock Text="Source" FontWeight="Bold" Foreground="{DynamicResource PanelForeground}"/>
+                        <DockPanel LastChildFill="True">
+                            <TextBlock DockPanel.Dock="Left" Text="Source" FontWeight="Bold"
+                                       Foreground="{DynamicResource PanelForeground}"/>
+                            <!-- Current source folder name (e.g. 'Master'). Hidden when no folder picked. -->
+                            <TextBlock x:Name="SourceFolderNameText"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource PanelForeground}"
+                                       Opacity="0.85"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding ElementName=SourcePathText, Path=Text}"
+                                       Text=""/>
+                        </DockPanel>
                     </Border>
 
                     <Grid DockPanel.Dock="Bottom" Margin="6">

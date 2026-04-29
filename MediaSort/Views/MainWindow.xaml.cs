@@ -948,6 +948,18 @@ public partial class MainWindow : Window
         StopVideo();
 
         SourcePathText.Text = folder;
+        // Show just the folder name next to the panel "Source" header so the user can
+        // see at a glance which folder they're working in without the full path.
+        try
+        {
+            var name = string.IsNullOrWhiteSpace(folder)
+                ? ""
+                : (System.IO.Path.GetFileName(folder.TrimEnd(System.IO.Path.DirectorySeparatorChar,
+                                                              System.IO.Path.AltDirectorySeparatorChar))
+                    is { Length: > 0 } n ? n : folder);
+            if (SourceFolderNameText != null) SourceFolderNameText.Text = name;
+        }
+        catch { if (SourceFolderNameText != null) SourceFolderNameText.Text = ""; }
         _allItems.Clear();
         MediaItems.Clear();
         StatusText.Text = "Scanning…";
@@ -2565,8 +2577,7 @@ public partial class MainWindow : Window
         var msg = items.Count == 1
             ? $"Send '{items[0].FileName}' to the Recycle Bin?"
             : $"Send {items.Count} files to the Recycle Bin?";
-        if (MessageBox.Show(msg, "Delete", MessageBoxButton.YesNo, MessageBoxImage.Question)
-            != MessageBoxResult.Yes) return;
+        if (!ConfirmDialog.Show(this, "Delete", msg, "Send to Recycle Bin", "Cancel")) return;
 
         StopVideo();
         PreviewImage.Source = null;
@@ -3124,8 +3135,7 @@ public partial class MainWindow : Window
         var msg = items.Count == 1
             ? $"Send '{items[0].FileName}' to the Recycle Bin?"
             : $"Send {items.Count} files to the Recycle Bin?";
-        if (MessageBox.Show(msg, "Trash", MessageBoxButton.YesNo, MessageBoxImage.Question)
-            != MessageBoxResult.Yes) return;
+        if (!ConfirmDialog.Show(this, "Trash", msg, "Send to Recycle Bin", "Cancel")) return;
 
         StopVideo();
         PreviewImage.Source = null;
