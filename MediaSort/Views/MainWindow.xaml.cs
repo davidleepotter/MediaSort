@@ -82,26 +82,11 @@ public partial class MainWindow : Window
 
     // ----------------- LIFECYCLE -----------------
 
-    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        try
-        {
-            Core.Initialize();
-            _libVlc = new LibVLC();
-            _mediaPlayer = new MediaPlayer(_libVlc);
-            PreviewVideo.MediaPlayer = _mediaPlayer;
-
-            _videoTimer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher)
-            {
-                Interval = TimeSpan.FromMilliseconds(250)
-            };
-            _videoTimer.Tick += VideoTimer_Tick;
-        }
-        catch (Exception ex)
-        {
-            StatusText.Text = $"Video playback unavailable: {ex.Message}";
-        }
-
+        // PHASE 1 — fast UI-thread work only: load settings (small JSON file), populate
+        // toolbar combos and destinations. This must finish quickly so the splash can
+        // close and the window can be revealed.
         _settings = SettingsService.Load();
 
         RecursiveCheck.IsChecked = _settings.RecursiveScan;
@@ -124,20 +109,55 @@ public partial class MainWindow : Window
         CrashLogger.Info($"startup: Destinations.Count after load = {Destinations.Count}");
         RefreshDestinationCounts();
 
-        // Apply thumbnail tile size from settings.
         ApplyThumbnailSize();
+        ApplyViewMode();
+        Title = $"MediaSort v{VersionInfo.GetDisplayVersion()}";
+        StatusText.Text = "Ready";
 
         // Done with initial UI population — allow SaveSettings to run again.
         _initializing = false;
         CrashLogger.Info("startup: _initializing = false (saves now enabled)");
 
+        // PHASE 2 — slow stuff off the UI thread so the window can paint immediately.
+        // (a) Initialize LibVLC on a background thread (loads native plugins from disk).
+        // (b) Scan the source folder on a background thread (can be thousands of files).
+        _ = InitializeVlcAsync();
+
         if (!string.IsNullOrWhiteSpace(_settings.SourceFolder) && Directory.Exists(_settings.SourceFolder))
         {
-            SetSourceFolder(_settings.SourceFolder);
+            await SetSourceFolderAsync(_settings.SourceFolder);
         }
+    }
 
-        ApplyViewMode();
-        Title = $"MediaSort v{VersionInfo.GetDisplayVersion()}";
+    /// <summary>Initializes LibVLC off the UI thread so it doesn't delay the first paint.</summary>
+    private async Task InitializeVlcAsync()
+    {
+        try
+        {
+            var (libVlc, mediaPlayer) = await Task.Run(() =>
+            {
+                Core.Initialize();
+                var lv = new LibVLC();
+                var mp = new MediaPlayer(lv);
+                return (lv, mp);
+            });
+
+            // Back on the UI thread — attach to the WPF VideoView and start the timer.
+            _libVlc = libVlc;
+            _mediaPlayer = mediaPlayer;
+            PreviewVideo.MediaPlayer = _mediaPlayer;
+
+            _videoTimer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher)
+            {
+                Interval = TimeSpan.FromMilliseconds(250)
+            };
+            _videoTimer.Tick += VideoTimer_Tick;
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Video playback unavailable: {ex.Message}";
+            CrashLogger.Log(ex, "vlc-init");
+        }
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
@@ -467,7 +487,11 @@ public partial class MainWindow : Window
         SaveSettings();
     }
 
-    private void SetSourceFolder(string folder)
+    /// <summary>Synchronous wrapper for callers (drag-drop, dialogs, command line) —
+    /// fire-and-forget the async scan so the UI thread is never blocked.</summary>
+    private void SetSourceFolder(string folder) => _ = SetSourceFolderAsync(folder);
+
+    private async Task SetSourceFolderAsync(string folder)
     {
         // Cancel any in-flight probe from the previous folder so we don't pile up
         // dispatcher work (especially LibVLC video probes) onto the UI thread.
@@ -481,8 +505,24 @@ public partial class MainWindow : Window
         SourcePathText.Text = folder;
         _allItems.Clear();
         MediaItems.Clear();
+        StatusText.Text = "Scanning…";
 
-        var items = MediaScanner.Scan(folder, RecursiveCheck.IsChecked == true).ToList();
+        bool recursive = RecursiveCheck.IsChecked == true;
+
+        // Heavy folder enumeration on a background thread — huge folders can take seconds
+        // and would otherwise freeze the UI right after launch.
+        List<MediaItem> items;
+        try
+        {
+            items = await Task.Run(() => MediaScanner.Scan(folder, recursive).ToList());
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log(ex, $"scan:{folder}");
+            StatusText.Text = $"Scan failed: {ex.Message}";
+            return;
+        }
+
         _allItems.AddRange(items);
         ApplyFilter(); // also applies sort
 
