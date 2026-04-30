@@ -121,24 +121,7 @@
                                    Foreground="{DynamicResource MutedForeground}"/>
                     </StackPanel>
 
-                    <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="12,0,4,0"
-                               Foreground="{DynamicResource PanelForeground}"/>
-                    <ComboBox x:Name="SortKeyCombo" Width="110"
-                              SelectionChanged="SortKeyCombo_SelectionChanged"
-                              VerticalAlignment="Center"
-                              ToolTip="Sort the source list by this property">
-                        <ComboBoxItem Content="Name" IsSelected="True"/>
-                        <ComboBoxItem Content="Size"/>
-                        <ComboBoxItem Content="Aspect"/>
-                        <ComboBoxItem Content="Modified"/>
-                        <ComboBoxItem Content="Kind"/>
-                        <ComboBoxItem Content="Duration"/>
-                        <ComboBoxItem Content="Created"/>
-                    </ComboBox>
-                    <Button x:Name="SortDirButton" Content="▲" Width="30"
-                            Style="{StaticResource NavToolButton}"
-                            Margin="4,0,0,0" Click="SortDir_Click"
-                            ToolTip="Toggle sort direction"/>
+                    <!-- (Sort key + direction moved to Source pane header) -->
 
                     <CheckBox x:Name="RecursiveCheck" Content="Recursive"
                               Foreground="{DynamicResource PanelForeground}"
@@ -190,50 +173,7 @@
                     <Button Content="✕" Width="24" Margin="2,0,0,0" Style="{StaticResource DangerToolButton}"
                             Click="ClearSearch_Click" ToolTip="Clear"/>
 
-                    <TextBlock Text="Date:" VerticalAlignment="Center" Margin="14,0,4,0"
-                               Foreground="{DynamicResource PanelForeground}"/>
-                    <ComboBox x:Name="DateFilterCombo" Width="120" VerticalAlignment="Center"
-                              SelectionChanged="DateFilterCombo_SelectionChanged"
-                              ToolTip="Limit the source list to files modified within this time range">
-                        <ComboBoxItem Content="All time" IsSelected="True"/>
-                        <ComboBoxItem Content="Last 7 days"/>
-                        <ComboBoxItem Content="Last 30 days"/>
-                        <ComboBoxItem Content="This year"/>
-                    </ComboBox>
-
-                    <TextBlock Text="Aspect:" VerticalAlignment="Center" Margin="14,0,4,0"
-                               Foreground="{DynamicResource PanelForeground}"/>
-                    <ComboBox x:Name="AspectFilterCombo" Width="110" VerticalAlignment="Center"
-                              SelectionChanged="AspectFilterCombo_SelectionChanged"
-                              ToolTip="Filter by image/video orientation (Portrait, Landscape, Square)">
-                        <ComboBoxItem Content="Any" IsSelected="True"/>
-                        <ComboBoxItem Content="Portrait"/>
-                        <ComboBoxItem Content="Landscape"/>
-                        <ComboBoxItem Content="Square"/>
-                    </ComboBox>
-
-                    <TextBlock Text="Min ★:" VerticalAlignment="Center" Margin="14,0,4,0"
-                               Foreground="{DynamicResource PanelForeground}"/>
-                    <ComboBox x:Name="MinRatingCombo" Width="70" VerticalAlignment="Center"
-                              SelectionChanged="MinRatingCombo_SelectionChanged"
-                              ToolTip="Show only items rated at least this many stars">
-                        <ComboBoxItem Content="Any" IsSelected="True"/>
-                        <ComboBoxItem Content="≥1"/>
-                        <ComboBoxItem Content="≥2"/>
-                        <ComboBoxItem Content="≥3"/>
-                        <ComboBoxItem Content="≥4"/>
-                        <ComboBoxItem Content="5"/>
-                    </ComboBox>
-
-                    <TextBlock Text="Tag:" VerticalAlignment="Center" Margin="14,0,4,0"
-                               Foreground="{DynamicResource PanelForeground}"/>
-                    <TextBox x:Name="TagFilterBox" Width="120" VerticalAlignment="Center"
-                             Background="{DynamicResource InputBackground}"
-                             Foreground="{DynamicResource PanelForeground}"
-                             BorderBrush="{DynamicResource BorderBrushColor}"
-                             Padding="4,2"
-                             TextChanged="TagFilterBox_TextChanged"
-                             ToolTip="Show only items containing this tag (substring, case-insensitive)"/>
+                    <!-- (Date / Aspect / Min ★ / Tag filters moved to Source pane header) -->
 
                     <TextBlock Text="Action:" VerticalAlignment="Center" Margin="14,0,4,0"
                                Foreground="{DynamicResource PanelForeground}"/>
@@ -382,6 +322,81 @@
                                     Click="Tags_Click"
                                     ToolTip="Edit ratings and tags for the selected items (Ctrl+T)"/>
                         </StackPanel>
+                    </Border>
+
+                    <!-- Sort + filters row: scoped to the Source list, kept inside the
+                         Source pane so the global toolbar stays uncluttered. WrapPanel so
+                         narrow Source-pane widths don't clip controls. -->
+                    <Border DockPanel.Dock="Top"
+                            Background="{DynamicResource PanelBackground}"
+                            BorderBrush="{DynamicResource BorderBrushColor}"
+                            BorderThickness="0,0,0,1"
+                            Padding="6,4">
+                        <WrapPanel Orientation="Horizontal">
+                            <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="0,0,4,0"
+                                       Foreground="{DynamicResource PanelForeground}"/>
+                            <ComboBox x:Name="SortKeyCombo" Width="110"
+                                      SelectionChanged="SortKeyCombo_SelectionChanged"
+                                      VerticalAlignment="Center"
+                                      ToolTip="Sort the source list by this property">
+                                <ComboBoxItem Content="Name" IsSelected="True"/>
+                                <ComboBoxItem Content="Size"/>
+                                <ComboBoxItem Content="Aspect"/>
+                                <ComboBoxItem Content="Modified"/>
+                                <ComboBoxItem Content="Kind"/>
+                                <ComboBoxItem Content="Duration"/>
+                                <ComboBoxItem Content="Created"/>
+                            </ComboBox>
+                            <Button x:Name="SortDirButton" Content="▲" Width="30"
+                                    Style="{StaticResource NavToolButton}"
+                                    Margin="4,0,0,0" Click="SortDir_Click"
+                                    ToolTip="Toggle sort direction"/>
+
+                            <TextBlock Text="Date:" VerticalAlignment="Center" Margin="12,0,4,0"
+                                       Foreground="{DynamicResource PanelForeground}"/>
+                            <ComboBox x:Name="DateFilterCombo" Width="120" VerticalAlignment="Center"
+                                      SelectionChanged="DateFilterCombo_SelectionChanged"
+                                      ToolTip="Limit the source list to files modified within this time range">
+                                <ComboBoxItem Content="All time" IsSelected="True"/>
+                                <ComboBoxItem Content="Last 7 days"/>
+                                <ComboBoxItem Content="Last 30 days"/>
+                                <ComboBoxItem Content="This year"/>
+                            </ComboBox>
+
+                            <TextBlock Text="Aspect:" VerticalAlignment="Center" Margin="12,0,4,0"
+                                       Foreground="{DynamicResource PanelForeground}"/>
+                            <ComboBox x:Name="AspectFilterCombo" Width="110" VerticalAlignment="Center"
+                                      SelectionChanged="AspectFilterCombo_SelectionChanged"
+                                      ToolTip="Filter by image/video orientation (Portrait, Landscape, Square)">
+                                <ComboBoxItem Content="Any" IsSelected="True"/>
+                                <ComboBoxItem Content="Portrait"/>
+                                <ComboBoxItem Content="Landscape"/>
+                                <ComboBoxItem Content="Square"/>
+                            </ComboBox>
+
+                            <TextBlock Text="Min ★:" VerticalAlignment="Center" Margin="12,0,4,0"
+                                       Foreground="{DynamicResource PanelForeground}"/>
+                            <ComboBox x:Name="MinRatingCombo" Width="70" VerticalAlignment="Center"
+                                      SelectionChanged="MinRatingCombo_SelectionChanged"
+                                      ToolTip="Show only items rated at least this many stars">
+                                <ComboBoxItem Content="Any" IsSelected="True"/>
+                                <ComboBoxItem Content="≥1"/>
+                                <ComboBoxItem Content="≥2"/>
+                                <ComboBoxItem Content="≥3"/>
+                                <ComboBoxItem Content="≥4"/>
+                                <ComboBoxItem Content="5"/>
+                            </ComboBox>
+
+                            <TextBlock Text="Tag:" VerticalAlignment="Center" Margin="12,0,4,0"
+                                       Foreground="{DynamicResource PanelForeground}"/>
+                            <TextBox x:Name="TagFilterBox" Width="120" VerticalAlignment="Center"
+                                     Background="{DynamicResource InputBackground}"
+                                     Foreground="{DynamicResource PanelForeground}"
+                                     BorderBrush="{DynamicResource BorderBrushColor}"
+                                     Padding="4,2"
+                                     TextChanged="TagFilterBox_TextChanged"
+                                     ToolTip="Show only items containing this tag (substring, case-insensitive)"/>
+                        </WrapPanel>
                     </Border>
 
                     <!-- (UX R4) Breadcrumb path bar: clickable folder segments for the
