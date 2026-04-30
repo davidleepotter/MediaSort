@@ -1,0 +1,184 @@
+<UserControl x:Class="MediaSort.Views.ShortcutOverlay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Visibility="Collapsed"
+             Focusable="True"
+             IsVisibleChanged="OnIsVisibleChanged">
+    <!-- Translucent backdrop. Clicking it (outside the card) closes the overlay. -->
+    <Grid x:Name="BackdropRoot"
+          Background="#A0000000"
+          MouseDown="Backdrop_MouseDown">
+
+        <!-- Centered card. MouseDown is marked handled here so clicks inside the card
+             don't bubble up to the backdrop and close the overlay. -->
+        <Border x:Name="Card"
+                MaxWidth="760" MaxHeight="660"
+                Margin="24"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{DynamicResource WindowBackground}"
+                BorderBrush="{DynamicResource BorderBrushColor}"
+                BorderThickness="1"
+                CornerRadius="8"
+                MouseDown="Card_MouseDown">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="24" ShadowDepth="0"
+                                  Color="Black" Opacity="0.6"/>
+            </Border.Effect>
+
+            <DockPanel Margin="18">
+                <!-- Header with close (×) button -->
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="MediaSort Help" FontSize="20" FontWeight="Bold"/>
+                        <TextBlock Text="Press ? or F1 to toggle • Esc to close"
+                                   Margin="0,2,0,0" Opacity="0.7"
+                                   Foreground="{DynamicResource MutedForeground}"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="✕" Width="28" Height="28"
+                            VerticalAlignment="Top"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{DynamicResource PanelForeground}"
+                            FontSize="14"
+                            Cursor="Hand"
+                            ToolTip="Close (Esc)"
+                            Click="Close_Click"/>
+                </Grid>
+
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="170"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Section nav -->
+                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                        <RadioButton x:Name="NavShortcuts" Content="Keyboard Shortcuts"
+                                     GroupName="HelpSection" IsChecked="True"
+                                     Checked="NavShortcuts_Checked"
+                                     Padding="10,8" Margin="0,0,0,4"
+                                     HorizontalContentAlignment="Left"
+                                     FontWeight="SemiBold"/>
+                        <RadioButton x:Name="NavFlow" Content="Destinations &amp; Flow"
+                                     GroupName="HelpSection"
+                                     Checked="NavFlow_Checked"
+                                     Padding="10,8" Margin="0,0,0,4"
+                                     HorizontalContentAlignment="Left"
+                                     FontWeight="SemiBold"/>
+                    </StackPanel>
+
+                    <!-- Section content -->
+                    <Border Grid.Column="1"
+                            BorderBrush="{DynamicResource BorderBrushColor}"
+                            BorderThickness="1" CornerRadius="6" Padding="14"
+                            Background="{DynamicResource PanelBackground}">
+
+                        <Grid>
+                            <!-- ========== KEYBOARD SHORTCUTS ========== -->
+                            <DockPanel x:Name="ShortcutsView">
+                                <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" x:Name="FilterBox" Padding="6,4"
+                                             Background="{DynamicResource InputBackground}"
+                                             Foreground="{DynamicResource PanelForeground}"
+                                             BorderBrush="{DynamicResource ButtonBorder}"
+                                             TextChanged="FilterBox_TextChanged"
+                                             PreviewKeyDown="FilterBox_PreviewKeyDown"
+                                             ToolTip="Filter by key, action, or category. Esc to clear (or close)."/>
+                                    <TextBlock Grid.Column="1" x:Name="FilterPlaceholder" Text="Type to filter…"
+                                               IsHitTestVisible="False" VerticalAlignment="Center"
+                                               Margin="10,0,0,0" Opacity="0.55"
+                                               Foreground="{DynamicResource MutedForeground}"/>
+                                    <Button Grid.Column="2" Content="Copy as Markdown"
+                                            Style="{StaticResource UtilityToolButton}"
+                                            Click="CopyMarkdown_Click" Margin="8,0,0,0"
+                                            ToolTip="Copy the visible shortcut list to the clipboard as a Markdown table"/>
+                                </Grid>
+                                <TextBlock DockPanel.Dock="Top" x:Name="FilterCountText" Margin="0,0,0,8"
+                                           FontSize="11" Foreground="{DynamicResource MutedForeground}"/>
+
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="ShortcutsList">
+                                        <ItemsControl.GroupStyle>
+                                            <GroupStyle>
+                                                <GroupStyle.HeaderTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="13"
+                                                                   Margin="0,10,0,4"
+                                                                   Foreground="{DynamicResource PanelForeground}"/>
+                                                    </DataTemplate>
+                                                </GroupStyle.HeaderTemplate>
+                                            </GroupStyle>
+                                        </ItemsControl.GroupStyle>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="12,1">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="160"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding KeyDisplay}"
+                                                               FontFamily="Consolas" TextWrapping="Wrap"
+                                                               Foreground="{DynamicResource PanelForeground}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Description}"
+                                                               TextWrapping="Wrap"
+                                                               Foreground="{DynamicResource PanelForeground}"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+
+                            <!-- ========== DESTINATIONS & FLOW ========== -->
+                            <ScrollViewer x:Name="FlowView" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock Text="The basic flow" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,10">
+                                        <Run Text="MediaSort is built around a one-handed sorting flow:"/>
+                                        <LineBreak/>
+                                        <Run Text="  1. "/><Run Text="Pick a source folder" FontWeight="SemiBold"/><Run Text=" — the list shows every photo and video found."/>
+                                        <LineBreak/>
+                                        <Run Text="  2. "/><Run Text="Select an item" FontWeight="SemiBold"/><Run Text=" — preview shows in the right pane."/>
+                                        <LineBreak/>
+                                        <Run Text="  3. "/><Run Text="Press a destination hotkey" FontWeight="SemiBold"/><Run Text=" — the file flies to that destination button."/>
+                                        <LineBreak/>
+                                        <Run Text="  4. "/><Run Text="Selection auto-advances" FontWeight="SemiBold"/><Run Text=" to the next item, so you can keep sorting without touching the mouse."/>
+                                    </TextBlock>
+
+                                    <TextBlock Text="What is a destination?" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>
+                                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                                        Text="A destination is a saved target folder shown as a button in the right-hand panel. Each destination has a name, a folder path, an optional hotkey, and an optional kind filter (Image-only or Video-only). Add as many as you need — common patterns are 'Keep', 'Archive', 'Edit later', 'Family', 'Trash to review'."/>
+
+                                    <TextBlock Text="Move vs. Copy" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>
+                                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                                        Text="The toolbar Action selector controls what happens when a hotkey or destination button fires. Move removes the file from the source folder; Copy leaves the original in place."/>
+
+                                    <TextBlock Text="Multi-select" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>
+                                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                                        Text="Hold Shift or Ctrl to select multiple items, then press a destination hotkey or click its button — every selected file is sent in one batch."/>
+
+                                    <TextBlock Text="Undo" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>
+                                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                                        Text="Ctrl+Z reverses the last action — including a multi-file batch. Items are returned to their original folder and selection is restored."/>
+
+                                    <TextBlock Text="Find Duplicates" FontWeight="Bold" FontSize="14" Margin="0,8,0,6"/>
+                                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                                        Text="The Find Duplicates toolbar button hashes every image in the current source folder using a perceptual algorithm (dHash). Adjust the match threshold in Settings."/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

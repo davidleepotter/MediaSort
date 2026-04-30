@@ -25,6 +25,9 @@ public partial class KeyboardHelpWindow : Window
     // Single source of truth for the cheatsheet. Keep this in sync as features ship —
     // it's a flat list so adding/removing a shortcut is one line. Categories are used
     // for grouping headers in the UI; ordering inside a category is preserved.
+    /// <summary>Public read-only access for in-process re-use (e.g. by ShortcutOverlay).</summary>
+    public static ShortcutEntry[] AllShortcutsPublic => AllShortcuts;
+
     private static readonly ShortcutEntry[] AllShortcuts =
     {
         // Navigation

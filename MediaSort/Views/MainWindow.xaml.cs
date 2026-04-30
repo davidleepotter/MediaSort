@@ -4700,6 +4700,19 @@ public partial class MainWindow : Window
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
+        // If the keyboard help overlay is visible, Esc closes it before any other
+        // hotkey is considered. (The overlay's own filter box also handles Esc to
+        // first clear the filter; this is the fallback when focus is elsewhere.)
+        if (KeyboardOverlay != null && KeyboardOverlay.Visibility == Visibility.Visible)
+        {
+            if (e.Key == Key.Escape)
+            {
+                KeyboardOverlay.HideOverlay();
+                e.Handled = true;
+                return;
+            }
+        }
+
         // Ctrl shortcuts always handled
         if (Keyboard.Modifiers == ModifierKeys.Control)
         {
@@ -5286,8 +5299,10 @@ public partial class MainWindow : Window
 
     private void Help_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new KeyboardHelpWindow { Owner = this };
-        dlg.ShowDialog();
+        // Toggle the in-place overlay rather than opening a modal dialog so the
+        // user can flick ? / F1 in and out without losing context.
+        if (KeyboardOverlay != null)
+            KeyboardOverlay.Toggle();
     }
 
     private void SaveDebugLog_Click(object sender, RoutedEventArgs e) => SaveDebugLog();

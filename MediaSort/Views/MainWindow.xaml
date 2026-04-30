@@ -869,5 +869,9 @@
 
     <!-- Overlay layer for fly-to-destination animations -->
     <Canvas x:Name="AnimationOverlay" IsHitTestVisible="False" Background="Transparent"/>
+
+    <!-- Keyboard shortcut overlay. Toggled by ? / F1, dismissed with Esc or click-outside-card. -->
+    <local:ShortcutOverlay x:Name="KeyboardOverlay"
+                           xmlns:local="clr-namespace:MediaSort.Views"/>
     </Grid>
 </Window>
