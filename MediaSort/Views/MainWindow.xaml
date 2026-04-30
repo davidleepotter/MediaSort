@@ -321,6 +321,7 @@
                                 <Slider x:Name="ThumbSizeSlider" Width="110" VerticalAlignment="Center"
                                         Minimum="60" Maximum="240" SmallChange="10" LargeChange="20"
                                         IsSnapToTickEnabled="True" TickFrequency="10"
+                                        Style="{StaticResource ToolSlider}"
                                         ValueChanged="ThumbSizeSlider_ValueChanged"
                                         ToolTip="Drag to resize thumbnail tiles (60–240 px)"/>
                                 <TextBlock x:Name="ThumbSizeValue" VerticalAlignment="Center" Margin="6,0,0,0"
@@ -443,6 +444,7 @@
                                    Foreground="{DynamicResource MutedForeground}"/>
                         <Slider Grid.Column="1" x:Name="PositionSlider" Minimum="0" Maximum="0"
                                 SmallChange="1" LargeChange="5" IsSnapToTickEnabled="True" TickFrequency="1"
+                                Style="{StaticResource ToolSlider}"
                                 ValueChanged="PositionSlider_ValueChanged"
                                 ToolTip="Jump to a specific position in the source list"/>
                         <TextBlock Grid.Column="2" x:Name="PositionText" Text="0/0" VerticalAlignment="Center" Margin="6,0,0,0"
