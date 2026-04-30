@@ -729,9 +729,10 @@
                     <Border x:Name="PreviewPaneHeader" DockPanel.Dock="Top" Background="{DynamicResource PanelHeader}" Padding="8,4"
                             BorderBrush="{DynamicResource PreviewAccentStripe}" BorderThickness="0,3,0,0">
                         <DockPanel LastChildFill="True">
-                            <TextBlock DockPanel.Dock="Left" x:Name="PreviewTitle" Text="Preview" FontWeight="Bold"
-                                       VerticalAlignment="Center"
-                                       Foreground="{DynamicResource PanelForeground}"/>
+                            <!-- Right-docked button row goes FIRST so DockPanel reserves it.
+                                 The TextBlock comes last and (with LastChildFill=True) fills
+                                 the remaining space to the left, giving TextTrimming a finite
+                                 width to clip against when filenames are long. -->
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                                         VerticalAlignment="Center">
                                 <Button Content="◀" Style="{StaticResource PaneToolButton}"
@@ -747,6 +748,14 @@
                                         MinWidth="24" Padding="6,2"
                                         ToolTip="Hide this pane (use Panes▾ in toolbar to restore)"/>
                             </StackPanel>
+                            <!-- 12px right margin gives breathing room before the buttons.
+                                 ToolTip shows the full untruncated text on hover. -->
+                            <TextBlock x:Name="PreviewTitle" Text="Preview" FontWeight="Bold"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,12,0"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
+                                       Foreground="{DynamicResource PanelForeground}"/>
                         </DockPanel>
                     </Border>
 

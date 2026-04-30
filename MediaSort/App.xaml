@@ -645,27 +645,77 @@
                 </Setter>
             </Style>
 
-            <!-- Up/down (or left/right) line buttons at the ends of the bar. -->
+            <!-- ============================================================
+                 3D ScrollBar line buttons (the up/down or left/right arrows
+                 at each end of the bar). Raised gradient + bevel highlight
+                 and shadow matching ToolButton. Hover brightens, pressed
+                 inverts the bevel for a "pushed in" feel.
+                 ============================================================ -->
             <Style x:Key="ScrollBarLineButton" TargetType="RepeatButton">
                 <Setter Property="Focusable" Value="False"/>
                 <Setter Property="IsTabStop" Value="False"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RepeatButton">
-                            <Border x:Name="Bd" Background="{DynamicResource ScrollBarTrack}">
+                            <Grid SnapsToDevicePixels="True">
+                                <Border x:Name="Outer"
+                                        BorderBrush="{DynamicResource ButtonBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="2"
+                                        SnapsToDevicePixels="True">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#3C3C3C" Offset="0"/>
+                                            <GradientStop Color="#2A2A2A" Offset="0.5"/>
+                                            <GradientStop Color="#1E1E1E" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <Border x:Name="Highlight"
+                                        BorderThickness="1,1,0,0"
+                                        BorderBrush="#55FFFFFF"
+                                        CornerRadius="2"
+                                        Margin="1"
+                                        IsHitTestVisible="False"/>
+                                <Border x:Name="Shadow"
+                                        BorderThickness="0,0,1,1"
+                                        BorderBrush="#66000000"
+                                        CornerRadius="2"
+                                        Margin="1"
+                                        IsHitTestVisible="False"/>
                                 <Path x:Name="Arrow"
                                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                                      Fill="{DynamicResource MutedForeground}"
+                                      Fill="{DynamicResource PanelForeground}"
                                       Data="{TemplateBinding Tag}"/>
-                            </Border>
+                            </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ItemBackground}"/>
-                                    <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource PanelForeground}"/>
+                                    <Setter TargetName="Outer" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#4A4A4A" Offset="0"/>
+                                                <GradientStop Color="#363636" Offset="0.5"/>
+                                                <GradientStop Color="#262626" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#80FFFFFF"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
-                                    <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource AccentForeground}"/>
+                                    <Setter TargetName="Outer" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#1A1A1A" Offset="0"/>
+                                                <GradientStop Color="#252525" Offset="0.5"/>
+                                                <GradientStop Color="#383838" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter TargetName="Highlight" Property="BorderThickness" Value="0,0,1,1"/>
+                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#33FFFFFF"/>
+                                    <Setter TargetName="Shadow" Property="BorderThickness" Value="1,1,0,0"/>
+                                    <Setter TargetName="Shadow" Property="BorderBrush" Value="#80000000"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -673,23 +723,72 @@
                 </Setter>
             </Style>
 
-            <!-- The draggable Thumb -->
+            <!-- ============================================================
+                 3D ScrollBar thumb: raised gradient pill with bevel matching
+                 ToolButton / ToolSliderThumb. Hover brightens; dragging
+                 inverts the bevel.
+                 ============================================================ -->
             <Style x:Key="ScrollBarThumbStyle" TargetType="Thumb">
                 <Setter Property="OverridesDefaultStyle" Value="True"/>
                 <Setter Property="IsTabStop" Value="False"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Thumb">
-                            <Border x:Name="Bd"
-                                    Background="{DynamicResource ScrollBarThumb}"
-                                    CornerRadius="3"
-                                    Margin="2"/>
+                            <Grid Margin="2" SnapsToDevicePixels="True">
+                                <Border x:Name="Outer"
+                                        BorderBrush="{DynamicResource ButtonBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="3"
+                                        SnapsToDevicePixels="True">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#4A4A4A" Offset="0"/>
+                                            <GradientStop Color="#363636" Offset="0.5"/>
+                                            <GradientStop Color="#262626" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <Border x:Name="Highlight"
+                                        BorderThickness="1,1,0,0"
+                                        BorderBrush="#66FFFFFF"
+                                        CornerRadius="3"
+                                        Margin="1"
+                                        IsHitTestVisible="False"/>
+                                <Border x:Name="Shadow"
+                                        BorderThickness="0,0,1,1"
+                                        BorderBrush="#66000000"
+                                        CornerRadius="3"
+                                        Margin="1"
+                                        IsHitTestVisible="False"/>
+                            </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ScrollBarThumbHover}"/>
+                                    <Setter TargetName="Outer" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#5A5A5A" Offset="0"/>
+                                                <GradientStop Color="#404040" Offset="0.5"/>
+                                                <GradientStop Color="#2C2C2C" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#88FFFFFF"/>
                                 </Trigger>
                                 <Trigger Property="IsDragging" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ScrollBarThumbActive}"/>
+                                    <Setter TargetName="Outer" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#262626" Offset="0"/>
+                                                <GradientStop Color="#363636" Offset="0.5"/>
+                                                <GradientStop Color="#4A4A4A" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter TargetName="Highlight" Property="BorderThickness" Value="0,0,1,1"/>
+                                    <Setter TargetName="Highlight" Property="BorderBrush" Value="#33FFFFFF"/>
+                                    <Setter TargetName="Shadow" Property="BorderThickness" Value="1,1,0,0"/>
+                                    <Setter TargetName="Shadow" Property="BorderBrush" Value="#80000000"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
