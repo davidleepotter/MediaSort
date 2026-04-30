@@ -92,36 +92,7 @@
                     </Border>
 
                     <Separator Margin="6,0"/>
-
-                    <TextBlock Text="View:" VerticalAlignment="Center" Margin="6,0,4,0"
-                               Foreground="{DynamicResource PanelForeground}"/>
-                    <ComboBox x:Name="ViewModeCombo" Width="110"
-                              SelectionChanged="ViewModeCombo_SelectionChanged"
-                              VerticalAlignment="Center"
-                              ToolTip="Switch source list between List, Details, and Thumbnails view">
-                        <ComboBoxItem Content="List"/>
-                        <ComboBoxItem Content="Details" IsSelected="True"/>
-                        <ComboBoxItem Content="Thumbnails"/>
-                    </ComboBox>
-
-                    <!-- (UX R3) Live thumb-size slider. Only visible in Thumbnails view.
-                         60..240 px maps directly to AppSettings.ThumbnailSize and persists. -->
-                    <StackPanel x:Name="ThumbSizePanel" Orientation="Horizontal"
-                                VerticalAlignment="Center" Margin="8,0,0,0"
-                                Visibility="Collapsed">
-                        <TextBlock Text="Size:" VerticalAlignment="Center" Margin="0,0,4,0"
-                                   Foreground="{DynamicResource PanelForeground}"/>
-                        <Slider x:Name="ThumbSizeSlider" Width="110" VerticalAlignment="Center"
-                                Minimum="60" Maximum="240" SmallChange="10" LargeChange="20"
-                                IsSnapToTickEnabled="True" TickFrequency="10"
-                                ValueChanged="ThumbSizeSlider_ValueChanged"
-                                ToolTip="Drag to resize thumbnail tiles (60–240 px)"/>
-                        <TextBlock x:Name="ThumbSizeValue" VerticalAlignment="Center" Margin="6,0,0,0"
-                                   MinWidth="36" TextAlignment="Right"
-                                   Foreground="{DynamicResource MutedForeground}"/>
-                    </StackPanel>
-
-                    <!-- (Sort key + direction moved to Source pane header) -->
+                    <!-- (View, thumb-size, Sort key, and direction moved to Source pane header) -->
 
                     <CheckBox x:Name="RecursiveCheck" Content="Recursive"
                               Foreground="{DynamicResource PanelForeground}"
@@ -162,20 +133,11 @@
                             ToolTip="Show app version and credits"/>
                 </StackPanel>
 
-                <!-- Toolbar row 2: filters + search -->
+                <!-- Toolbar row 2: action mode + global utilities -->
                 <StackPanel Orientation="Horizontal" Margin="6,2,6,4">
-                    <TextBlock Text="Search:" VerticalAlignment="Center" Margin="0,0,4,0"
-                               Foreground="{DynamicResource PanelForeground}"/>
-                    <TextBox x:Name="SearchBox" Width="220" VerticalAlignment="Center"
-                             TextChanged="SearchBox_TextChanged"
-                             PreviewKeyDown="SearchBox_PreviewKeyDown"
-                             ToolTip="Filter the source list by file name (Ctrl+F to focus, Esc to clear)"/>
-                    <Button Content="✕" Width="24" Margin="2,0,0,0" Style="{StaticResource DangerToolButton}"
-                            Click="ClearSearch_Click" ToolTip="Clear"/>
+                    <!-- (Search + Date / Aspect / Min ★ / Tag filters moved to Source pane header) -->
 
-                    <!-- (Date / Aspect / Min ★ / Tag filters moved to Source pane header) -->
-
-                    <TextBlock Text="Action:" VerticalAlignment="Center" Margin="14,0,4,0"
+                    <TextBlock Text="Action:" VerticalAlignment="Center" Margin="0,0,4,0"
                                Foreground="{DynamicResource PanelForeground}"/>
                     <ComboBox x:Name="ActionCombo" Width="100" VerticalAlignment="Center"
                               SelectionChanged="ActionCombo_SelectionChanged"
@@ -333,7 +295,35 @@
                             BorderThickness="0,0,0,1"
                             Padding="6,4">
                         <WrapPanel Orientation="Horizontal">
-                            <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="0,0,4,0"
+                            <TextBlock Text="View:" VerticalAlignment="Center" Margin="0,0,4,0"
+                                       Foreground="{DynamicResource PanelForeground}"/>
+                            <ComboBox x:Name="ViewModeCombo" Width="110"
+                                      SelectionChanged="ViewModeCombo_SelectionChanged"
+                                      VerticalAlignment="Center"
+                                      ToolTip="Switch source list between List, Details, and Thumbnails view">
+                                <ComboBoxItem Content="List"/>
+                                <ComboBoxItem Content="Details" IsSelected="True"/>
+                                <ComboBoxItem Content="Thumbnails"/>
+                            </ComboBox>
+
+                            <!-- (UX R3) Live thumb-size slider. Only visible in Thumbnails view.
+                                 60..240 px maps directly to AppSettings.ThumbnailSize and persists. -->
+                            <StackPanel x:Name="ThumbSizePanel" Orientation="Horizontal"
+                                        VerticalAlignment="Center" Margin="8,0,0,0"
+                                        Visibility="Collapsed">
+                                <TextBlock Text="Size:" VerticalAlignment="Center" Margin="0,0,4,0"
+                                           Foreground="{DynamicResource PanelForeground}"/>
+                                <Slider x:Name="ThumbSizeSlider" Width="110" VerticalAlignment="Center"
+                                        Minimum="60" Maximum="240" SmallChange="10" LargeChange="20"
+                                        IsSnapToTickEnabled="True" TickFrequency="10"
+                                        ValueChanged="ThumbSizeSlider_ValueChanged"
+                                        ToolTip="Drag to resize thumbnail tiles (60–240 px)"/>
+                                <TextBlock x:Name="ThumbSizeValue" VerticalAlignment="Center" Margin="6,0,0,0"
+                                           MinWidth="36" TextAlignment="Right"
+                                           Foreground="{DynamicResource MutedForeground}"/>
+                            </StackPanel>
+
+                            <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="12,0,4,0"
                                        Foreground="{DynamicResource PanelForeground}"/>
                             <ComboBox x:Name="SortKeyCombo" Width="110"
                                       SelectionChanged="SortKeyCombo_SelectionChanged"
@@ -386,6 +376,15 @@
                                 <ComboBoxItem Content="≥4"/>
                                 <ComboBoxItem Content="5"/>
                             </ComboBox>
+
+                            <TextBlock Text="Search:" VerticalAlignment="Center" Margin="12,0,4,0"
+                                       Foreground="{DynamicResource PanelForeground}"/>
+                            <TextBox x:Name="SearchBox" Width="180" VerticalAlignment="Center"
+                                     TextChanged="SearchBox_TextChanged"
+                                     PreviewKeyDown="SearchBox_PreviewKeyDown"
+                                     ToolTip="Filter the source list by file name (Ctrl+F to focus, Esc to clear)"/>
+                            <Button Content="✕" Width="24" Margin="2,0,0,0" Style="{StaticResource DangerToolButton}"
+                                    Click="ClearSearch_Click" ToolTip="Clear"/>
 
                             <TextBlock Text="Tag:" VerticalAlignment="Center" Margin="12,0,4,0"
                                        Foreground="{DynamicResource PanelForeground}"/>
