@@ -19,6 +19,7 @@ public partial class BatchTagDialog : Window
     public BatchTagDialog(List<MediaItem> items, TagStore store)
     {
         InitializeComponent();
+        SourceInitialized += (_, _) => WindowChrome.ApplyCurrentTheme(this);
         _items = items ?? new List<MediaItem>();
         _store = store;
 

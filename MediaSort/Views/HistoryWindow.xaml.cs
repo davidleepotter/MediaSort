@@ -32,6 +32,7 @@ public partial class HistoryWindow : Window
         InitializeComponent();
         Owner = owner;
         _owner = owner;
+        SourceInitialized += (_, _) => WindowChrome.ApplyCurrentTheme(this);
         BatchList.ItemsSource = _rows;
         Reload();
     }
