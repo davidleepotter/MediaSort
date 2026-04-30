@@ -31,4 +31,53 @@
     <PackageReference Include="VirtualizingWrapPanel" Version="2.5.1" />
   </ItemGroup>
 
+  <!--
+    ============================================================================
+    Code signing (Authenticode) for Release builds.
+    ============================================================================
+    Triggers automatically when building Release on Windows IF the PFX exists.
+    Skipped on non-Windows (Linux CI, etc.) and Debug.
+
+    Override the password for non-test certs:
+        dotnet build -c Release -p:SignPfxPassword=YOURPASSWORD
+
+    Or skip signing entirely:
+        dotnet build -c Release -p:SkipCodeSign=true
+
+    Timestamping uses DigiCert's free RFC 3161 server so the signature stays
+    valid past cert expiry. The build does NOT fail if signing fails (e.g.
+    signtool not on PATH on a fresh Windows install) — it just warns, so
+    the unsigned EXE is still usable for local dev.
+  -->
+  <PropertyGroup>
+    <SignPfxPath Condition="'$(SignPfxPath)' == ''">$(MSBuildThisFileDirectory)..\signing\MediaSort-CodeSign.pfx</SignPfxPath>
+    <SignPfxPassword Condition="'$(SignPfxPassword)' == ''">test</SignPfxPassword>
+    <SignTimestampUrl Condition="'$(SignTimestampUrl)' == ''">http://timestamp.digicert.com</SignTimestampUrl>
+    <SignDescription Condition="'$(SignDescription)' == ''">MediaSort</SignDescription>
+  </PropertyGroup>
+
+  <Target Name="SignMediaSortExe"
+          AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Release' AND '$(OS)' == 'Windows_NT' AND '$(SkipCodeSign)' != 'true' AND Exists('$(SignPfxPath)')">
+    <!-- Locate signtool.exe from the latest installed Windows 10/11 SDK. -->
+    <ItemGroup>
+      <_SignToolCandidate Include="$(MSBuildProgramFiles32)\Windows Kits\10\bin\**\x64\signtool.exe" />
+    </ItemGroup>
+    <PropertyGroup>
+      <_SignToolPath>@(_SignToolCandidate->'%(FullPath)')</_SignToolPath>
+      <!-- Pick the lexicographically-last entry (newest SDK build folder). -->
+      <_SignToolPath>$([System.String]::Copy('$(_SignToolPath)').Split(';')[$([MSBuild]::Subtract($([System.String]::Copy('$(_SignToolPath)').Split(';').Length), 1))])</_SignToolPath>
+    </PropertyGroup>
+
+    <Message Text="CodeSign: tool=$(_SignToolPath)" Importance="high" />
+    <Message Text="CodeSign: target=$(TargetPath)" Importance="high" />
+
+    <Warning Text="signtool.exe not found — install the Windows SDK to enable code signing. EXE will be left UNSIGNED."
+             Condition="'$(_SignToolPath)' == '' OR !Exists('$(_SignToolPath)')" />
+
+    <Exec Command="&quot;$(_SignToolPath)&quot; sign /f &quot;$(SignPfxPath)&quot; /p $(SignPfxPassword) /fd SHA256 /tr $(SignTimestampUrl) /td SHA256 /d &quot;$(SignDescription)&quot; &quot;$(TargetPath)&quot;"
+          ContinueOnError="WarnAndContinue"
+          Condition="'$(_SignToolPath)' != '' AND Exists('$(_SignToolPath)')" />
+  </Target>
+
 </Project>
