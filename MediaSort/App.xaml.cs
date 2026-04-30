@@ -12,6 +12,19 @@ public partial class App : System.Windows.Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // Single-instance enforcement — must run before splash/theme init so a
+        // second launch never flashes a window or competes for resources.
+        // If another instance is already running, this method has already sent
+        // an "activate" ping over a named pipe; we just shut down silently.
+        if (!SingleInstance.TryAcquire())
+        {
+            // Use Environment.Exit because Shutdown()-then-return doesn't always
+            // fire fast enough — base.OnStartup would still create the main window.
+            Shutdown();
+            Environment.Exit(0);
+            return;
+        }
+
         // Show the splash manually so we can control when it closes — we want it visible
         // through the entire MainWindow load (theme init, control templating, scan kickoff,
         // first paint), not just until WPF starts. autoClose:false leaves it up until we
@@ -80,6 +93,14 @@ public partial class App : System.Windows.Application
         }
 
         CloseSplash();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        // Release the single-instance mutex + pipe server so subsequent launches
+        // (after this process exits) can become the new primary instance.
+        try { SingleInstance.Release(); } catch { }
+        base.OnExit(e);
     }
 
     private void CloseSplash()
