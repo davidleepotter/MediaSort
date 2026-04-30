@@ -19,6 +19,7 @@ public class DestinationButton : INotifyPropertyChanged
     private int _itemCount;
     private string _flashBadge = "";
     private double _flashOpacity = 0;
+    private double _pulseOpacity = 0;
     private bool _isOffline;
 
     public string Name
@@ -229,6 +230,20 @@ public class DestinationButton : INotifyPropertyChanged
     {
         get => _flashOpacity;
         set { _flashOpacity = value; OnPropertyChanged(); }
+    }
+
+    /// <summary>
+    /// (UX R5) Transient pulse highlight fired the instant the user presses
+    /// a destination hotkey — distinct from <see cref="FlashOpacity"/> which is the
+    /// post-action "+N" celebration badge. MainWindow animates this 0→1→0 over
+    /// ~250ms so the user gets immediate visual confirmation that their keystroke
+    /// hit the right destination, even before the move completes. Bound to a
+    /// glow border on the destination tile.
+    /// </summary>
+    public double PulseOpacity
+    {
+        get => _pulseOpacity;
+        set { _pulseOpacity = value; OnPropertyChanged(); }
     }
 
     /// <summary>

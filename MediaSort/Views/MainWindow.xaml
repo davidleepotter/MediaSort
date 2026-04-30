@@ -286,9 +286,21 @@
                            MouseLeftButtonUp="SessionStatsText_MouseLeftButtonUp"/>
                 <Rectangle Grid.Column="3" Width="1" Margin="10,2"
                            Fill="{DynamicResource BorderBrushColor}" Opacity="0.6"/>
-                <TextBlock Grid.Column="4" x:Name="StatsText" Text=""
-                           VerticalAlignment="Center"
-                           Foreground="{DynamicResource PanelForeground}"/>
+                <!-- (UX R5) Live-metrics chip: shown items · total bytes · selected count · selected bytes.
+                     Wrapped in a rounded Border so it reads as a discrete pill, not loose status text —
+                     mirrors the visual weight of the destination action chips. -->
+                <Border Grid.Column="4"
+                        Background="{DynamicResource ItemBackground}"
+                        BorderBrush="{DynamicResource BorderBrushColor}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="8,1"
+                        VerticalAlignment="Center">
+                    <TextBlock x:Name="StatsText" Text=""
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource PanelForeground}"
+                               FontSize="11"/>
+                </Border>
             </Grid>
         </Border>
 
@@ -566,10 +578,30 @@
                                                      that appeared when async thumbnail assigns triggered re-measure on
                                                      a Stretch=Uniform Image. RenderOptions.BitmapScalingMode=Linear
                                                      (cheaper than HighQuality) avoids per-layout WIC rescaling. -->
-                                                <Image Source="{Binding Thumbnail}" Stretch="Uniform"
+                                                <!-- (UX R5) Smooth fade-in when the thumbnail decode finishes:
+                                                     start at opacity 0 and run a 150ms ease-out animation when
+                                                     the Source binding fires TargetUpdated. Without this, tiles
+                                                     pop in jarringly as the probe completes. The trigger fires
+                                                     on every binding update including container recycling, but
+                                                     for already-loaded thumbnails Source is set synchronously so
+                                                     the brief 150ms fade reads as a tasteful flourish rather
+                                                     than a stutter. -->
+                                                <Image Source="{Binding Thumbnail, NotifyOnTargetUpdated=True}" Stretch="Uniform"
                                                        UseLayoutRounding="True" SnapsToDevicePixels="True"
                                                        RenderOptions.BitmapScalingMode="Linear"
-                                                       RenderOptions.EdgeMode="Aliased"/>
+                                                       RenderOptions.EdgeMode="Aliased"
+                                                       Opacity="0">
+                                                    <Image.Triggers>
+                                                        <EventTrigger RoutedEvent="Binding.TargetUpdated">
+                                                            <BeginStoryboard>
+                                                                <Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                     From="0" To="1" Duration="0:0:0.15"/>
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </EventTrigger>
+                                                    </Image.Triggers>
+                                                </Image>
                                                 <TextBlock Text="🎬" FontSize="32"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Visibility="{Binding Kind, Converter={StaticResource KindVis}, ConverterParameter=Video}"/>
@@ -597,6 +629,43 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
+
+                        <!-- (UX R5) Empty-state overlay shown on top of the (empty) list views.
+                             Two messages, toggled by code-behind via SourceFolder text presence:
+                               • No folder picked yet → "Drop a folder here, or press Ctrl+O"
+                               • Folder picked but filtered/scanned to zero items → "No items match"
+                             IsHitTestVisible=False so click+drop still passes through to the
+                             ListBox below. Visibility is driven from code-behind in UpdateStats(). -->
+                        <Grid x:Name="EmptyStateOverlay" Visibility="Collapsed"
+                              IsHitTestVisible="False"
+                              Background="Transparent">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        MaxWidth="320">
+                                <TextBlock x:Name="EmptyStateGlyph"
+                                           Text="🗂"
+                                           FontSize="56"
+                                           HorizontalAlignment="Center"
+                                           Opacity="0.45"
+                                           Foreground="{DynamicResource MutedForeground}"
+                                           Margin="0,0,0,12"/>
+                                <TextBlock x:Name="EmptyStateTitle"
+                                           Text="No source folder yet"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"
+                                           TextAlignment="Center"
+                                           Foreground="{DynamicResource PanelForeground}"/>
+                                <TextBlock x:Name="EmptyStateDetail"
+                                           Text="Drop a folder here, or press Ctrl+O to pick one."
+                                           FontSize="12"
+                                           HorizontalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           Margin="0,6,0,0"
+                                           Opacity="0.75"
+                                           Foreground="{DynamicResource MutedForeground}"/>
+                            </StackPanel>
+                        </Grid>
                     </Grid>
                 </DockPanel>
             </Border>
@@ -791,6 +860,21 @@
                                 <DataTemplate>
                                     <Grid Margin="6,4" Tag="{Binding}"
                                           Width="{DynamicResource DestTileWidth}">
+                                        <!-- (UX R5) Hotkey-pulse glow: a soft outer ring that fades in/out
+                                             on each destination-key press so the user sees instant visual
+                                             confirmation that their keystroke landed on the right tile,
+                                             even before the actual move completes (which on a network
+                                             share can take seconds). PulseOpacity is animated 0→1→0 over
+                                             ~330ms by PulseDestination(). Sits BEHIND the main tile
+                                             border (z-order = render order), inflated by 3px on every
+                                             side via negative margin so it reads as a halo. -->
+                                        <Border Margin="-3"
+                                                CornerRadius="4"
+                                                Background="#33FFA000"
+                                                BorderBrush="#FFA000"
+                                                BorderThickness="2"
+                                                IsHitTestVisible="False"
+                                                Opacity="{Binding PulseOpacity}"/>
                                         <Border Background="{DynamicResource ItemBackground}"
                                                 BorderBrush="{DynamicResource BorderBrushColor}"
                                                 BorderThickness="1" Padding="6"

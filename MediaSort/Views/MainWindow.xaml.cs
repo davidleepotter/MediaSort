@@ -969,9 +969,25 @@ public partial class MainWindow : Window
     {
         var total = _allItems.Count;
         var shown = MediaItems.Count;
-        var sel = ActiveSelector?.SelectedItems.Count ?? 0;
-        long size = MediaItems.Sum(m => m.SizeBytes);
-        StatsText.Text = $"{shown} of {total} shown · {sel} selected · {FormatBytes(size)}";
+        var selected = ActiveSelector?.SelectedItems?.OfType<MediaItem>().ToList() ?? new List<MediaItem>();
+        var sel = selected.Count;
+        // (UX R5) Show four live metrics: shown count, total bytes shown, selected
+        // count, selected bytes. Helps the user gauge how big a batch they're about
+        // to move at a glance — particularly useful for slow network-share moves
+        // where a multi-GB selection means "go grab coffee" but a few-MB selection
+        // is instant. Uses middle-dot separators that align with other status pills.
+        long shownBytes = MediaItems.Sum(m => m.SizeBytes);
+        long selBytes = selected.Sum(m => m.SizeBytes);
+
+        // Compose dynamically so the text doesn't read awkwardly when nothing's
+        // selected ("0 selected · 0 B") — drop the selection clause entirely in
+        // that case.
+        var sb = new System.Text.StringBuilder();
+        if (shown == total) sb.Append($"{shown:N0} item{(shown == 1 ? "" : "s")}");
+        else sb.Append($"{shown:N0} of {total:N0} shown");
+        sb.Append($" · {FormatBytes(shownBytes)}");
+        if (sel > 0) sb.Append($" · {sel:N0} selected · {FormatBytes(selBytes)}");
+        StatsText.Text = sb.ToString();
 
         // Toggle Select All <-> Unselect All so one button covers both directions.
         if (SelectAllButton != null)
@@ -984,6 +1000,62 @@ public partial class MainWindow : Window
         }
 
         RebuildFilterChips();
+        UpdateEmptyState();
+    }
+
+    /// <summary>
+    /// (UX R5) Show a friendly centered illustration in the Source pane when the
+    /// list is empty. Three distinct states keep the messaging precise:
+    ///   1. No source folder picked yet → invitation to drop a folder or use Ctrl+O.
+    ///   2. Folder picked, scan complete, nothing found → suggest enabling Recursive.
+    ///   3. Folder picked, items exist, but filters/search are excluding all of them
+    ///      → nudge the user to clear filters.
+    /// Hides itself the moment <c>MediaItems</c> is non-empty.
+    /// </summary>
+    private void UpdateEmptyState()
+    {
+        if (EmptyStateOverlay == null) return;
+        try
+        {
+            // Visible only when the displayed list is empty. Don't pop in during
+            // the initial scan — StatusText already shows "Scanning…" and the user
+            // doesn't need a competing message during the brief scan window.
+            bool listEmpty = MediaItems.Count == 0;
+            if (!listEmpty)
+            {
+                EmptyStateOverlay.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            bool hasFolder = !string.IsNullOrWhiteSpace(_settings?.SourceFolder)
+                             && Directory.Exists(_settings!.SourceFolder);
+            bool hasUnfilteredItems = _allItems.Count > 0;
+
+            if (!hasFolder)
+            {
+                EmptyStateGlyph.Text = "🗂";
+                EmptyStateTitle.Text = "No source folder yet";
+                EmptyStateDetail.Text = "Drop a folder here, or press Ctrl+O to pick one.";
+            }
+            else if (hasUnfilteredItems)
+            {
+                // Filtered to zero. Mention the chips because that's the fastest way
+                // for the user to recover — they're right above the list.
+                EmptyStateGlyph.Text = "🔍";
+                EmptyStateTitle.Text = "No items match your filters";
+                EmptyStateDetail.Text = $"{_allItems.Count:N0} hidden by active filters. Clear a chip above to see them.";
+            }
+            else
+            {
+                // Folder picked but the scan turned up nothing. Most common cause is
+                // that the media is in a subfolder and Recursive isn't on.
+                EmptyStateGlyph.Text = "📂";
+                EmptyStateTitle.Text = "This folder has no media";
+                EmptyStateDetail.Text = "Try enabling Recursive scan, or pick a different folder (Ctrl+O).";
+            }
+            EmptyStateOverlay.Visibility = Visibility.Visible;
+        }
+        catch (Exception ex) { CrashLogger.Log(ex, "empty-state"); }
     }
 
     /// <summary>
@@ -4792,6 +4864,49 @@ public partial class MainWindow : Window
         catch { /* non-critical UI sugar */ }
     }
 
+    /// <summary>
+    /// (UX R5) Quick visual pulse on a destination tile the moment its hotkey
+    /// is pressed — shorter and tighter than <see cref="FlashDestinationBadge"/>'s
+    /// "+N" celebration. Drives <see cref="DestinationButton.PulseOpacity"/> from
+    /// 0→1 (60ms) and back to 0 (220ms) so the user sees instant confirmation
+    /// that their keystroke landed on the right destination, even before the
+    /// move completes (which on a network share can take seconds).
+    /// Multiple rapid presses retrigger from 0 — doesn't queue.
+    /// </summary>
+    private void PulseDestination(DestinationButton dest)
+    {
+        if (dest == null) return;
+        try
+        {
+            dest.PulseOpacity = 0;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            const double fadeInMs  = 60;
+            const double holdMs    = 50;
+            const double fadeOutMs = 220;
+            const double totalMs   = fadeInMs + holdMs + fadeOutMs;
+
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+            timer.Tick += (s, e) =>
+            {
+                var t = sw.Elapsed.TotalMilliseconds;
+                double op;
+                if (t < fadeInMs)              op = t / fadeInMs;
+                else if (t < fadeInMs + holdMs) op = 1.0;
+                else if (t < totalMs)          op = 1.0 - ((t - fadeInMs - holdMs) / fadeOutMs);
+                else                            op = 0.0;
+                if (op < 0) op = 0; if (op > 1) op = 1;
+                dest.PulseOpacity = op;
+                if (t >= totalMs)
+                {
+                    timer.Stop();
+                    dest.PulseOpacity = 0;
+                }
+            };
+            timer.Start();
+        }
+        catch { /* non-critical UI sugar */ }
+    }
+
     private ImageSource? CaptureItemVisual(MediaItem item, FrameworkElement? sourceElement)
     {
         if (item.Kind == MediaKind.Image && PreviewImage.Source is ImageSource imgSrc &&
@@ -4914,6 +5029,9 @@ public partial class MainWindow : Window
         if (Keyboard.Modifiers == ModifierKeys.Control)
         {
             if (e.Key == Key.OemComma) { Settings_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
+            // (UX R5) Ctrl+O → pick source folder. Mentioned in the empty-state hint
+            // ("Drop a folder here, or press Ctrl+O") so it must actually work.
+            if (e.Key == Key.O) { PickSource_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
             if (e.Key == Key.F) { SearchBox.Focus(); SearchBox.SelectAll(); e.Handled = true; return; }
             if (e.Key == Key.Z) { Undo_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
             if (e.Key == Key.H) { History_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
@@ -5029,6 +5147,9 @@ public partial class MainWindow : Window
             if (shiftHeld && !destOwnsShift && dest.HotKey == e.Key &&
                 (Keyboard.Modifiers & ~ModifierKeys.Shift) == dest.Modifiers)
             {
+                // (UX R5) Pulse the destination so the user sees their keystroke
+                // landed even though the actual move is deferred until Shift release.
+                PulseDestination(dest);
                 EnqueueDestination(dest);
                 e.Handled = true;
                 return;
@@ -5039,6 +5160,9 @@ public partial class MainWindow : Window
                 var items = GetSelectedItems();
                 if (items.Count == 0) return;
                 _lastDestination = dest;
+                // (UX R5) Visual confirmation BEFORE dispatching so the pulse renders
+                // even if DispatchAction hops the dispatcher for animations.
+                PulseDestination(dest);
                 DispatchAction(items, dest, FindDestinationElement(dest));
                 e.Handled = true;
                 return;
