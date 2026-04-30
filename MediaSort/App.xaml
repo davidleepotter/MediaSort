@@ -80,15 +80,76 @@
                 </Setter>
             </Style>
 
-            <!-- TextBox -->
+            <!-- ============================================================
+                 3D TextBox: inset "sunken" channel matching the ToolSlider
+                 track. Outer border + dark gradient + reversed bevel
+                 (shadow on top-left, highlight on bottom-right) so the
+                 input feels pressed-in vs. the raised buttons. Focus
+                 brightens the outer border to the accent color.
+                 ============================================================ -->
             <Style TargetType="TextBox">
                 <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
                 <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorder}"/>
                 <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="Padding" Value="4,2"/>
+                <Setter Property="Padding" Value="6,3"/>
                 <Setter Property="CaretBrush" Value="{DynamicResource PanelForeground}"/>
                 <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Grid>
+                                <!-- Outer border with sunken gradient (darker at top, lighter at bottom) -->
+                                <Border x:Name="Outer"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="3"
+                                        SnapsToDevicePixels="True">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#141414" Offset="0"/>
+                                            <GradientStop Color="#1E1E1E" Offset="0.6"/>
+                                            <GradientStop Color="#262626" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <!-- Inner top-left shadow (sunken) -->
+                                <Border x:Name="InsetShadow"
+                                        BorderThickness="1,1,0,0"
+                                        BorderBrush="#88000000"
+                                        CornerRadius="3"
+                                        Margin="1"
+                                        IsHitTestVisible="False"/>
+                                <!-- Inner bottom-right highlight (sunken bevel) -->
+                                <Border x:Name="InsetHighlight"
+                                        BorderThickness="0,0,1,1"
+                                        BorderBrush="#22FFFFFF"
+                                        CornerRadius="3"
+                                        Margin="1"
+                                        IsHitTestVisible="False"/>
+                                <!-- The actual text host -->
+                                <ScrollViewer x:Name="PART_ContentHost"
+                                              Margin="{TemplateBinding Padding}"
+                                              VerticalAlignment="Center"
+                                              Focusable="False"
+                                              HorizontalScrollBarVisibility="Hidden"
+                                              VerticalScrollBarVisibility="Hidden"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                    <Setter TargetName="Outer" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="InsetHighlight" Property="BorderBrush" Value="#33FFFFFF"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <!-- CheckBox: default Aero template renders the glyph in white on white
@@ -360,27 +421,92 @@
                 </Setter>
             </Style>
 
-            <!-- Toggle button used inside the ComboBox template -->
+            <!-- ============================================================
+                 3D ComboBox toggle: raised gradient + bevel highlight/shadow
+                 (matching ToolButton). Hover brightens, dropdown-open
+                 inverts the bevel ("pushed in"). A 1px vertical separator
+                 marks the chevron column so the arrow reads as a distinct
+                 affordance.
+                 ============================================================ -->
             <ControlTemplate x:Key="ComboBoxToggleButtonTemplate" TargetType="ToggleButton">
-                <Border x:Name="Bd"
-                        Background="{DynamicResource ButtonBackground}"
-                        BorderBrush="{DynamicResource ButtonBorder}"
-                        BorderThickness="1"
-                        SnapsToDevicePixels="True">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="20"/>
-                        </Grid.ColumnDefinitions>
-                        <Path x:Name="Arrow" Grid.Column="1"
-                              Data="M 0 0 L 4 4 L 8 0 Z"
-                              Fill="{DynamicResource PanelForeground}"
-                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
-                </Border>
+                <Grid SnapsToDevicePixels="True">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="20"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- Outer border = subtle bevel, full-width gradient -->
+                    <Border x:Name="Outer" Grid.ColumnSpan="2"
+                            BorderBrush="{DynamicResource ButtonBorder}"
+                            BorderThickness="1"
+                            CornerRadius="3"
+                            SnapsToDevicePixels="True">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#3C3C3C" Offset="0"/>
+                                <GradientStop Color="#2A2A2A" Offset="0.5"/>
+                                <GradientStop Color="#1E1E1E" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <!-- Inner top-left highlight (1px) -->
+                    <Border x:Name="Highlight" Grid.ColumnSpan="2"
+                            BorderThickness="1,1,0,0"
+                            BorderBrush="#55FFFFFF"
+                            CornerRadius="3"
+                            Margin="1"
+                            IsHitTestVisible="False"/>
+                    <!-- Inner bottom-right shadow -->
+                    <Border x:Name="Shadow" Grid.ColumnSpan="2"
+                            BorderThickness="0,0,1,1"
+                            BorderBrush="#66000000"
+                            CornerRadius="3"
+                            Margin="1"
+                            IsHitTestVisible="False"/>
+                    <!-- Vertical separator between content and chevron column -->
+                    <Rectangle Grid.Column="1"
+                               Width="1" HorizontalAlignment="Left"
+                               Margin="0,4"
+                               Fill="#66000000"
+                               IsHitTestVisible="False"/>
+                    <Rectangle Grid.Column="1"
+                               Width="1" HorizontalAlignment="Left"
+                               Margin="1,4,0,4"
+                               Fill="#22FFFFFF"
+                               IsHitTestVisible="False"/>
+                    <!-- Chevron arrow -->
+                    <Path x:Name="Arrow" Grid.Column="1"
+                          Data="M 0 0 L 4 4 L 8 0 Z"
+                          Fill="{DynamicResource PanelForeground}"
+                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
                 <ControlTemplate.Triggers>
                     <Trigger Property="IsMouseOver" Value="True">
-                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ItemBackground}"/>
+                        <Setter TargetName="Outer" Property="Background">
+                            <Setter.Value>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#4A4A4A" Offset="0"/>
+                                    <GradientStop Color="#363636" Offset="0.5"/>
+                                    <GradientStop Color="#262626" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter TargetName="Highlight" Property="BorderBrush" Value="#80FFFFFF"/>
+                    </Trigger>
+                    <!-- Dropdown open / pressed: invert bevel for a "pushed in" feel -->
+                    <Trigger Property="IsChecked" Value="True">
+                        <Setter TargetName="Outer" Property="Background">
+                            <Setter.Value>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#1A1A1A" Offset="0"/>
+                                    <GradientStop Color="#252525" Offset="0.5"/>
+                                    <GradientStop Color="#383838" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter TargetName="Highlight" Property="BorderThickness" Value="0,0,1,1"/>
+                        <Setter TargetName="Highlight" Property="BorderBrush" Value="#33FFFFFF"/>
+                        <Setter TargetName="Shadow" Property="BorderThickness" Value="1,1,0,0"/>
+                        <Setter TargetName="Shadow" Property="BorderBrush" Value="#80000000"/>
                     </Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate>
@@ -430,7 +556,19 @@
                                          VerticalAlignment="Center"
                                          HorizontalAlignment="Stretch"
                                          IsReadOnly="{TemplateBinding IsReadOnly}"
-                                         Focusable="True"/>
+                                         Focusable="True">
+                                    <!-- Override the implicit 3D TextBox template here so the
+                                         editable TextBox inside the (already-3D) ComboBox doesn't
+                                         get a doubled sunken bevel. Just a transparent text host. -->
+                                    <TextBox.Template>
+                                        <ControlTemplate TargetType="TextBox">
+                                            <ScrollViewer x:Name="PART_ContentHost"
+                                                          Focusable="False"
+                                                          HorizontalScrollBarVisibility="Hidden"
+                                                          VerticalScrollBarVisibility="Hidden"/>
+                                        </ControlTemplate>
+                                    </TextBox.Template>
+                                </TextBox>
                                 <Popup x:Name="PART_Popup"
                                        AllowsTransparency="True"
                                        Placement="Bottom"
