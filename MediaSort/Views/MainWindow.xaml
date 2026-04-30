@@ -94,11 +94,7 @@
                     <Separator Margin="6,0"/>
                     <!-- (View, thumb-size, Sort key, and direction moved to Source pane header) -->
 
-                    <CheckBox x:Name="RecursiveCheck" Content="Recursive"
-                              Foreground="{DynamicResource PanelForeground}"
-                              VerticalAlignment="Center" Margin="12,0,0,0"
-                              Checked="Recursive_Changed" Unchecked="Recursive_Changed"
-                              ToolTip="Include subfolders when scanning the source folder"/>
+                    <!-- (Recursive checkbox moved to Source pane action row) -->
 
                     <Button Content="Refresh" Style="{StaticResource UtilityToolButton}" Margin="12,0,0,0" Click="Refresh_Click"
                             ToolTip="Re-scan the source folder for new or changed files (F5)"/>
@@ -127,34 +123,12 @@
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
+                    <Button Content="History…" Style="{StaticResource PrimaryToolButton}" Margin="6,0,0,0"
+                            Click="History_Click" ToolTip="Browse all undo batches and undo any one of them (Ctrl+H)"/>
                     <Button Content="?" Style="{StaticResource InfoToolButton}" Width="28" ToolTip="Keyboard shortcuts"
                             Click="Help_Click" Margin="6,0,0,0"/>
                     <Button Content="About" Style="{StaticResource InfoToolButton}" Click="About_Click"
                             ToolTip="Show app version and credits"/>
-                </StackPanel>
-
-                <!-- Toolbar row 2: action mode + global utilities -->
-                <StackPanel Orientation="Horizontal" Margin="6,2,6,4">
-                    <!-- (Search + Date / Aspect / Min ★ / Tag filters moved to Source pane header) -->
-
-                    <TextBlock Text="Action:" VerticalAlignment="Center" Margin="0,0,4,0"
-                               Foreground="{DynamicResource PanelForeground}"/>
-                    <ComboBox x:Name="ActionCombo" Width="100" VerticalAlignment="Center"
-                              SelectionChanged="ActionCombo_SelectionChanged"
-                              ToolTip="What to do when a destination is activated: Move (default), Copy (keep original), or Delete (send original to Recycle Bin and ignore destination folder)">
-                        <ComboBoxItem Content="Move" IsSelected="True"/>
-                        <ComboBoxItem Content="Copy"/>
-                        <ComboBoxItem Content="Delete"/>
-                    </ComboBox>
-
-                    <Button Content="Find duplicates" Style="{StaticResource PrimaryToolButton}" Margin="14,0,0,0"
-                            Click="FindDuplicates_Click" ToolTip="Highlight near-duplicate images"/>
-                    <Button x:Name="SelectAllButton" Content="Select All" Style="{StaticResource ActionToolButton}" Margin="6,0,0,0"
-                            Click="SelectAll_Click" ToolTip="Select every visible item in the source list (Ctrl+A)"/>
-                    <Button x:Name="UndoButton" Content="↶ Undo" Style="{StaticResource PrimaryToolButton}" Margin="6,0,0,0"
-                            Click="Undo_Click" ToolTip="Undo last move or batch (Ctrl+Z)" IsEnabled="False"/>
-                    <Button Content="History…" Style="{StaticResource PrimaryToolButton}" Margin="6,0,0,0"
-                            Click="History_Click" ToolTip="Browse all undo batches and undo any one of them (Ctrl+H)"/>
                 </StackPanel>
 
             </StackPanel>
@@ -267,13 +241,14 @@
                     </Border>
 
                     <!-- Per-item action buttons (moved from global toolbar so they stay
-                         with the Source list they operate on). -->
+                         with the Source list they operate on). WrapPanel so the row
+                         re-flows when the Source pane is narrow rather than clipping. -->
                     <Border DockPanel.Dock="Top"
                             Background="{DynamicResource PanelBackground}"
                             BorderBrush="{DynamicResource BorderBrushColor}"
                             BorderThickness="0,0,0,1"
                             Padding="6,4">
-                        <StackPanel Orientation="Horizontal">
+                        <WrapPanel Orientation="Horizontal">
                             <Button Content="Skip (N)" Style="{StaticResource ActionToolButton}"
                                     Click="Skip_Click" ToolTip="Advance to next without moving"/>
                             <Button Content="✎ Rename" Style="{StaticResource ActionToolButton}" Margin="6,0,0,0"
@@ -283,7 +258,30 @@
                             <Button Content="Tags…" Style="{StaticResource ActionToolButton}" Margin="6,0,0,0"
                                     Click="Tags_Click"
                                     ToolTip="Edit ratings and tags for the selected items (Ctrl+T)"/>
-                        </StackPanel>
+
+                            <Button Content="Find duplicates" Style="{StaticResource PrimaryToolButton}" Margin="12,0,0,0"
+                                    Click="FindDuplicates_Click" ToolTip="Highlight near-duplicate images"/>
+                            <Button x:Name="SelectAllButton" Content="Select All" Style="{StaticResource ActionToolButton}" Margin="6,0,0,0"
+                                    Click="SelectAll_Click" ToolTip="Select every visible item in the source list (Ctrl+A)"/>
+                            <Button x:Name="UndoButton" Content="↶ Undo" Style="{StaticResource PrimaryToolButton}" Margin="6,0,0,0"
+                                    Click="Undo_Click" ToolTip="Undo last move or batch (Ctrl+Z)" IsEnabled="False"/>
+
+                            <TextBlock Text="Action:" VerticalAlignment="Center" Margin="12,0,4,0"
+                                       Foreground="{DynamicResource PanelForeground}"/>
+                            <ComboBox x:Name="ActionCombo" Width="100" VerticalAlignment="Center"
+                                      SelectionChanged="ActionCombo_SelectionChanged"
+                                      ToolTip="What to do when a destination is activated: Move (default), Copy (keep original), or Delete (send original to Recycle Bin and ignore destination folder)">
+                                <ComboBoxItem Content="Move" IsSelected="True"/>
+                                <ComboBoxItem Content="Copy"/>
+                                <ComboBoxItem Content="Delete"/>
+                            </ComboBox>
+
+                            <CheckBox x:Name="RecursiveCheck" Content="Recursive"
+                                      Foreground="{DynamicResource PanelForeground}"
+                                      VerticalAlignment="Center" Margin="12,0,0,0"
+                                      Checked="Recursive_Changed" Unchecked="Recursive_Changed"
+                                      ToolTip="Include subfolders when scanning the source folder"/>
+                        </WrapPanel>
                     </Border>
 
                     <!-- Sort + filters row: scoped to the Source list, kept inside the
