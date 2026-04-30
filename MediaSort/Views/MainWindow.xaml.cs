@@ -5025,7 +5025,17 @@ public partial class MainWindow : Window
             }
         }
 
-        // Ctrl shortcuts always handled
+        // While the user is typing in any TextBox (Search, Tag filter, rename dialogs,
+        // editable ComboBox, etc.), NO global hotkeys should fire — not destination
+        // hotkeys, not Ctrl+T (Tags), not Ctrl+A (Select All), nothing. The TextBox's
+        // own built-in commands (Ctrl+C/V/X/A select-text, Ctrl+Z text undo, arrow
+        // keys for caret movement, etc.) still work because they're processed by the
+        // TextBox before this bubbling handler runs. This guard must come BEFORE the
+        // Ctrl-shortcut block so Ctrl+T while typing inserts "t" into the box instead
+        // of opening the Tags dialog.
+        if (Keyboard.FocusedElement is TextBox) return;
+
+        // Ctrl shortcuts always handled (focus is NOT in a TextBox at this point)
         if (Keyboard.Modifiers == ModifierKeys.Control)
         {
             if (e.Key == Key.OemComma) { Settings_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
@@ -5045,9 +5055,6 @@ public partial class MainWindow : Window
                 return;
             }
         }
-
-        // Special non-modifier shortcuts when not typing in a textbox
-        if (Keyboard.FocusedElement is TextBox) return;
 
         if (e.Key == Key.F5) { Refresh_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
         if (e.Key == Key.OemQuestion || (e.Key == Key.F1)) { Help_Click(this, new RoutedEventArgs()); e.Handled = true; return; }
