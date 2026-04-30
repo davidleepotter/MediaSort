@@ -240,64 +240,72 @@
                         </DockPanel>
                     </Border>
 
-                    <!-- Per-item action buttons (moved from global toolbar so they stay
-                         with the Source list they operate on). WrapPanel so the row
-                         re-flows when the Source pane is narrow rather than clipping. -->
+                    <!-- Source pane control rows. Two horizontal toolbars, each a WrapPanel
+                         so controls reflow on narrow widths instead of clipping. Layout rules:
+                         • No per-element Margin overrides on Buttons — the Button style
+                           already provides Margin="2" so spacing is uniform.
+                         • Labels use Margin="8,0,4,0" so they hug the control they label.
+                         • ComboBoxes use MinHeight="28" to match button visual height.
+                         • ItemHeight on WrapPanel gives consistent row rhythm when wrapping.
+                         • Vertical Separator between logical groups instead of variable margins. -->
                     <Border DockPanel.Dock="Top"
                             Background="{DynamicResource PanelBackground}"
                             BorderBrush="{DynamicResource BorderBrushColor}"
                             BorderThickness="0,0,0,1"
                             Padding="6,4">
-                        <WrapPanel Orientation="Horizontal">
+                        <WrapPanel Orientation="Horizontal" ItemHeight="34" VerticalAlignment="Center">
+                            <!-- Per-item actions -->
                             <Button Content="Skip (N)" Style="{StaticResource ActionToolButton}"
                                     Click="Skip_Click" ToolTip="Advance to next without moving"/>
-                            <Button Content="✎ Rename" Style="{StaticResource ActionToolButton}" Margin="6,0,0,0"
+                            <Button Content="✎ Rename" Style="{StaticResource ActionToolButton}"
                                     Click="Rename_Click" ToolTip="Rename selected file (F2). Multi-select opens batch rename."/>
-                            <Button Content="🗑 Trash" Style="{StaticResource DangerToolButton}" Margin="6,0,0,0"
+                            <Button Content="🗑 Trash" Style="{StaticResource DangerToolButton}"
                                     Click="Trash_Click" ToolTip="Send selected to Recycle Bin (Del)"/>
-                            <Button Content="Tags…" Style="{StaticResource ActionToolButton}" Margin="6,0,0,0"
+                            <Button Content="Tags…" Style="{StaticResource ActionToolButton}"
                                     Click="Tags_Click"
                                     ToolTip="Edit ratings and tags for the selected items (Ctrl+T)"/>
 
-                            <Button Content="Find duplicates" Style="{StaticResource PrimaryToolButton}" Margin="12,0,0,0"
+                            <Separator Style="{StaticResource VToolbarSeparator}"/>
+
+                            <!-- List-level actions -->
+                            <Button Content="Find duplicates" Style="{StaticResource PrimaryToolButton}"
                                     Click="FindDuplicates_Click" ToolTip="Highlight near-duplicate images"/>
-                            <Button x:Name="SelectAllButton" Content="Select All" Style="{StaticResource ActionToolButton}" Margin="6,0,0,0"
+                            <Button x:Name="SelectAllButton" Content="Select All" Style="{StaticResource ActionToolButton}"
                                     Click="SelectAll_Click" ToolTip="Select every visible item in the source list (Ctrl+A)"/>
-                            <Button x:Name="UndoButton" Content="↶ Undo" Style="{StaticResource PrimaryToolButton}" Margin="6,0,0,0"
+                            <Button x:Name="UndoButton" Content="↶ Undo" Style="{StaticResource PrimaryToolButton}"
                                     Click="Undo_Click" ToolTip="Undo last move or batch (Ctrl+Z)" IsEnabled="False"/>
 
-                            <TextBlock Text="Action:" VerticalAlignment="Center" Margin="12,0,4,0"
-                                       Foreground="{DynamicResource PanelForeground}"/>
-                            <ComboBox x:Name="ActionCombo" Width="100" VerticalAlignment="Center"
+                            <Separator Style="{StaticResource VToolbarSeparator}"/>
+
+                            <!-- Mode toggles -->
+                            <TextBlock Text="Action:" Style="{StaticResource SourceFieldLabel}"/>
+                            <ComboBox x:Name="ActionCombo" Width="100"
+                                      Style="{StaticResource SourceFieldCombo}"
                                       SelectionChanged="ActionCombo_SelectionChanged"
                                       ToolTip="What to do when a destination is activated: Move (default), Copy (keep original), or Delete (send original to Recycle Bin and ignore destination folder)">
                                 <ComboBoxItem Content="Move" IsSelected="True"/>
                                 <ComboBoxItem Content="Copy"/>
                                 <ComboBoxItem Content="Delete"/>
                             </ComboBox>
-
                             <CheckBox x:Name="RecursiveCheck" Content="Recursive"
-                                      Foreground="{DynamicResource PanelForeground}"
-                                      VerticalAlignment="Center" Margin="12,0,0,0"
+                                      Style="{StaticResource SourceFieldCheck}"
                                       Checked="Recursive_Changed" Unchecked="Recursive_Changed"
                                       ToolTip="Include subfolders when scanning the source folder"/>
                         </WrapPanel>
                     </Border>
 
-                    <!-- Sort + filters row: scoped to the Source list, kept inside the
-                         Source pane so the global toolbar stays uncluttered. WrapPanel so
-                         narrow Source-pane widths don't clip controls. -->
+                    <!-- Sort + filters row: scoped to the Source list. Same layout rules as
+                         the action row above for visual consistency. -->
                     <Border DockPanel.Dock="Top"
                             Background="{DynamicResource PanelBackground}"
                             BorderBrush="{DynamicResource BorderBrushColor}"
                             BorderThickness="0,0,0,1"
                             Padding="6,4">
-                        <WrapPanel Orientation="Horizontal">
-                            <TextBlock Text="View:" VerticalAlignment="Center" Margin="0,0,4,0"
-                                       Foreground="{DynamicResource PanelForeground}"/>
+                        <WrapPanel Orientation="Horizontal" ItemHeight="34" VerticalAlignment="Center">
+                            <TextBlock Text="View:" Style="{StaticResource SourceFieldLabel}"/>
                             <ComboBox x:Name="ViewModeCombo" Width="110"
+                                      Style="{StaticResource SourceFieldCombo}"
                                       SelectionChanged="ViewModeCombo_SelectionChanged"
-                                      VerticalAlignment="Center"
                                       ToolTip="Switch source list between List, Details, and Thumbnails view">
                                 <ComboBoxItem Content="List"/>
                                 <ComboBoxItem Content="Details" IsSelected="True"/>
@@ -307,10 +315,9 @@
                             <!-- (UX R3) Live thumb-size slider. Only visible in Thumbnails view.
                                  60..240 px maps directly to AppSettings.ThumbnailSize and persists. -->
                             <StackPanel x:Name="ThumbSizePanel" Orientation="Horizontal"
-                                        VerticalAlignment="Center" Margin="8,0,0,0"
+                                        VerticalAlignment="Center"
                                         Visibility="Collapsed">
-                                <TextBlock Text="Size:" VerticalAlignment="Center" Margin="0,0,4,0"
-                                           Foreground="{DynamicResource PanelForeground}"/>
+                                <TextBlock Text="Size:" Style="{StaticResource SourceFieldLabel}"/>
                                 <Slider x:Name="ThumbSizeSlider" Width="110" VerticalAlignment="Center"
                                         Minimum="60" Maximum="240" SmallChange="10" LargeChange="20"
                                         IsSnapToTickEnabled="True" TickFrequency="10"
@@ -321,11 +328,12 @@
                                            Foreground="{DynamicResource MutedForeground}"/>
                             </StackPanel>
 
-                            <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="12,0,4,0"
-                                       Foreground="{DynamicResource PanelForeground}"/>
+                            <Separator Style="{StaticResource VToolbarSeparator}"/>
+
+                            <TextBlock Text="Sort:" Style="{StaticResource SourceFieldLabel}"/>
                             <ComboBox x:Name="SortKeyCombo" Width="110"
+                                      Style="{StaticResource SourceFieldCombo}"
                                       SelectionChanged="SortKeyCombo_SelectionChanged"
-                                      VerticalAlignment="Center"
                                       ToolTip="Sort the source list by this property">
                                 <ComboBoxItem Content="Name" IsSelected="True"/>
                                 <ComboBoxItem Content="Size"/>
@@ -335,14 +343,16 @@
                                 <ComboBoxItem Content="Duration"/>
                                 <ComboBoxItem Content="Created"/>
                             </ComboBox>
-                            <Button x:Name="SortDirButton" Content="▲" Width="30"
+                            <Button x:Name="SortDirButton" Content="▲" Width="30" MinWidth="30"
                                     Style="{StaticResource NavToolButton}"
-                                    Margin="4,0,0,0" Click="SortDir_Click"
+                                    Click="SortDir_Click"
                                     ToolTip="Toggle sort direction"/>
 
-                            <TextBlock Text="Date:" VerticalAlignment="Center" Margin="12,0,4,0"
-                                       Foreground="{DynamicResource PanelForeground}"/>
-                            <ComboBox x:Name="DateFilterCombo" Width="120" VerticalAlignment="Center"
+                            <Separator Style="{StaticResource VToolbarSeparator}"/>
+
+                            <TextBlock Text="Date:" Style="{StaticResource SourceFieldLabel}"/>
+                            <ComboBox x:Name="DateFilterCombo" Width="120"
+                                      Style="{StaticResource SourceFieldCombo}"
                                       SelectionChanged="DateFilterCombo_SelectionChanged"
                                       ToolTip="Limit the source list to files modified within this time range">
                                 <ComboBoxItem Content="All time" IsSelected="True"/>
@@ -351,9 +361,9 @@
                                 <ComboBoxItem Content="This year"/>
                             </ComboBox>
 
-                            <TextBlock Text="Aspect:" VerticalAlignment="Center" Margin="12,0,4,0"
-                                       Foreground="{DynamicResource PanelForeground}"/>
-                            <ComboBox x:Name="AspectFilterCombo" Width="110" VerticalAlignment="Center"
+                            <TextBlock Text="Aspect:" Style="{StaticResource SourceFieldLabel}"/>
+                            <ComboBox x:Name="AspectFilterCombo" Width="110"
+                                      Style="{StaticResource SourceFieldCombo}"
                                       SelectionChanged="AspectFilterCombo_SelectionChanged"
                                       ToolTip="Filter by image/video orientation (Portrait, Landscape, Square)">
                                 <ComboBoxItem Content="Any" IsSelected="True"/>
@@ -362,9 +372,9 @@
                                 <ComboBoxItem Content="Square"/>
                             </ComboBox>
 
-                            <TextBlock Text="Min ★:" VerticalAlignment="Center" Margin="12,0,4,0"
-                                       Foreground="{DynamicResource PanelForeground}"/>
-                            <ComboBox x:Name="MinRatingCombo" Width="70" VerticalAlignment="Center"
+                            <TextBlock Text="Min ★:" Style="{StaticResource SourceFieldLabel}"/>
+                            <ComboBox x:Name="MinRatingCombo" Width="70"
+                                      Style="{StaticResource SourceFieldCombo}"
                                       SelectionChanged="MinRatingCombo_SelectionChanged"
                                       ToolTip="Show only items rated at least this many stars">
                                 <ComboBoxItem Content="Any" IsSelected="True"/>
@@ -375,22 +385,21 @@
                                 <ComboBoxItem Content="5"/>
                             </ComboBox>
 
-                            <TextBlock Text="Search:" VerticalAlignment="Center" Margin="12,0,4,0"
-                                       Foreground="{DynamicResource PanelForeground}"/>
-                            <TextBox x:Name="SearchBox" Width="180" VerticalAlignment="Center"
+                            <Separator Style="{StaticResource VToolbarSeparator}"/>
+
+                            <TextBlock Text="Search:" Style="{StaticResource SourceFieldLabel}"/>
+                            <TextBox x:Name="SearchBox" Width="180"
+                                     Style="{StaticResource SourceFieldText}"
                                      TextChanged="SearchBox_TextChanged"
                                      PreviewKeyDown="SearchBox_PreviewKeyDown"
                                      ToolTip="Filter the source list by file name (Ctrl+F to focus, Esc to clear)"/>
-                            <Button Content="✕" Width="24" Margin="2,0,0,0" Style="{StaticResource DangerToolButton}"
+                            <Button Content="✕" Width="26" MinWidth="26"
+                                    Style="{StaticResource SourceFieldClearButton}"
                                     Click="ClearSearch_Click" ToolTip="Clear"/>
 
-                            <TextBlock Text="Tag:" VerticalAlignment="Center" Margin="12,0,4,0"
-                                       Foreground="{DynamicResource PanelForeground}"/>
-                            <TextBox x:Name="TagFilterBox" Width="120" VerticalAlignment="Center"
-                                     Background="{DynamicResource InputBackground}"
-                                     Foreground="{DynamicResource PanelForeground}"
-                                     BorderBrush="{DynamicResource BorderBrushColor}"
-                                     Padding="4,2"
+                            <TextBlock Text="Tag:" Style="{StaticResource SourceFieldLabel}"/>
+                            <TextBox x:Name="TagFilterBox" Width="120"
+                                     Style="{StaticResource SourceFieldText}"
                                      TextChanged="TagFilterBox_TextChanged"
                                      ToolTip="Show only items containing this tag (substring, case-insensitive)"/>
                         </WrapPanel>

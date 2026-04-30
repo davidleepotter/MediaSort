@@ -1212,6 +1212,80 @@
             </Style>
 
             <!-- ============================================================
+                 Source-pane field styles. Used by the action / sort+filter
+                 toolbars inside the Source pane to give every control a
+                 consistent height (28 px), centered vertical alignment, and
+                 uniform label-to-input spacing. The WrapPanel host uses
+                 ItemHeight="34" so wrapped lines also rhythm cleanly.
+                 ============================================================ -->
+            <Style x:Key="SourceFieldLabel" TargetType="TextBlock">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Margin" Value="8,0,4,0"/>
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+            </Style>
+
+            <Style x:Key="SourceFieldCombo" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="MinHeight" Value="28"/>
+                <Setter Property="Margin" Value="0,0,2,0"/>
+            </Style>
+
+            <Style x:Key="SourceFieldText" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="MinHeight" Value="28"/>
+                <Setter Property="Padding" Value="6,3"/>
+                <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushColor}"/>
+                <Setter Property="Margin" Value="0,0,2,0"/>
+            </Style>
+
+            <Style x:Key="SourceFieldCheck" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="MinHeight" Value="28"/>
+                <Setter Property="Margin" Value="8,0,4,0"/>
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+            </Style>
+
+            <!-- Subtle clear button for inputs (✕ next to Search). Neutral
+                 ghost style so it doesn't visually compete with primary actions. -->
+            <Style x:Key="SourceFieldClearButton" TargetType="Button" BasedOn="{StaticResource TintedToolButton}">
+                <Setter Property="MinWidth" Value="26"/>
+                <Setter Property="Padding" Value="4,2"/>
+                <Setter Property="Foreground" Value="{DynamicResource MutedForeground}"/>
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#2E2E2E" Offset="0"/>
+                            <GradientStop Color="#252525" Offset="0.5"/>
+                            <GradientStop Color="#1C1C1C" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Vertical separator used between logical groups in the Source
+                 pane toolbars. Slim 1-px line with consistent vertical margin. -->
+            <Style x:Key="VToolbarSeparator" TargetType="Separator">
+                <Setter Property="Width" Value="1"/>
+                <Setter Property="Height" Value="22"/>
+                <Setter Property="Margin" Value="6,0"/>
+                <Setter Property="Background" Value="{DynamicResource BorderBrushColor}"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Separator">
+                            <Border Background="{TemplateBinding Background}"
+                                    Width="{TemplateBinding Width}"
+                                    Height="{TemplateBinding Height}"/>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ============================================================
                  Folder-shaped DestButton: a manila-folder silhouette with
                  a tab on top-left and a body below. Body uses AccentBrush
                  (so per-destination tinting still works); tab uses a slightly
