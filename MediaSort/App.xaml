@@ -1115,6 +1115,40 @@
                 </Setter>
             </Style>
 
+            <!-- (UX R4) Breadcrumb segment: minimal flat button (no gradient/border),
+                 just a tinted hover state. Used in the source pane's path bar. -->
+            <Style x:Key="BreadcrumbSegment" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Foreground" Value="{DynamicResource PanelForeground}"/>
+                <Setter Property="Padding" Value="5,1"/>
+                <Setter Property="Margin" Value="0"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    Padding="{TemplateBinding Padding}"
+                                    CornerRadius="3"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#2D7BD4"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#1F5FA8"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- (UX R4) GridSplitter with 6 grip dots in the middle so users can see
                  the bar is draggable. Splitter widens to 7px so the dots can breathe;
                  a brightened center pad behind the dots makes the grip visible against

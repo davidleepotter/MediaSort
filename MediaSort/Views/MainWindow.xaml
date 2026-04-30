@@ -372,6 +372,21 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- (UX R4) Breadcrumb path bar: clickable folder segments for the
+                         current source path. Click any segment to jump up to that folder.
+                         Hidden when no source folder is set. RebuildBreadcrumb() in
+                         MainWindow.xaml.cs populates this. -->
+                    <Border x:Name="BreadcrumbBar" DockPanel.Dock="Top"
+                            Background="{DynamicResource PanelBackground}"
+                            BorderBrush="{DynamicResource BorderBrushColor}"
+                            BorderThickness="0,0,0,1"
+                            Padding="6,3"
+                            Visibility="Collapsed">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <StackPanel x:Name="BreadcrumbPanel" Orientation="Horizontal"/>
+                        </ScrollViewer>
+                    </Border>
+
                     <!-- Active filter chips: each chip shows an active filter and clicking it
                          clears that single filter. The whole panel is collapsed when no filters
                          are active. RebuildFilterChips() in MainWindow.xaml.cs populates this. -->

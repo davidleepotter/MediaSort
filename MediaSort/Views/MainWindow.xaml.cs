@@ -980,6 +980,124 @@ public partial class MainWindow : Window
         }
     }
 
+    // --- (UX R4) Breadcrumb path bar ---
+
+    /// <summary>
+    /// Rebuilds the breadcrumb path bar above the source list. Each segment is a
+    /// clickable button; clicking jumps the source folder up to that segment.
+    /// Handles drive-letter (D:\Foo\Bar), UNC (\\Server\Share\Sub), and missing
+    /// paths gracefully. Hides the bar entirely when no folder is set.
+    /// </summary>
+    private void RebuildBreadcrumb(string folder)
+    {
+        if (BreadcrumbBar == null || BreadcrumbPanel == null) return;
+        BreadcrumbPanel.Children.Clear();
+        if (string.IsNullOrWhiteSpace(folder))
+        {
+            BreadcrumbBar.Visibility = Visibility.Collapsed;
+            return;
+        }
+        BreadcrumbBar.Visibility = Visibility.Visible;
+
+        // Split the path into (display, fullPath) pairs.
+        var segments = new System.Collections.Generic.List<(string display, string fullPath)>();
+        try
+        {
+            string normalized = folder.TrimEnd('\\', '/');
+            // UNC: \\Server\Share\... — first segment is \\Server\Share, then sub-folders.
+            if (normalized.StartsWith(@"\\"))
+            {
+                var rest = normalized.Substring(2); // strip leading \\
+                var parts = rest.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 2)
+                {
+                    string root = $@"\\{parts[0]}\{parts[1]}";
+                    segments.Add(($@"\\{parts[0]}\{parts[1]}", root));
+                    string acc = root;
+                    for (int i = 2; i < parts.Length; i++)
+                    {
+                        acc = acc + "\\" + parts[i];
+                        segments.Add((parts[i], acc));
+                    }
+                }
+                else
+                {
+                    segments.Add((normalized, normalized));
+                }
+            }
+            else
+            {
+                // Drive-letter or relative path.
+                var parts = normalized.Split('\\', '/');
+                if (parts.Length > 0)
+                {
+                    string acc = parts[0];
+                    if (acc.EndsWith(":")) acc += "\\";
+                    segments.Add((parts[0].Length == 0 ? "\\" : parts[0], acc));
+                    for (int i = 1; i < parts.Length; i++)
+                    {
+                        if (parts[i].Length == 0) continue;
+                        acc = System.IO.Path.Combine(acc, parts[i]);
+                        segments.Add((parts[i], acc));
+                    }
+                }
+            }
+        }
+        catch
+        {
+            segments.Clear();
+            segments.Add((folder, folder));
+        }
+
+        for (int i = 0; i < segments.Count; i++)
+        {
+            var (display, full) = segments[i];
+            var isLast = (i == segments.Count - 1);
+            var btn = new System.Windows.Controls.Button
+            {
+                Content = display,
+                Tag = full,
+                Style = (Style)FindResource("BreadcrumbSegment"),
+                ToolTip = full,
+            };
+            // Last segment is the current folder — emphasize and don't navigate to itself.
+            if (isLast)
+            {
+                btn.FontWeight = FontWeights.Bold;
+            }
+            btn.Click += Breadcrumb_Click;
+            BreadcrumbPanel.Children.Add(btn);
+            if (!isLast)
+            {
+                BreadcrumbPanel.Children.Add(new TextBlock
+                {
+                    Text = " \u203A ",
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Foreground = (System.Windows.Media.Brush)FindResource("MutedForeground"),
+                    FontSize = 12,
+                });
+            }
+        }
+    }
+
+    private void Breadcrumb_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button btn) return;
+        if (btn.Tag is not string path || string.IsNullOrWhiteSpace(path)) return;
+        // Don't navigate to the same folder we're already on.
+        if (string.Equals(path, _settings.SourceFolder, StringComparison.OrdinalIgnoreCase)) return;
+        if (!System.IO.Directory.Exists(path))
+        {
+            StatusText.Text = $"Folder not found: {path}";
+            return;
+        }
+        SetSourceFolder(path);
+        _settings.SourceFolder = path;
+        PushRecentSource(path);
+        SaveSettings();
+        StatusText.Text = $"Source folder: {path}";
+    }
+
     // --- Recent source folders ---
 
     private const int RecentSourceMax = 10;
@@ -1152,6 +1270,7 @@ public partial class MainWindow : Window
             if (SourceFolderNameText != null) SourceFolderNameText.Text = name;
         }
         catch { if (SourceFolderNameText != null) SourceFolderNameText.Text = ""; }
+        RebuildBreadcrumb(folder);
         _allItems.Clear();
         MediaItems.Clear();
         StatusText.Text = "Scanning…";
