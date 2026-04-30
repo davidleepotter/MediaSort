@@ -586,8 +586,8 @@
                 </DockPanel>
             </Border>
 
-            <GridSplitter x:Name="Splitter01" Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
-                          Background="{DynamicResource SplitterBrush}"
+            <GridSplitter x:Name="Splitter01" Grid.Column="1"
+                          Style="{StaticResource GripSplitter}"
                           DragCompleted="PanelSplitter_DragCompleted"/>
 
             <!-- CENTER: Preview -->
@@ -681,7 +681,8 @@
                 </DockPanel>
             </Border>
 
-            <GridSplitter x:Name="Splitter12" Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
+            <GridSplitter x:Name="Splitter12" Grid.Column="3"
+                          Style="{StaticResource GripSplitter}"
                           Background="{DynamicResource SplitterBrush}"
                           DragCompleted="PanelSplitter_DragCompleted"/>
 

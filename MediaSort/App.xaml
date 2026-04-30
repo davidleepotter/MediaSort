@@ -1115,6 +1115,47 @@
                 </Setter>
             </Style>
 
+            <!-- (UX R4) GridSplitter with 6 grip dots in the middle so users can see
+                 the bar is draggable. Designed for vertical splitters (5px wide). The
+                 dots brighten on hover so the affordance is obvious. -->
+            <Style x:Key="GripSplitter" TargetType="GridSplitter">
+                <Setter Property="Background" Value="{DynamicResource SplitterBrush}"/>
+                <Setter Property="Width" Value="5"/>
+                <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                <Setter Property="Cursor" Value="SizeWE"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GridSplitter">
+                            <Grid Background="{TemplateBinding Background}">
+                                <!-- Center stack of 6 dots (3 rows x 2 cols) so it reads
+                                     as a draggable handle the way scroll bar grips do. -->
+                                <ItemsControl x:Name="Grip"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              IsHitTestVisible="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="2" Rows="3"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <Ellipse Width="2" Height="2" Margin="1" Fill="#888888"/>
+                                    <Ellipse Width="2" Height="2" Margin="1" Fill="#888888"/>
+                                    <Ellipse Width="2" Height="2" Margin="1" Fill="#888888"/>
+                                    <Ellipse Width="2" Height="2" Margin="1" Fill="#888888"/>
+                                    <Ellipse Width="2" Height="2" Margin="1" Fill="#888888"/>
+                                    <Ellipse Width="2" Height="2" Margin="1" Fill="#888888"/>
+                                </ItemsControl>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Grip" Property="Opacity" Value="1"/>
+                                    <Setter Property="Background" Value="#1A1A1A"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- Info / meta: Settings, ?, About (cool slate tint). -->
             <Style x:Key="InfoToolButton" TargetType="Button" BasedOn="{StaticResource TintedToolButton}">
                 <Setter Property="Background">
