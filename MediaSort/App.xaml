@@ -1116,19 +1116,28 @@
             </Style>
 
             <!-- (UX R4) GridSplitter with 6 grip dots in the middle so users can see
-                 the bar is draggable. Designed for vertical splitters (5px wide). The
-                 dots brighten on hover so the affordance is obvious. -->
+                 the bar is draggable. Splitter widens to 7px so the dots can breathe;
+                 a brightened center pad behind the dots makes the grip visible against
+                 the very dark splitter brush. Hover brightens both pad and dots. -->
             <Style x:Key="GripSplitter" TargetType="GridSplitter">
                 <Setter Property="Background" Value="{DynamicResource SplitterBrush}"/>
-                <Setter Property="Width" Value="5"/>
+                <Setter Property="Width" Value="7"/>
                 <Setter Property="HorizontalAlignment" Value="Stretch"/>
                 <Setter Property="Cursor" Value="SizeWE"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="GridSplitter">
                             <Grid Background="{TemplateBinding Background}">
-                                <!-- Center stack of 6 dots (3 rows x 2 cols) so it reads
-                                     as a draggable handle the way scroll bar grips do. -->
+                                <!-- Lighter pad behind the grip so dots aren't lost on the
+                                     near-black splitter. ~40px tall so the grip sits in a
+                                     visible "handle" zone. -->
+                                <Border x:Name="Pad"
+                                        Width="7" Height="44"
+                                        Background="#2A2A2A"
+                                        CornerRadius="2"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        IsHitTestVisible="False"/>
+                                <!-- Center stack of 6 dots (3 rows x 2 cols). -->
                                 <ItemsControl x:Name="Grip"
                                               HorizontalAlignment="Center" VerticalAlignment="Center"
                                               IsHitTestVisible="False">
@@ -1137,18 +1146,17 @@
                                             <UniformGrid Columns="2" Rows="3"/>
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
-                                    <Ellipse Width="2" Height="2" Margin="1" Fill="#888888"/>
-                                    <Ellipse Width="2" Height="2" Margin="1" Fill="#888888"/>
-                                    <Ellipse Width="2" Height="2" Margin="1" Fill="#888888"/>
-                                    <Ellipse Width="2" Height="2" Margin="1" Fill="#888888"/>
-                                    <Ellipse Width="2" Height="2" Margin="1" Fill="#888888"/>
-                                    <Ellipse Width="2" Height="2" Margin="1" Fill="#888888"/>
+                                    <Ellipse Width="3" Height="3" Margin="1" Fill="#CCCCCC"/>
+                                    <Ellipse Width="3" Height="3" Margin="1" Fill="#CCCCCC"/>
+                                    <Ellipse Width="3" Height="3" Margin="1" Fill="#CCCCCC"/>
+                                    <Ellipse Width="3" Height="3" Margin="1" Fill="#CCCCCC"/>
+                                    <Ellipse Width="3" Height="3" Margin="1" Fill="#CCCCCC"/>
+                                    <Ellipse Width="3" Height="3" Margin="1" Fill="#CCCCCC"/>
                                 </ItemsControl>
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Grip" Property="Opacity" Value="1"/>
-                                    <Setter Property="Background" Value="#1A1A1A"/>
+                                    <Setter TargetName="Pad" Property="Background" Value="#3A6FA8"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
