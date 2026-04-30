@@ -144,6 +144,22 @@ public class AppSettings
     /// <summary>Width in pixels of the right destinations panel. 0 = use default.</summary>
     public double RightPanelWidth { get; set; } = 0;
 
+    // ---- Window placement (size + position + maximized state) ----
+    // All four numeric fields default to NaN so a fresh install falls back to the
+    // hard-coded XAML size/position. Loading code must check double.IsNaN before
+    // applying. Saved values are the *restored* bounds (Window.RestoreBounds) so
+    // a maximized window still remembers its un-maximized footprint.
+    /// <summary>Saved window left in DIPs. NaN = no saved value, use XAML default.</summary>
+    public double WindowLeft { get; set; } = double.NaN;
+    /// <summary>Saved window top in DIPs. NaN = no saved value, use XAML default.</summary>
+    public double WindowTop { get; set; } = double.NaN;
+    /// <summary>Saved window width in DIPs. NaN = no saved value, use XAML default.</summary>
+    public double WindowWidth { get; set; } = double.NaN;
+    /// <summary>Saved window height in DIPs. NaN = no saved value, use XAML default.</summary>
+    public double WindowHeight { get; set; } = double.NaN;
+    /// <summary>True if the window was maximized at last close.</summary>
+    public bool WindowMaximized { get; set; } = false;
+
     // ---- Layout: pane order + visibility (Show/Hide + swap-position toggles) ----
     /// <summary>Comma-separated order of the three main panes from left to right.
     /// Tokens: "Source", "Preview", "Destinations". Default = "Source,Preview,Destinations".

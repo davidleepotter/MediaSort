@@ -136,6 +136,12 @@ public partial class MainWindow : Window
 
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
+
+        // Load settings early so window placement can be restored before the window is shown.
+        // MainWindow_Loaded will pick up this same instance instead of reloading.
+        try { _settings = SettingsService.Load(); } catch { _settings = new AppSettings(); }
+        ApplySavedWindowPlacement();
+
         SourceInitialized += (_, _) =>
         {
             WindowChrome.ApplyCurrentTheme(this);
@@ -145,6 +151,79 @@ public partial class MainWindow : Window
             _volumeMonitor.Attach(this);
             RefreshVolumeWatchList();
         };
+    }
+
+    /// <summary>
+    /// Apply the saved window size/position/maximized state from <see cref="_settings"/>.
+    /// Called from the constructor before the window is shown so users see the window
+    /// pop up at the same place it was closed last session.
+    ///
+    /// Saved Left/Top can become invalid if the user unplugs a monitor between sessions,
+    /// so the rect is clamped to the union of currently-visible screens. If no clamp is
+    /// possible (e.g. saved rect is entirely offscreen) the XAML defaults take over.
+    /// </summary>
+    private void ApplySavedWindowPlacement()
+    {
+        if (_settings == null) return;
+
+        double w = _settings.WindowWidth;
+        double h = _settings.WindowHeight;
+        double l = _settings.WindowLeft;
+        double t = _settings.WindowTop;
+
+        bool haveSize = !double.IsNaN(w) && !double.IsNaN(h) && w > 200 && h > 200;
+        bool havePos  = !double.IsNaN(l) && !double.IsNaN(t);
+
+        if (haveSize)
+        {
+            Width = w;
+            Height = h;
+        }
+
+        if (havePos)
+        {
+            // Sanity-clamp to a screen: leave at least 100x100 pixels visible somewhere.
+            // System.Windows.Forms is already referenced by the project for Screen info.
+            try
+            {
+                var virt = System.Windows.Forms.SystemInformation.VirtualScreen;
+                // virt is in device pixels; for Per-Monitor DPI awareness this is fine for
+                // a coarse "is the rect anywhere on a screen?" test.
+                var rect = new System.Drawing.Rectangle(
+                    (int)l, (int)t, (int)(haveSize ? w : Width), (int)(haveSize ? h : Height));
+                bool anyOverlap = rect.IntersectsWith(virt);
+                if (anyOverlap)
+                {
+                    WindowStartupLocation = WindowStartupLocation.Manual;
+                    Left = l;
+                    Top = t;
+                }
+                else
+                {
+                    CrashLogger.Info($"window:placement saved rect offscreen ({l},{t} {w}x{h}); falling back to CenterScreen");
+                }
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Info($"window:placement clamp FAIL {ex.GetType().Name}: {ex.Message}");
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Left = l;
+                Top = t;
+            }
+        }
+
+        if (_settings.WindowMaximized)
+        {
+            // Defer to after the window is actually shown — setting WindowState here
+            // sometimes interferes with custom WindowChrome on first paint.
+            Loaded += MaximizeOnFirstLoad;
+        }
+    }
+
+    private void MaximizeOnFirstLoad(object? sender, RoutedEventArgs e)
+    {
+        Loaded -= MaximizeOnFirstLoad;
+        WindowState = WindowState.Maximized;
     }
 
     // ===================== (#16) USB / NETWORK UNMOUNT DETECTION =====================
@@ -215,10 +294,9 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        // PHASE 1 — fast UI-thread work only: load settings (small JSON file), populate
-        // toolbar combos and destinations. This must finish quickly so the splash can
-        // close and the window can be revealed.
-        _settings = SettingsService.Load();
+        // PHASE 1 — fast UI-thread work only: populate toolbar combos and destinations
+        // from _settings (already loaded in the constructor so window placement could be
+        // applied before first paint). Re-loading here would lose any in-memory tweaks.
 
         RecursiveCheck.IsChecked = _settings.RecursiveScan;
         ViewModeCombo.SelectedIndex = (int)_settings.ViewMode;
@@ -387,8 +465,46 @@ public partial class MainWindow : Window
         try { _mediaPlayer?.Dispose(); } catch { }
         try { _libVlc?.Dispose(); } catch { }
 
+        // Capture window placement BEFORE SaveSettings so the latest restored bounds
+        // make it into the JSON. Use RestoreBounds when maximized so we save the
+        // un-maximized footprint (Windows convention — restore-to-here on next launch).
+        try { CaptureWindowPlacement(); } catch (Exception ex) { CrashLogger.Info($"window:capture FAIL {ex.GetType().Name}: {ex.Message}"); }
+
         try { _tags.SaveIfDirty(); } catch { }
         SaveSettings();
+    }
+
+    /// <summary>
+    /// Snapshot the window's current placement into <see cref="_settings"/> so that
+    /// SaveSettings() will write it to disk. Uses RestoreBounds for size/position
+    /// when maximized so the next launch restores to the user's preferred footprint.
+    /// </summary>
+    private void CaptureWindowPlacement()
+    {
+        if (_settings == null) return;
+
+        // RestoreBounds is empty until the window has been shown at least once.
+        // Falling back to Left/Top/Width/Height covers that case (and the normal-state case).
+        var rb = RestoreBounds;
+        bool useRestore = WindowState == WindowState.Maximized
+                          && !double.IsNaN(rb.Left) && !double.IsNaN(rb.Top)
+                          && rb.Width > 0 && rb.Height > 0;
+
+        if (useRestore)
+        {
+            _settings.WindowLeft   = rb.Left;
+            _settings.WindowTop    = rb.Top;
+            _settings.WindowWidth  = rb.Width;
+            _settings.WindowHeight = rb.Height;
+        }
+        else
+        {
+            _settings.WindowLeft   = Left;
+            _settings.WindowTop    = Top;
+            _settings.WindowWidth  = ActualWidth  > 0 ? ActualWidth  : Width;
+            _settings.WindowHeight = ActualHeight > 0 ? ActualHeight : Height;
+        }
+        _settings.WindowMaximized = WindowState == WindowState.Maximized;
     }
 
     private void SaveSettings([System.Runtime.CompilerServices.CallerMemberName] string caller = "")
@@ -1434,20 +1550,13 @@ public partial class MainWindow : Window
         {
             SelectIndex(0);
             // Containers aren't realized yet during initial source load, so
-            // ScrollIntoView inside SelectIndex is a no-op. Defer the scroll
-            // until WPF has built the visual tree so the list visibly starts
-            // at the top.
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                try
-                {
-                    if (MediaItems.Count == 0) return;
-                    var first = MediaItems[0];
-                    // ListView derives from ListBox so a single case covers both.
-                    if (ActiveSelector is ListBox lb) lb.ScrollIntoView(first);
-                }
-                catch { /* layout race — non-critical */ }
-            }), System.Windows.Threading.DispatcherPriority.Loaded);
+            // ScrollIntoView inside SelectIndex is a no-op on cold startup.
+            // Schedule two passes (Loaded + Background) and also walk into the
+            // selector's ScrollViewer for a hard ScrollToTop — belt-and-braces
+            // because the Thumbnails view uses VirtualizingWrapPanel, which can
+            // ignore an early ScrollIntoView and leave the viewport scrolled to
+            // wherever a previous selection left it.
+            ScrollSelectorToTopDeferred();
         }
         else ClearPreview();
 
@@ -1999,6 +2108,58 @@ public partial class MainWindow : Window
         }
         _thumbResizeDebounceTimer.Stop();
         _thumbResizeDebounceTimer.Start();
+    }
+
+    /// <summary>
+    /// Force the active source selector to scroll back to its very first item.
+    /// On cold startup, the source list is virtualized and a normal
+    /// ScrollIntoView fires before any containers are realized, leaving the
+    /// viewport at whatever offset WPF picked. We schedule three passes:
+    ///   1. Loaded priority — catches the common case once layout finishes.
+    ///   2. Background priority — catches VirtualizingWrapPanel which arranges
+    ///      after Loaded.
+    ///   3. Walks the ScrollViewer inside the selector and calls ScrollToTop
+    ///      directly so even if ScrollIntoView is a no-op, the panel still
+    ///      starts pinned to the top.
+    /// </summary>
+    private void ScrollSelectorToTopDeferred()
+    {
+        void DoScroll()
+        {
+            try
+            {
+                if (MediaItems.Count == 0) return;
+                var sel = ActiveSelector;
+                if (sel == null) return;
+
+                // 1. Logical — ScrollIntoView the first item if available.
+                sel.ScrollIntoView(MediaItems[0]);
+
+                // 2. Physical — walk to the inner ScrollViewer and pin to top.
+                //    This catches VirtualizingWrapPanel cases where ScrollIntoView
+                //    silently succeeds against a stale viewport offset.
+                var sv = FindDescendantScrollViewer(sel);
+                sv?.ScrollToTop();
+            }
+            catch { /* layout race — non-critical */ }
+        }
+
+        Dispatcher.BeginInvoke(new Action(DoScroll), System.Windows.Threading.DispatcherPriority.Loaded);
+        Dispatcher.BeginInvoke(new Action(DoScroll), System.Windows.Threading.DispatcherPriority.Background);
+    }
+
+    /// <summary>Walk the visual tree of <paramref name="root"/> for the first ScrollViewer descendant.</summary>
+    private static ScrollViewer? FindDescendantScrollViewer(DependencyObject root)
+    {
+        if (root is ScrollViewer s) return s;
+        int n = System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < n; i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            var found = FindDescendantScrollViewer(child);
+            if (found != null) return found;
+        }
+        return null;
     }
 
     private ListBox? ActiveSelector =>
