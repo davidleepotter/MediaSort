@@ -623,29 +623,45 @@
                                                      that appeared when async thumbnail assigns triggered re-measure on
                                                      a Stretch=Uniform Image. RenderOptions.BitmapScalingMode=Linear
                                                      (cheaper than HighQuality) avoids per-layout WIC rescaling. -->
-                                                <!-- (UX R5) Smooth fade-in when the thumbnail decode finishes:
-                                                     start at opacity 0 and run a 150ms ease-out animation when
-                                                     the Source binding fires TargetUpdated. Without this, tiles
-                                                     pop in jarringly as the probe completes. The trigger fires
-                                                     on every binding update including container recycling, but
-                                                     for already-loaded thumbnails Source is set synchronously so
-                                                     the brief 150ms fade reads as a tasteful flourish rather
-                                                     than a stutter. -->
-                                                <Image Source="{Binding Thumbnail, NotifyOnTargetUpdated=True}" Stretch="Uniform"
+                                                <!-- (UX R5) Smooth fade-in when the thumbnail decode finishes.
+                                                     Use a DataTrigger on Thumbnail==null so the visual state is
+                                                     driven by the bound value rather than a one-shot Binding.TargetUpdated
+                                                     event. The previous EventTrigger approach broke when WPF's
+                                                     virtualizing panel recycled containers across folder switches:
+                                                     if the new MediaItem's Thumbnail was assigned synchronously
+                                                     (already in memory cache), TargetUpdated did not fire and the
+                                                     Image stayed at Opacity=0 forever — looking like a missing thumb.
+                                                     With a Style/DataTrigger, every time the bound Thumbnail flips
+                                                     from null to non-null the fade-in plays, and on entry where
+                                                     Thumbnail is already non-null the default Opacity=1 is in effect. -->
+                                                <Image Source="{Binding Thumbnail}" Stretch="Uniform"
                                                        UseLayoutRounding="True" SnapsToDevicePixels="True"
                                                        RenderOptions.BitmapScalingMode="Linear"
-                                                       RenderOptions.EdgeMode="Aliased"
-                                                       Opacity="0">
-                                                    <Image.Triggers>
-                                                        <EventTrigger RoutedEvent="Binding.TargetUpdated">
-                                                            <BeginStoryboard>
-                                                                <Storyboard>
-                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                                     From="0" To="1" Duration="0:0:0.15"/>
-                                                                </Storyboard>
-                                                            </BeginStoryboard>
-                                                        </EventTrigger>
-                                                    </Image.Triggers>
+                                                       RenderOptions.EdgeMode="Aliased">
+                                                    <Image.Style>
+                                                        <Style TargetType="Image">
+                                                            <!-- Steady state is fully visible. When Thumbnail is null
+                                                                 the Image has no Source and renders nothing anyway,
+                                                                 so the glyph placeholder behind it shows through. -->
+                                                            <Setter Property="Opacity" Value="1"/>
+                                                            <Style.Triggers>
+                                                                <!-- Fade in 0 → 1 over 150ms whenever Thumbnail flips
+                                                                     from null to non-null (NullVis returns Visible
+                                                                     when value is non-null). The Storyboard auto-stops
+                                                                     at To=1 so the steady-state Setter takes over. -->
+                                                                <DataTrigger Binding="{Binding Thumbnail, Converter={StaticResource NullVis}}" Value="Visible">
+                                                                    <DataTrigger.EnterActions>
+                                                                        <BeginStoryboard>
+                                                                            <Storyboard>
+                                                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                                 From="0" To="1" Duration="0:0:0.15"/>
+                                                                            </Storyboard>
+                                                                        </BeginStoryboard>
+                                                                    </DataTrigger.EnterActions>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Image.Style>
                                                 </Image>
                                                 <TextBlock Text="🎬" FontSize="32"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
