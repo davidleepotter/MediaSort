@@ -59,14 +59,28 @@
   <Target Name="SignMediaSortExe"
           AfterTargets="Build"
           Condition="'$(Configuration)' == 'Release' AND '$(OS)' == 'Windows_NT' AND '$(SkipCodeSign)' != 'true' AND Exists('$(SignPfxPath)')">
-    <!-- Locate signtool.exe from the latest installed Windows 10/11 SDK. -->
+    <!--
+      Locate signtool.exe from the latest installed Windows 10/11 SDK.
+      Strategy: glob all candidates, then pick the one with the highest
+      directory name (SDK builds sort lexicographically by version, so the
+      last one wins). We do the "pick last" via a tiny inline property
+      function — easier to reason about than nested $([MSBuild]::...) calls.
+    -->
     <ItemGroup>
       <_SignToolCandidate Include="$(MSBuildProgramFiles32)\Windows Kits\10\bin\**\x64\signtool.exe" />
     </ItemGroup>
+
     <PropertyGroup>
-      <_SignToolPath>@(_SignToolCandidate->'%(FullPath)')</_SignToolPath>
-      <!-- Pick the lexicographically-last entry (newest SDK build folder). -->
-      <_SignToolPath>$([System.String]::Copy('$(_SignToolPath)').Split(';')[$([MSBuild]::Subtract($([System.String]::Copy('$(_SignToolPath)').Split(';').Length), 1))])</_SignToolPath>
+      <_SignToolList>@(_SignToolCandidate->'%(FullPath)')</_SignToolList>
+      <_SignToolLastSep>$([System.String]::Copy('$(_SignToolList)').LastIndexOf(';'))</_SignToolLastSep>
+    </PropertyGroup>
+
+    <!-- If LastIndexOf returns -1, there's only one (or zero) candidates → use the whole string. -->
+    <PropertyGroup Condition="'$(_SignToolLastSep)' == '-1'">
+      <_SignToolPath>$(_SignToolList)</_SignToolPath>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(_SignToolLastSep)' != '-1'">
+      <_SignToolPath>$([System.String]::Copy('$(_SignToolList)').Substring($([MSBuild]::Add($(_SignToolLastSep), 1))))</_SignToolPath>
     </PropertyGroup>
 
     <Message Text="CodeSign: tool=$(_SignToolPath)" Importance="high" />
