@@ -51,6 +51,14 @@ public partial class MainWindow : Window
     private bool _suppressVideoScrub;
     private bool _initializing = true; // suppress SaveSettings during startup so SelectionChanged etc. don't wipe the file before destinations are populated
 
+    // True from initial source-folder load until the FIRST post-probe re-sort
+    // completes. While true, ApplySort and probe-completion handlers must pin
+    // selection to index 0 (the visible top of the list) instead of restoring
+    // the previously-selected item, so the app reliably opens with item #1
+    // selected even when sort key is Aspect/Duration (which only get final
+    // ordering after probe completes and reorders the list).
+    private bool _pinSelectionToTopOnNextSort = false;
+
     private LibVLC? _libVlc;
     private MediaPlayer? _mediaPlayer;
     private DispatcherTimer? _videoTimer;
@@ -705,6 +713,19 @@ public partial class MainWindow : Window
         MediaItems.Clear();
         foreach (var m in sorted) MediaItems.Add(m);
         _suppressSelectionUpdate = false;
+
+        // On cold startup, the user expects to see item #1 selected at the top of
+        // the list. RestoreSelection would normally follow the previously-selected
+        // item to its new sorted position, which on Aspect/Duration sorts ends up
+        // somewhere mid-list once probe completes. Pin to index 0 instead.
+        if (_pinSelectionToTopOnNextSort)
+        {
+            _pinSelectionToTopOnNextSort = false;
+            if (MediaItems.Count > 0) SelectIndex(0);
+            ScrollSelectorToTopDeferred();
+            UpdatePositionDisplay();
+            return;
+        }
 
         // Restore the full multi-selection.
         RestoreSelection(previouslySelected, primary);
@@ -1557,6 +1578,12 @@ public partial class MainWindow : Window
             // ignore an early ScrollIntoView and leave the viewport scrolled to
             // wherever a previous selection left it.
             ScrollSelectorToTopDeferred();
+
+            // For Aspect/Duration sort, the probe completion will re-sort once
+            // dimensions/durations are filled in. ApplySort would normally follow
+            // the previously-selected item to its new position; flag it so the
+            // selection stays pinned to index 0 (visible top) instead.
+            _pinSelectionToTopOnNextSort = true;
         }
         else ClearPreview();
 
@@ -1844,6 +1871,15 @@ public partial class MainWindow : Window
                 {
                     if (_settings.SortKey == SortKey.Aspect || _settings.SortKey == SortKey.Duration)
                         ApplySort();
+                    else if (_pinSelectionToTopOnNextSort && MediaItems.Count > 0)
+                    {
+                        // No re-sort needed (Name/Modified/etc.) but we still want
+                        // to clear the cold-startup pin and ensure the list visibly
+                        // begins at the top.
+                        _pinSelectionToTopOnNextSort = false;
+                        SelectIndex(0);
+                        ScrollSelectorToTopDeferred();
+                    }
 
                     if (reportCompletion)
                     {
