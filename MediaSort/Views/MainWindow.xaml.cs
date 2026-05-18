@@ -5266,7 +5266,35 @@ public partial class MainWindow : Window
             ApplyThumbnailSize();
             ApplyDestButtonFonts();
             ApplyDestButtonSize();
-            if (!string.IsNullOrWhiteSpace(_settings.SourceFolder)
+
+            // Sync MainWindow's in-pane RecursiveCheck from the value the
+            // Settings dialog just wrote into _settings.RecursiveScan.
+            //
+            // Why this is needed: SaveSettings() below writes
+            // _settings.RecursiveScan = RecursiveCheck.IsChecked == true,
+            // so if the dialog flipped the flag but RecursiveCheck wasn't
+            // updated, SaveSettings() would silently clobber the new value
+            // back to the stale checkbox state. That is the "I checked Scan
+            // subfolders, clicked OK, and it didn't save" bug.
+            //
+            // The Recursive_Changed handler on RecursiveCheck does three
+            // things: write _settings.RecursiveScan, kick off a rescan, and
+            // call SaveSettings(). Letting it fire here is intentional --
+            // it gives us a fresh scan with the new mode for free, and the
+            // SaveSettings() call below becomes a redundant no-op (cheap).
+            bool desired = _settings.RecursiveScan;
+            bool recursiveChanged = (RecursiveCheck.IsChecked == true) != desired;
+            if (recursiveChanged)
+            {
+                // This fires Recursive_Changed, which itself calls
+                // SetSourceFolder + SaveSettings. No extra work needed here.
+                RecursiveCheck.IsChecked = desired;
+            }
+
+            // Source-folder change handling (existing behavior). Skip the
+            // rescan if Recursive_Changed already did it just above.
+            if (!recursiveChanged
+                && !string.IsNullOrWhiteSpace(_settings.SourceFolder)
                 && _settings.SourceFolder != SourcePathText.Text)
             {
                 SetSourceFolder(_settings.SourceFolder);
