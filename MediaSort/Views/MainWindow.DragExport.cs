@@ -46,6 +46,19 @@ using System.Windows.Input;
 using System.Windows.Media;
 using MediaSort.Models;
 using MediaSort.Services;
+// Disambiguate WPF vs WinForms types. The main project has UseWindowsForms=true
+// for the legacy folder-browser dialog, which drags System.Windows.Forms into
+// scope. Without these aliases MouseEventArgs and Point are ambiguous.
+using MouseEventArgs = System.Windows.Input.MouseEventArgs;
+using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
+using Point = System.Windows.Point;
+using Cursor = System.Windows.Input.Cursor;
+using Cursors = System.Windows.Input.Cursors;
+using CheckBox = System.Windows.Controls.CheckBox;
+using DataObject = System.Windows.DataObject;
+using DragDrop = System.Windows.DragDrop;
+using DragDropEffects = System.Windows.DragDropEffects;
+using DataFormats = System.Windows.DataFormats;
 
 namespace MediaSort.Views;
 
