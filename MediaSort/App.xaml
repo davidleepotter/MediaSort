@@ -409,7 +409,7 @@
                                        HorizontalAlignment="Right"
                                        Margin="0,0,-4,0"
                                        Cursor="SizeWE"
-                                       Style="{StaticResource {ComponentResourceKey TypeInTargetAssembly={x:Type GridViewColumnHeader}, ResourceId=GridViewColumnHeaderGripper}}"/>
+                                       Style="{DynamicResource {ComponentResourceKey TypeInTargetAssembly={x:Type GridViewColumnHeader}, ResourceId=GridViewColumnHeaderGripper}}"/>
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
