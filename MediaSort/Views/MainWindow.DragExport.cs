@@ -59,6 +59,7 @@ using DataObject = System.Windows.DataObject;
 using DragDrop = System.Windows.DragDrop;
 using DragDropEffects = System.Windows.DragDropEffects;
 using DataFormats = System.Windows.DataFormats;
+using ScrollBar = System.Windows.Controls.Primitives.ScrollBar;
 
 namespace MediaSort.Views;
 
