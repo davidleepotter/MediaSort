@@ -76,8 +76,12 @@
                 <StackPanel Orientation="Horizontal" Margin="6,4,6,2">
                     <Button Content="Pick Source Folder..." Style="{StaticResource SourceToolButton}" Click="PickSource_Click"
                             ToolTip="Choose the folder MediaSort will scan for media"/>
+                    <CheckBox x:Name="RecursiveCheck" Content="Recursive"
+                              VerticalAlignment="Center" Margin="8,0,0,0"
+                              Checked="Recursive_Changed" Unchecked="Recursive_Changed"
+                              ToolTip="Include subfolders when scanning the source folder"/>
                     <Button x:Name="RecentSourceButton" Content="Recent ▾" Style="{StaticResource SourceToolButton}"
-                            Margin="4,0,0,0" Click="RecentSource_Click"
+                            Margin="8,0,0,0" Click="RecentSource_Click"
                             ToolTip="Switch to a recently-used source folder"/>
                     <TextBlock x:Name="SourcePathText" Text="(no source folder)"
                                VerticalAlignment="Center" Margin="10,0"
@@ -290,10 +294,7 @@
                                     <ComboBoxItem Content="Delete"/>
                                 </ComboBox>
                             </StackPanel>
-                            <CheckBox x:Name="RecursiveCheck" Content="Recursive"
-                                      Style="{StaticResource SourceFieldCheck}"
-                                      Checked="Recursive_Changed" Unchecked="Recursive_Changed"
-                                      ToolTip="Include subfolders when scanning the source folder"/>
+                            <!-- (v1.0.168) Recursive checkbox moved to the top toolbar next to 'Pick Source Folder...' -->
                         </WrapPanel>
                     </Border>
 
