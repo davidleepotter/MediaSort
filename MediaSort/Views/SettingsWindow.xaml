@@ -42,9 +42,13 @@
                           Foreground="{DynamicResource PanelForeground}"
                           ToolTip="Off by default. Skips files/folders with the Hidden or System attribute (e.g. AppData, $RECYCLE.BIN, .git)."/>
 
-                <CheckBox x:Name="AutoAdvanceCheck" Content="Auto-advance to next item after move" Margin="0,0,0,16"
+                <CheckBox x:Name="AutoAdvanceCheck" Content="Auto-advance to next item after move" Margin="0,0,0,8"
                           Foreground="{DynamicResource PanelForeground}"
                           ToolTip="After sending a file to a destination, automatically select the next item"/>
+
+                <CheckBox x:Name="ExportDragDropCheck" Content="Drag files out to Explorer and other apps" Margin="0,0,0,16"
+                          Foreground="{DynamicResource PanelForeground}"
+                          ToolTip="When on, you can grab a thumbnail or list row and drag it out of MediaSort to copy the file into Explorer, Photoshop, a chat client, etc."/>
 
                 <Grid Margin="0,0,0,8">
                     <Grid.ColumnDefinitions>

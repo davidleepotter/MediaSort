@@ -199,6 +199,17 @@ public class AppSettings
     /// <summary>Overall size of destination buttons (Compact / Normal / Large).
     /// Drives MinHeight and inner Padding via DynamicResources.</summary>
     public DestButtonSizeMode DestButtonSize { get; set; } = DestButtonSizeMode.Normal;
+
+    /// <summary>
+    /// Whether holding the left mouse button on a media item (or the preview
+    /// image) and dragging out of MediaSort initiates a Windows file-drop drag.
+    /// The destination application (Explorer, Photoshop, web upload widget,
+    /// chat client, etc.) decides Copy vs Move; MediaSort always offers Copy
+    /// so the source file is never silently moved/deleted by the OS shell.
+    /// Default ON; users with high-precision touchpads who accidentally
+    /// trigger drags during click-select can flip this off in Settings.
+    /// </summary>
+    public bool EnableExportDragDrop { get; set; } = true;
 }
 
 public enum DestButtonSizeMode

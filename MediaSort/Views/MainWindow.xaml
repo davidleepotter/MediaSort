@@ -488,7 +488,9 @@
                                  AllowDrop="True"
                                  DragEnter="MediaList_DragEnter"
                                  DragOver="MediaList_DragOver"
-                                 Drop="MediaList_Drop">
+                                 Drop="MediaList_Drop"
+                                 PreviewMouseLeftButtonDown="MediaList_PreviewMouseLeftButtonDown"
+                                 PreviewMouseMove="MediaList_PreviewMouseMove">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
@@ -521,7 +523,9 @@
                                   AllowDrop="True"
                                   DragEnter="MediaList_DragEnter"
                                   DragOver="MediaList_DragOver"
-                                  Drop="MediaList_Drop">
+                                  Drop="MediaList_Drop"
+                                  PreviewMouseLeftButtonDown="MediaList_PreviewMouseLeftButtonDown"
+                                  PreviewMouseMove="MediaList_PreviewMouseMove">
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
                                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
@@ -587,7 +591,9 @@
                                  AllowDrop="True"
                                  DragEnter="MediaList_DragEnter"
                                  DragOver="MediaList_DragOver"
-                                 Drop="MediaList_Drop">
+                                 Drop="MediaList_Drop"
+                                 PreviewMouseLeftButtonDown="MediaList_PreviewMouseLeftButtonDown"
+                                 PreviewMouseMove="MediaList_PreviewMouseMove">
 
                             <!-- Use the well-tested WpfToolkit VirtualizingWrapPanel package.
                                  The stock WrapPanel doesn't virtualize; with 1,938 items every
@@ -819,7 +825,9 @@
                                    MouseWheel="PreviewImage_MouseWheel"
                                    MouseLeftButtonDown="PreviewImage_MouseDown"
                                    MouseLeftButtonUp="PreviewImage_MouseUp"
-                                   MouseMove="PreviewImage_MouseMove">
+                                   MouseMove="PreviewImage_MouseMove"
+                                   PreviewMouseLeftButtonDown="PreviewImage_PreviewMouseLeftButtonDown"
+                                   PreviewMouseMove="PreviewImage_PreviewMouseMove">
                                 <Image.LayoutTransform>
                                     <!-- Default zoom is 90% so loaded images don't push against the
                                          viewport edges; user can press 0 to reset (also 90%) or

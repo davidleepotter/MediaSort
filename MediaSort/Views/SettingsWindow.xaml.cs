@@ -27,6 +27,7 @@ public partial class SettingsWindow : Window
         IncludeHiddenCheck.IsChecked = settings.IncludeHiddenFiles;
         RefreshThumbCacheStats();
         AutoAdvanceCheck.IsChecked = settings.AutoAdvanceAfterMove;
+        ExportDragDropCheck.IsChecked = settings.EnableExportDragDrop;
         ViewModeCombo.SelectedIndex = (int)settings.ViewMode;
         ConflictPolicyCombo.SelectedIndex = (int)settings.ConflictPolicy;
         ThemeCombo.SelectedIndex = (int)settings.ThemeOverride;
@@ -191,6 +192,7 @@ public partial class SettingsWindow : Window
         _settings.RecursiveScan = RecursiveCheck.IsChecked == true;
         _settings.IncludeHiddenFiles = IncludeHiddenCheck.IsChecked == true;
         _settings.AutoAdvanceAfterMove = AutoAdvanceCheck.IsChecked == true;
+        _settings.EnableExportDragDrop = ExportDragDropCheck.IsChecked == true;
         _settings.ViewMode = (ViewMode)ViewModeCombo.SelectedIndex;
         _settings.ConflictPolicy = (ConflictPolicySetting)ConflictPolicyCombo.SelectedIndex;
         _settings.ThemeOverride = (ThemeOverride)ThemeCombo.SelectedIndex;
