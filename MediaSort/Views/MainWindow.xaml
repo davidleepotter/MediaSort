@@ -570,6 +570,14 @@
                                     <GridViewColumn Width="120" DisplayMemberBinding="{Binding CreatedDate, StringFormat=yyyy-MM-dd HH:mm}">
                                         <GridViewColumnHeader Content="Created" Tag="Created" Click="GridHeader_Click"/>
                                     </GridViewColumn>
+                                    <!-- 2026-05-18 (v2.0.3): Full Path column. Rightmost
+                                         by spec. ToolTip mirrors the cell so users can
+                                         hover-read deep paths without resizing. Sortable
+                                         (Tag="FullPath" feeds GridHeader_Click). -->
+                                    <GridViewColumn Width="320" DisplayMemberBinding="{Binding FullPath}">
+                                        <GridViewColumnHeader Content="Full Path" Tag="FullPath" Click="GridHeader_Click"
+                                                              ToolTip="Full filesystem path. Drag the right edge to resize."/>
+                                    </GridViewColumn>
                                 </GridView>
                             </ListView.View>
                         </ListView>
